@@ -1,0 +1,16 @@
+html/
+.DS_Store
+bin/
+CMakeFiles/
+CMakeScripts/
+*.build/
+*.xcodeproj/
+*.swp
+*.swo
+*.a
+*.pyc
+cmake_install.cmake
+CMakeCache.txt
+Makefile
+CPackSourceConfig.cmake
+CPackConfig.cmake
