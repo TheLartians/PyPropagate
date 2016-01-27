@@ -13,6 +13,17 @@ FILE (GLOB sources ${PROJECT_SOURCE_DIR}/*.cpp)
 FILE (GLOB headers ${PROJECT_SOURCE_DIR}/*.h)
 FILE (GLOB_RECURSE pythons ${PROJECT_PYSOURCE_DIR}/*.py)
 
+# group python sources
+foreach (resource ${pythons})
+  get_filename_component(currentdir ${resource} PATH)
+  list (APPEND includeDirs ${currentdir})
+  get_filename_component(relative ${currentdir} PATH)
+  STRING(REGEX REPLACE ${CMAKE_SOURCE_DIR} "" groupname "${currentdir}")
+  STRING(REGEX REPLACE "/" "\\\\" groupname "${groupname}")
+  source_group(${groupname} FILES ${resource})
+endforeach()
+
+
 # ---- Lars libs ----
 
 ADD_SUBDIRECTORY(${PROJECT_LIBS_DIR}/lars)
@@ -29,7 +40,6 @@ LINK_LIBRARIES(${Boost_LIBRARIES} ${PYTHON_LIBRARIES}) # Deprecated but so conve
 
 INCLUDE_DIRECTORIES(${PROJECT_LIBS_DIR})
 
-LIST(REMOVE_ITEM sources ${PROJECT_SOURCE_DIR}/main.cpp)
 LIST(REMOVE_ITEM sources ${PROJECT_SOURCE_DIR}/python.cpp)
 
 add_definitions(-std=c++11)
@@ -37,14 +47,12 @@ add_definitions(-std=c++11)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC"  )
 add_library(FD STATIC ${sources} ${headers} )
 
-PYTHON_ADD_MODULE(_finitedifferences ${PROJECT_SOURCE_DIR}/python.cpp ${pythons})
-add_executable(FiniteDifferences ${PROJECT_SOURCE_DIR}/main.cpp)
+PYTHON_ADD_MODULE(_pypropagate ${PROJECT_SOURCE_DIR}/python.cpp ${pythons})
 
-TARGET_LINK_LIBRARIES(_finitedifferences FD)
-TARGET_LINK_LIBRARIES(FiniteDifferences FD)
+TARGET_LINK_LIBRARIES(_pypropagate FD)
 
 # ---- install ----
-install(TARGETS _finitedifferences FD DESTINATION pyfinitedifferences_3_2)
+install(TARGETS _pypropagate DESTINATION pypropagate)
 # install(FILES ${pythons} DESTINATION pyfinitedifferences_3_2)
-install(DIRECTORY ${PROJECT_PYSOURCE_DIR}/ DESTINATION pyfinitedifferences_3_2)
+install(DIRECTORY ${PROJECT_PYSOURCE_DIR}/ DESTINATION pypropagate)
 

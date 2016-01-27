@@ -1,3 +1,5 @@
+
+
 class Category(object):
 
     """Category class for CategorizedDictionary."""
@@ -56,9 +58,15 @@ class Category(object):
         if len(self.__doc__)>0:
             res += [self.__doc__]
         if len(self._keys) > 0:
+
+            def shorten_value(v):
+                s = str(v)
+                if len(s) < 13: return s
+                return '%s...' % s[0:10]
+
             res += ["Keys:\n-----"]
             res += ["%s:\t%s" % 
-                    (("%s = %s" % (name,self.get_value(name))) if self.get_value(name)!=None else name,
+                    (("%s = %s" % (name,shorten_value(self.get_value(name)))) if self.get_value(name)!=None else name,
                      self._key_doc[name] if name in self._key_doc 
                                          else self._keys[name]) for name in self._keys]
         if len(self.subcategories) > 0: res += ["Subcategories:\n--------------"]
@@ -85,7 +93,7 @@ class Category(object):
             import warnings
             warnings.warn("overwriting attribute %s" % name, UserWarning)
         self.subcategories[name] = category
-        super(Category,self).__setattr__(name,category)
+        self._set_attribute(name,category)
     
     def create_category(self,name,info=None):
         """Creates a named subcategory."""
@@ -152,7 +160,10 @@ class Category(object):
         self._keys[name] = key
         if info!=None:
             self._key_doc[name] = info
-        super(Category,self).__setattr__(name, key)
+        self._set_attribute(name,key)
+
+    def _set_attribute(self,attr,value):
+        super(Category,self).__setattr__(attr, value)
         
     def remove_key(self,key):
         """Removes a key from the category. The global key still remains valid."""
@@ -198,7 +209,7 @@ class Category(object):
         
     def __setattr__(self, item, value):
         if not self.__dict__.has_key('_Category__initialised'):
-            return super(Category,self).__setattr__(item, value)
+            return self._set_attribute(item, value)
         is_key = self._keys.has_key(item)
         if not is_key:
             if hasattr(self,item):

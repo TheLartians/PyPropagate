@@ -1,146 +1,178 @@
 
-import units
-import sympy
-from .coordinate_ndarray import CoordinateNDArray
+
+
+def add_simulation_box_symbols(settings):
+
+    sb = settings.create_category("simulation_box",info="parameters and dimensions of the simulation box")
+
+    from pycas import Symbol,symbols,Function,pi,I,Types
+
+    x = sb.create_key("x",Symbol("x",type = Types.Real),info="field coordinate for 1D simulations")
+    y = sb.create_key("y",Symbol("y",type = Types.Real),info="second coordinate for 2D simulations")
+    z = sb.create_key("z",Symbol("z",type = Types.Real),info="propagation direction")
+
+    sb.x = Symbol("x",type = Types.Real)
+    sb.y = Symbol("y",type = Types.Real)
+    sb.z = Symbol("z",type = Types.Real)
+
+    nx = sb.create_key("nx", Symbol("n_x",type = Types.Integer,positive=True),info="voxels in x direction")
+    ny = sb.create_key("ny", Symbol("n_y",type = Types.Integer,positive=True),info="voxels in y direction")
+    nz = sb.create_key("nz", Symbol("n_z",type = Types.Integer,positive=True),info="voxels in z direction")
+
+    sx = sb.create_key("sx",Symbol("s_x",type = Types.Real,positive=True),info="simulation box size in x direction")
+    sy = sb.create_key("sy",Symbol("s_y",type = Types.Real,positive=True),info="simulation box size in y direction")
+    sz = sb.create_key("sz",Symbol("s_z",type = Types.Real,positive=True),info="simulation box size in z direction")
+
+    sb.create_key("dx",Symbol("d_x",type = Types.Real,positive=True),info="voxel size in x direction")
+    sb.create_key("dy",Symbol("d_y",type = Types.Real,positive=True),info="voxel size in y direction")
+    settings.simulation_box.create_key("dz",Symbol("d_z",type = Types.Real,positive=True),info="voxel size in z direction")
+
+    xmin = sb.create_key("xmin", Symbol("x_min",type = Types.Real),info="smallest x value inside simulation box")
+    xmax = sb.create_key("xmax", Symbol("x_max",type = Types.Real),info="largest x value inside simulation box")
+    ymin = sb.create_key("ymin", Symbol("y_min",type = Types.Real),info="smallest y value inside simulation box")
+    ymax = sb.create_key("ymax", Symbol("y_max",type = Types.Real),info="largest y value inside simulation box")
+    zmin = sb.create_key("zmin", Symbol("z_min",type = Types.Real),info="smallest z value inside simulation box")
+    zmax = sb.create_key("zmax", Symbol("z_max",type = Types.Real),info="largest z value inside simulation box")
+
+    sb.dx = sx/nx
+    sb.dy = sy/ny
+    sb.dz = sz/nz
+
+    sb.sx = xmax - xmin
+    sb.sy = ymax - ymin
+    sb.sz = zmax - zmin
+    sb.lock('sx','defined by xmin and xmax')
+    sb.lock('sy','defined by ymin and ymax')
+    sb.lock('sz','defined by zmin and zmax')
+
+    sb.create_key("downscale", Symbol("\mathrm{downscale}"), 1,info="factor by which the resulting field of the simulation will be scaled down")
+
+    sb.lock()
+
+    def set_physical_size(sx,sy,sz):
+        'Sets the physical box size of the simulation in x, y and z direction'
+        sb.unlock('xmin')
+        sb.unlock('xmax')
+        sb.unlock('ymin')
+        sb.unlock('ymax')
+        sb.unlock('zmin')
+        sb.unlock('zmax')
+        sb.unlock('sx')
+        sb.unlock('sy')
+        sb.unlock('sz')
+
+        sb.sx,sb.sy,sb.sz = (sx,sy,sz)
+        sb.xmin = -sb.sx/2
+        sb.ymin = -sb.sy/2
+        sb.zmin = 0
+        sb.xmax = sb.sx/2
+        sb.ymax = sb.sy/2
+        sb.zmax = sb.sz
+
+        sb.lock('xmin','defined by sx')
+        sb.lock('xmax','defined by sx')
+        sb.lock('ymin','defined by sy')
+        sb.lock('ymax','defined by sy')
+        sb.lock('zmin','defined by sz')
+        sb.lock('zmax','defined by sz')
+
+    def set_voxel_size(nx,ny,nz):
+        'Sets the voxe size of the simulation in x, y and z direction'
+        voxel_size = (nx,ny,nz)
+        sb.nx,sb.ny,sb.nz = voxel_size
+
+    def set_simulation_box(physical_size,voxel_size):
+        """Sets the simulation box size using the physical_size and voxel_size arguments which are 3-tupels containing the simulation box dimensions in x, y, and z directions."""
+        set_physical_size(*physical_size)
+        set_voxel_size(*voxel_size)
+
+    settings._set_attribute('set_physical_size', set_physical_size)
+    settings._set_attribute('set_voxel_size', set_voxel_size)
+    settings._set_attribute('set_simulation_box', set_simulation_box)
+
+def add_paraxial_equation_symbols(settings):
+    from pycas import Symbol,Function,Types
+
+    pe = settings.create_category("paraxial_equation",info="parameters of the paraxial differential equation")
+    s = settings.simulation_box
+
+    pe.create_key("F",Function("F")(s.x,s.y,s.z),info="F(x,y,z) Parameter of the differential equation")
+    pe.create_key("A",Symbol("A",type=Types.Complex),info="A Parameter of the differential equation")
+
+    pe.create_key("u0",Function("u_0")(s.x,s.y,s.z),info="field initial condition")
+    pe.create_key("u_boundary",Function("u_boundary")(s.x,s.y,s.z),info="field boundary condition")
+
+    pe.lock()
+
+def create_paraxial_settings():
+    from .settings import Settings
+    settings = Settings('settings for solving the paraxial differential equation')
+    add_simulation_box_symbols(settings)
+    settings.simulation_box.export(settings.symbols)
+    add_paraxial_equation_symbols(settings)
+    settings.paraxial_equation.export(settings.symbols)
+    return settings
+
+def add_wave_equation_symbols(settings):
+    import units
+    from pycas import Function,Symbol,Types,pi
+
+    s = settings.simulation_box
+
+    we = settings.create_category("wave_equation",info="parameters for solving the wave equation")
+
+    n = we.create_key("n",Function("n")(s.x,s.y,s.z))
+    k = we.create_key("k",Symbol("k",type = Types.Complex))
+    wavelength = we.create_key("wavelength",Symbol(r"lambda",type = Types.Real,positive=True))
+
+    we.wavelength = 2*pi/k
+    omega = we.create_key("omega",Symbol(r"omega",type = Types.Real,positive=True),2*pi/wavelength)
+
+    we.lock('wavelength','defined by wave number')
+    we.lock('omega','defined by wavelength')
+
+    def set_energy(value):
+        if not we.has_name('E'):
+            E = we.create_key("E",Symbol("E",type = Types.Real,positive=True),info='Wave energy')
+        we.E = value
+        we.k = E / (units.hbar*units.c)
+        we.lock('k','defined by energy')
+
+    we._set_attribute('set_energy',set_energy)
+
+def create_paraxial_wave_equation_settings():
+
+    from .settings import Settings
+    settings = Settings('settings for solving the paraxial differential equation')
+
+    add_simulation_box_symbols(settings)
+    settings.simulation_box.export(settings.symbols)
+
+    add_wave_equation_symbols(settings)
+    settings.wave_equation.export(settings.symbols)
+
+    add_paraxial_equation_symbols(settings)
+    settings.paraxial_equation.export(settings.symbols)
+
+    from pycas import I
+
+    pe = settings.paraxial_equation
+    s = settings.symbols
+    pe.F = -I*s.k/2*(s.n**2-1)
+    pe.A = -I/(2*s.k)
+
+    pe.lock('F','defined by wave equation')
+    pe.lock('A','defined by wave equation')
+    s.remove_name("F")
+    s.remove_name("A")
+
+    return settings
 
 def set_plane_wave(settings):
-    """Sets the intial conditions to a plane wave with intensity 1. 
+    """Sets the intial conditions to a plane wave with intensity 1.
     The boundary are set to the index of refraction at z=0."""
-    
-    from sympy import exp
+    from pycas import exp
+
     z = settings.simulation_box.z
     settings.wave_equation.u0 = 1
     settings.wave_equation.u0_boundary = exp(settings.finitedifferences.F.subs(z,0)*z)
-
-def add_wave_equation_symbols(settings):
-    
-    from sympy import Symbol,Function,I,pi,exp
-    s = settings.simulation_box
-    
-    settings.create_category("wave_equation",info="parameters for solving the wave equation")
-    
-    m = settings.base_units.create_key("m",units.m,units.m/s.sx)
-
-    n = settings.wave_equation.create_key("n",Function("n")(s.x,s.y,s.z))
-    k = settings.wave_equation.create_key("k",Symbol("k",complex = True))
-    wavelength = settings.wave_equation.create_key("wavelength",Symbol(r"\lambda",real=True,positive=True))
-    omega = settings.wave_equation.create_key("omega",Symbol(r"\omega",real=True,positive=True),2*pi/wavelength)
-    E = settings.wave_equation.create_key("E",Symbol("E",real=True,positive=True))
-    
-    psi0 = settings.wave_equation.create_key("psi0",Function(r"\psi_0")(s.x,s.y,s.z))
-
-    if settings.has_category('symbols'):
-        settings.wave_equation.export(settings.symbols)
-    
-    hbar = settings.wave_equation.create_key("hbar",Symbol(r"\hbar",real=True),units.hbar)
-    
-    c = settings.wave_equation.create_key("c",Symbol("c",real=True),units.c)
-
-    if settings.has_category('finitedifferences'):
-        settings.finitedifferences.F = -I*k/2*(n**2-1)
-        settings.finitedifferences.A = -I/(2*k)
-        settings.finitedifferences.lock('F','defined by wave equation')
-        settings.finitedifferences.lock('A','defined by wave equation')
-
-        if settings.has_category('symbols'):
-            settings.symbols.remove_name("F")
-            settings.symbols.remove_name("A")
-        
-        settings.wave_equation.add_key('u0',settings.finitedifferences.u0,info = 'paraxial field')
-        settings.wave_equation.add_key('u0_boundary',settings.finitedifferences.u0_boundary,info = 'paraxial field boundary condition')
-        settings.wave_equation.psi0 = exp(-I*k*s.z)*settings.wave_equation.u0
-        settings.wave_equation.lock('psi0','defined by u0')
-        
-    settings.wave_equation.k = E / (hbar*c)
-    settings.wave_equation.wavelength = 2*pi/k
-    
-def add_finitedifference_symbols(settings):
-            
-    settings.create_category("finitedifferences",info="parameters of the differential equation")
-    s = settings.simulation_box
-    
-    from sympy import Symbol,Function
-
-    settings.finitedifferences.create_key("F",Function("F")(s.x,s.y,s.z),info="F(x,y,z) Parameter of the differential equation")
-    settings.finitedifferences.create_key("A",Symbol("A",complex=True),info="A Parameter of the differential equation")
-    settings.finitedifferences.create_key("u0",Function("u_0")(s.x,s.y,s.z),info="field initial condition")
-    settings.finitedifferences.create_key("u0_boundary",Function("u_{0,\mathrm{boundary}}")(s.x,s.y,s.z),info="field boundary condition")
-    
-    settings.finitedifferences.lock()
-
-    if settings.has_category('symbols'):
-        settings.finitedifferences.export(settings.symbols)
-
-def add_propagator_symbols(settings):
-                
-    from categorized_dictionary import Category
-        
-    settings.create_category("simulation_box",info="parameters and dimensions of the simulation box")
-
-    from sympy import Symbol,symbols,Function,pi,I
-
-    x = settings.simulation_box.create_key("x",Symbol("x",real = True),info="field coordinate for 1D simulations")
-    y = settings.simulation_box.create_key("y",Symbol("y",real = True),info="second coordinate for 2D simulations")
-    z = settings.simulation_box.create_key("z",Symbol("z",real = True),info="propagation direction")
-    
-    settings.simulation_box.x = Symbol("x",real = True)
-    settings.simulation_box.y = Symbol("y",real = True)
-    settings.simulation_box.z = Symbol("z",real = True)
-
-    nx = settings.simulation_box.create_key("nx", Symbol("n_x",integer=True,positive=True),info="voxels in x direction")
-    ny = settings.simulation_box.create_key("ny", Symbol("n_y",integer=True,positive=True),info="voxels in y direction")
-    nz = settings.simulation_box.create_key("nz", Symbol("n_z",integer=True,positive=True),info="voxels in z direction")
-
-    sx = settings.simulation_box.create_key("sx",Symbol("s_x",real=True,positive=True),info="simulation box size in x direction")
-    sy = settings.simulation_box.create_key("sy",Symbol("s_y",real=True,positive=True),info="simulation box size in y direction")
-    sz = settings.simulation_box.create_key("sz",Symbol("s_z",real=True,positive=True),info="simulation box size in z direction")
-
-    settings.simulation_box.create_key("dx",Symbol("d_x",real=True,positive=True),info="voxel size in x direction")
-    settings.simulation_box.create_key("dy",Symbol("d_y",real=True,positive=True),info="voxel size in y direction")
-    settings.simulation_box.create_key("dz",Symbol("d_z",real=True,positive=True),info="voxel size in z direction")
-
-    xmin = settings.simulation_box.create_key("xmin", Symbol("x_\mathrm{min}",real=True),info="smallest x value inside simulation box")
-    xmax = settings.simulation_box.create_key("xmax", Symbol("x_\mathrm{max}",real=True),info="largest x value inside simulation box")
-    ymin = settings.simulation_box.create_key("ymin", Symbol("y_\mathrm{min}",real=True),info="smallest y value inside simulation box")
-    ymax = settings.simulation_box.create_key("ymax", Symbol("y_\mathrm{max}",real=True),info="largest y value inside simulation box")
-    zmin = settings.simulation_box.create_key("zmin", Symbol("z_\mathrm{min}",real=True),info="smallest z value inside simulation box")
-    zmax = settings.simulation_box.create_key("zmax", Symbol("z_\mathrm{max}",real=True),info="largest z value inside simulation box")
-    
-    settings.simulation_box.dx = sx/(nx-1)
-    settings.simulation_box.dy = sy/(ny-1)
-    settings.simulation_box.dz = sz/(nz-1)
-    
-    settings.simulation_box.sx = xmax - xmin
-    settings.simulation_box.sy = ymax - ymin
-    settings.simulation_box.sz = zmax - zmin
-    settings.simulation_box.lock('sx','defined by xmin and xmax')
-    settings.simulation_box.lock('sy','defined by ymin and ymax')
-    settings.simulation_box.lock('sz','defined by zmin and zmax')
-    
-    settings.simulation_box.create_key("downscale", Symbol("\mathrm{downscale}"), 1,info="factor by which the resulting field of the simulation will be scaled down")
-    
-    settings.simulation_box.lock()
-    
-    if settings.has_category('symbols'):
-        settings.simulation_box.export(settings.symbols)
-    
-    return settings
-
-def create_finitedifference_settings():
-    from settings import Settings
-    settings = Settings('settings for a finite difference simulation')
-    add_propagator_symbols(settings)
-    add_finitedifference_symbols(settings)
-    return settings
-        
-def as_wavelengths(field,settings):
-    """Will convert field boundries to wavelengths."""
-    s = settings.wave_equation
-    bounds = [[settings.get(b/s.wavelength,substitute_numeric=True)*s.wavelength for b in B] for B in field.bounds]
-    return CoordinateNDArray(field.data,bounds,field.axis,field.transform)
-    
-def as_meters(field,settings):
-    """Will convert field boundries to meters."""
-    field = field.soft_copy()
-    field.bounds = [[settings.get(b/units.m,substitute_numeric=True)*units.m for b in B] for B in field.bounds]
-    return field

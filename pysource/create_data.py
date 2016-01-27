@@ -1,4 +1,4 @@
-import _finitedifferences
+import _pypropagate
 from .compile_sympy import compile_sympy_expression,ctypes
 from .coordinate_ndarray import CoordinateNDArray
 

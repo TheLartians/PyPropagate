@@ -21,10 +21,7 @@ def get_metric_prefix(numbers):
     return (closest[1],10**closest[0])
 
 def get_unit(expr):
-    from sympy.core.mul import Mul
-    from sympy.physics.units import Unit
-    from sympy import Symbol
-    
+
     if not isinstance(expr,Mul):
         try:
             float(expr)
@@ -59,8 +56,7 @@ def get_unitless_bounds(array):
     
 def image_plot(carr,ax = None,figsize = None,title = None, **kwargs):
     import matplotlib.pyplot as plt
-    from sympy import latex
-    
+
     fig = None
     if ax == None:
         fig, ax = plt.subplots(figsize=figsize)
@@ -85,8 +81,7 @@ def image_plot(carr,ax = None,figsize = None,title = None, **kwargs):
 def line_plot(carr,ax = None,ylabel = None,figsize = None,title = None,**kwargs):
     import matplotlib.pyplot as plt
     import numpy as np
-    from sympy import latex
-    
+
     fig = None
     if ax == None:
         fig, ax = plt.subplots(figsize=figsize)

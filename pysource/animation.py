@@ -1,6 +1,6 @@
 
-from tempfile import NamedTemporaryFile
-import matplotlib.pyplot as plt
+#from tempfile import NamedTemporaryFile
+#import matplotlib.pyplot as plt
 
 VIDEO_TAG = """<video controls>
  <source src="data:video/x-m4v;base64,{0}" type="video/mp4">

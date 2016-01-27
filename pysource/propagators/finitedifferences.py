@@ -1,6 +1,6 @@
 
 from .propagator import Propagator
-from .._finitedifferences import finite_difference_1D,finite_difference_2D
+from .._pypropagate import finite_difference_1D,finite_difference_2D
 from ..coordinate_ndarray import CoordinateNDArray
 from ..compile_sympy import compile_sympy_expression,compile_sympy_expressions,ctypes
 import numpy

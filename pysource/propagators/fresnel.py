@@ -1,8 +1,7 @@
 
 from .propagator import Propagator
 from ..create_data import create_front_data,create_1D_front_data
-from ..compile_sympy import compile_sympy_expression
-from .._finitedifferences import create_2D_field_from_function,create_1D_field_from_function
+from .._pypropagate import create_2D_field_from_function,create_1D_field_from_function
 import numpy as np
 
 def fresnel_propagate( bitmap, z, k, (dx, dy) ):

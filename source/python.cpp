@@ -162,7 +162,7 @@ PyObject * create_1D_field_from_function(size_t f,unsigned nx,double xmin,double
 
 using namespace boost::python;
 
-BOOST_PYTHON_MODULE(_finitedifferences){
+BOOST_PYTHON_MODULE(_pypropagate){
   
   def("create_2D_field_from_function", create_2D_field_from_function);
   def("create_1D_field_from_function", create_1D_field_from_function);
