@@ -19,7 +19,7 @@ class Settings(CategorizedDictionary):
         
         if create_categories :
             self.create_category("numerics",info="pure numerical values")
-            self.create_category("base_units",info="conversions to unitless coordinates")
+            self.create_category("unitless",info="conversions to unitless coordinates")
             self.create_category("symbols",info="symbol aliases to frequently used symbols")
 
     def initialize(self):
@@ -56,7 +56,7 @@ class Settings(CategorizedDictionary):
         elif key in self.numerics.keys() and not is_numeric:
             self.numerics.remove_key(key)
 
-    def get(self,expr,numeric = False):
+    def get(self,expr,numeric = False,unitless = False):
         from pycas import Expression,RewriteEvaluator,ReplaceEvaluator,MultiEvaluator,Wildcard,S
         import units
 
@@ -76,21 +76,25 @@ class Settings(CategorizedDictionary):
 
             if isinstance(s,Expression) and isinstance(r,(Expression,int,float,complex)):
                 sr = S(r)
-
                 if s==sr or (not numeric and units.contains_unit(sr)):
                     continue
-
                 if s.is_function:
                     wc_args = {arg:Wildcard(arg.name) for arg in s.args}
                     rule_evaluator.add_rule(s.subs(wc_args),sr.subs(wc_args))
                 else:
                     replacement_evaluator.add_replacement(s,r)
 
-        return evaluator(expr).evaluate()
+        if unitless:
+            for s,r in self.unitless.dictionary().iteritems():
+                replacement_evaluator.add_replacement(s,r)
+
+        return evaluator(expr)
 
     def get_numeric(self,expr):
         return self.get(expr,numeric=True)
 
+    def get_unitless(self,expr):
+        return self.get(expr,numeric=True,unitless=True)
 
 
 

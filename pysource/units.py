@@ -64,3 +64,30 @@ def contains_unit(expr):
         if e in base_units:
             return True
     return False
+
+def get_unit(expr,only_base_units = False):
+    if expr.is_symbol:
+        if only_base_units:
+            if expr in base_units:
+                return expr
+        else:
+            return expr
+    if expr.function == pc.Multiplication:
+        units = []
+        for arg in expr.args:
+            u = get_unit(arg)
+            if u is not None:
+                units.append(u)
+        if len(units) == 0:
+            return None
+        return pc.Multiplication(*units)
+    if pc.Negative == expr.function:
+        return get_unit(expr.args[0])
+    if pc.Fraction == expr.function:
+            return pc.Fraction(get_unit(expr.args[0]))
+    if pc.Exponentiation == expr.function:
+        return pc.Exponentiation(get_unit(expr.args[0]),expr.args[1])
+    return None
+
+
+

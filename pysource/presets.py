@@ -133,10 +133,10 @@ def add_wave_equation_symbols(settings):
 
     def set_energy(value):
         if not we.has_name('E'):
-            E = we.create_key("E",Symbol("E",type = Types.Real,positive=True),info='Wave energy')
+            we.create_key("E",Symbol("E",type = Types.Real,positive=True),info='Wave energy')
+            we.k = we.E / (units.hbar*units.c)
+            we.lock('k','defined by energy')
         we.E = value
-        we.k = E / (units.hbar*units.c)
-        we.lock('k','defined by energy')
 
     we._set_attribute('set_energy',set_energy)
 
