@@ -12,7 +12,7 @@
 
 #import propagators
 
-#import pycas as pc
+import pycas as pc
 #import matplotlib.pyplot as plt
 #np = coordinate_ndarray.WrappedNumpy()
 

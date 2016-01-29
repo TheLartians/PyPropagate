@@ -56,7 +56,7 @@ class Settings(CategorizedDictionary):
         elif key in self.numerics.keys() and not is_numeric:
             self.numerics.remove_key(key)
 
-    def get(self,expr,numeric = False,unitless = False):
+    def get(self,expr,numeric = False,unitless = False,evaluate = True):
         from pycas import Expression,RewriteEvaluator,ReplaceEvaluator,MultiEvaluator,Wildcard,S
         import units
 
@@ -88,13 +88,18 @@ class Settings(CategorizedDictionary):
             for s,r in self.unitless.dictionary().iteritems():
                 replacement_evaluator.add_replacement(s,r)
 
-        return evaluator(expr)
+        res = evaluator(expr)
 
-    def get_numeric(self,expr):
-        return self.get(expr,numeric=True)
+        if evaluate == True:
+            res = res.evaluate()
 
-    def get_unitless(self,expr):
-        return self.get(expr,numeric=True,unitless=True)
+        return res
+
+    def get_numeric(self,expr,**kwargs):
+        return self.get(expr,numeric=True,**kwargs)
+
+    def get_unitless(self,expr,**kwargs):
+        return self.get(expr,numeric=True,unitless=True,**kwargs)
 
 
 
