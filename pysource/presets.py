@@ -76,6 +76,20 @@ def add_simulation_box_symbols(settings):
         sb.lock('zmin','defined by sz')
         sb.lock('zmax','defined by sz')
 
+        from units import get_unit
+        defined = set()
+
+        for s in (sx,sy,sz):
+            unit = get_unit(s)
+            if unit is None or unit in defined:
+                continue
+            defined.add(unit)
+            unit_name = str(unit)
+            if not settings.unitless.has_name(unit_name):
+                settings.unitless.create_key(unit_name,unit)
+            setattr(settings.unitless,unit_name,(unit/s).evaluate())
+
+
     def set_voxel_size(nx,ny,nz):
         'Sets the voxe size of the simulation in x, y and z direction'
         voxel_size = (nx,ny,nz)
@@ -86,9 +100,10 @@ def add_simulation_box_symbols(settings):
         set_physical_size(*physical_size)
         set_voxel_size(*voxel_size)
 
-    settings._set_attribute('set_physical_size', set_physical_size)
-    settings._set_attribute('set_voxel_size', set_voxel_size)
-    settings._set_attribute('set_simulation_box', set_simulation_box)
+    sb._set_attribute('set_physical_size', set_physical_size)
+    sb._set_attribute('set_voxel_size', set_voxel_size)
+    sb._set_attribute('set', set_simulation_box)
+
 
 def add_paraxial_equation_symbols(settings):
     from pycas import Symbol,Function,Types
@@ -134,6 +149,7 @@ def add_wave_equation_symbols(settings):
     def set_energy(value):
         if not we.has_name('E'):
             we.create_key("E",Symbol("E",type = Types.Real,positive=True),info='Wave energy')
+            settings.symbols.add_key("E",we.E)
             we.k = we.E / (units.hbar*units.c)
             we.lock('k','defined by energy')
         we.E = value

@@ -11,7 +11,7 @@ def add_metric_prefixes(name):
         globals()[p+name] = v*s
 
 def create_unit(name):
-    u = pc.Symbol("__si_base_unit_"+name,type=pc.Types.Real,positive=True,latex=r'\text{%s}' % name)
+    u = pc.Symbol("SI base unit "+name, type=pc.Types.Unit ,latex=r'\text{%s}' % name)
     globals()[name] = u
     base_units.add(u)
     add_metric_prefixes(name)
@@ -70,8 +70,11 @@ def get_unit(expr,only_base_units = False):
         if only_base_units:
             if expr in base_units:
                 return expr
+            return None
         else:
-            return expr
+            if pc.Type(expr).evaluate() == pc.Types.Unit:
+                return expr
+            return None
     if expr.function == pc.Multiplication:
         units = []
         for arg in expr.args:
@@ -84,9 +87,15 @@ def get_unit(expr,only_base_units = False):
     if pc.Negative == expr.function:
         return get_unit(expr.args[0])
     if pc.Fraction == expr.function:
-            return pc.Fraction(get_unit(expr.args[0]))
+        inner_unit = get_unit(expr.args[0])
+        if inner_unit is not None:
+            return pc.Fraction(inner_unit)
+        return None
     if pc.Exponentiation == expr.function:
-        return pc.Exponentiation(get_unit(expr.args[0]),expr.args[1])
+        inner_unit = get_unit(expr.args[0])
+        if inner_unit is not None:
+            return pc.Exponentiation(inner_unit,expr.args[1])
+        return None
     return None
 
 

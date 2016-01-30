@@ -47,8 +47,12 @@ class Settings(CategorizedDictionary):
         return False
 
     def _set_value(self,key,value):
+        import pycas
+
+        if isinstance(value,pycas.Expression):
+            value = value.evaluate()
+
         super(Settings,self)._set_value(key,value)
-        
         is_numeric = self._is_numeric(value)
         
         if key not in self.numerics.keys() and is_numeric:
@@ -68,10 +72,11 @@ class Settings(CategorizedDictionary):
         evaluator.add_evaluator(rule_evaluator)
 
         numeric_keys = self.numerics.keys()
+        unitless_keys = self.unitless.keys()
 
         for s,r in self.data.iteritems():
 
-            if not numeric and (s in numeric_keys):
+            if (not numeric and (s in numeric_keys)) or (not unitless and s in unitless_keys):
                 continue
 
             if isinstance(s,Expression) and isinstance(r,(Expression,int,float,complex)):
@@ -83,10 +88,6 @@ class Settings(CategorizedDictionary):
                     rule_evaluator.add_rule(s.subs(wc_args),sr.subs(wc_args))
                 else:
                     replacement_evaluator.add_replacement(s,r)
-
-        if unitless:
-            for s,r in self.unitless.dictionary().iteritems():
-                replacement_evaluator.add_replacement(s,r)
 
         res = evaluator(expr)
 
@@ -101,7 +102,8 @@ class Settings(CategorizedDictionary):
     def get_unitless(self,expr,**kwargs):
         return self.get(expr,numeric=True,unitless=True,**kwargs)
 
-
+    def get_definition(self,expr):
+        return self.data[expr]
 
 
 
