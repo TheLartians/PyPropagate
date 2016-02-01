@@ -12,8 +12,7 @@ SET (CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 FILE (GLOB sources ${PROJECT_SOURCE_DIR}/*.cpp)
 FILE (GLOB headers ${PROJECT_SOURCE_DIR}/*.h)
 FILE (GLOB_RECURSE pythons ${PROJECT_PYSOURCE_DIR}/*.py)
-
-# group python sources
+list(# group python sources
 foreach (resource ${pythons})
   get_filename_component(currentdir ${resource} PATH)
   list (APPEND includeDirs ${currentdir})
@@ -28,6 +27,16 @@ endforeach()
 
 ADD_SUBDIRECTORY(${PROJECT_LIBS_DIR}/lars)
 
+# ---- Finite Differences ----
+
+LIST(REMOVE_ITEM sources ${PROJECT_SOURCE_DIR}/python.cpp ${PROJECT_SOURCE_DIR}/main.cpp)
+add_library(FD STATIC ${sources} ${headers} )
+
+# ---- executable ----
+
+add_executable(run ${PROJECT_SOURCE_DIR}/main.cpp)
+TARGET_LINK_LIBRARIES(run FD)
+
 # ---- python ----
 SET(Python_ADDITIONAL_VERSIONS 2.7 2.6 2.5)
 FIND_PACKAGE(PythonInterp)
@@ -40,15 +49,10 @@ LINK_LIBRARIES(${Boost_LIBRARIES} ${PYTHON_LIBRARIES}) # Deprecated but so conve
 
 INCLUDE_DIRECTORIES(${PROJECT_LIBS_DIR})
 
-LIST(REMOVE_ITEM sources ${PROJECT_SOURCE_DIR}/python.cpp)
 
 add_definitions(-std=c++11)
-
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC"  )
-add_library(FD STATIC ${sources} ${headers} )
-
 PYTHON_ADD_MODULE(_pypropagate ${PROJECT_SOURCE_DIR}/python.cpp ${pythons})
-
 TARGET_LINK_LIBRARIES(_pypropagate FD)
 
 # ---- install ----

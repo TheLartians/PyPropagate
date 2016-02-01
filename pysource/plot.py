@@ -46,7 +46,6 @@ def image_plot(carr,ax = None,figsize = None,title = None, **kwargs):
     fig = None
     if ax == None:
         fig, ax = plt.subplots(figsize=figsize)
-    
     if title:
         ax.set_title(title)
     
@@ -54,8 +53,14 @@ def image_plot(carr,ax = None,figsize = None,title = None, **kwargs):
     xprefix,xfactor = get_metric_prefix(e[1][:2])
     yprefix,yfactor = get_metric_prefix(e[0][:2])
         
-    extent = [float(e[1][0])/xfactor,float(e[1][1])/xfactor,float(e[0][1])/yfactor,float(e[0][0])/yfactor]
-    image = ax.imshow(carr.data, extent= extent, aspect='auto', **kwargs )
+    extent = [float(e[1][0])/xfactor,float(e[1][1])/xfactor,float(e[0][0])/yfactor,float(e[0][1])/yfactor]
+
+    if 'aspect' not in kwargs:
+        kwargs['aspect'] = 'auto'
+    if 'origin' not in kwargs:
+        kwargs['origin'] = 'lower'
+
+    image = ax.imshow(carr.data, extent=extent, **kwargs )
     ax.set_ylabel("$%s$ [$%s %s$]" % (latex(carr.axis[0]),yprefix,latex(e[0][2])))
     ax.set_xlabel("$%s$ [$%s %s$]" % (latex(carr.axis[1]),xprefix,latex(e[1][2])))
     
@@ -94,14 +99,52 @@ def line_plot(carr,ax = None,ylabel = None,figsize = None,title = None,**kwargs)
         plt.show()
 
     return lines[0]
-        
-def plot(carr,*args,**kwargs):
+
+def expression_to_field(expression,settings):
+    import pycas
+    import numpy as np
+    from pypropagate import Settings
+
+    s = settings.simulation_box
+    expr = settings.get_unitless(expression)
+    sym = pycas.get_symbols_in(expr)
+
+    from .coordinate_ndarray import CoordinateNDArray
+
+    if sym - {s.x,s.y,s.z} != set():
+        raise ValueError('cannot create field: contains non coordinate symbols %s' % ','.join([str(a) for a in sym - {s.x,s.y,s.z}]))
+    if len(sym) == 0:
+        raise ValueError('cannot create field: expression contains no symbols')
+    elif len(sym) == 1:
+        x = sym.pop()
+        keys = tuple([getattr(s,p % x.name) for p in ['%smin','%smax','N%s']])
+        xmin,xmax,nx = settings.get_numeric( keys )
+        nxmin,nxmax = settings.get_as( (xmin,xmax) , float )
+        nx = settings.get_as( nx , int )
+        npx = np.linspace(nxmin,nxmax,nx)
+        data =  pycas.numpyfy(expr)(**{x.name:npx})
+        res =  CoordinateNDArray(data,[(xmin,xmax)],(x,),settings.get_numeric_transform())
+    elif len(sym) == 2:
+        y,x = sym.pop(),sym.pop()
+        keys = tuple([getattr(s,p % i) for i in (x,y) for p in ['%smin','%smax','N%s']])
+        xmin,xmax,nx,ymin,ymax,ny = settings.get_numeric( keys )
+        nxmin,nxmax,nymin,nymax = settings.get_as( (xmin,xmax,ymin,ymax) , float )
+        nx,ny = settings.get_as( (nx,ny) , int )
+        npy,npx = np.meshgrid(np.linspace(nymin,nymax,ny),np.linspace(nxmin,nxmax,nx))
+        data =  pycas.numpyfy(expr)(**{x.name:npx,y.name:npy})
+        res =  CoordinateNDArray(data,[(xmin,xmax),(ymin,ymax)],(x,y),settings.get_numeric_transform())
+    else:
+        raise ValueError('cannot create field: three dimensional field creation not implemented')
+
+    return res
+
+def plot(arg, *args, **kwargs):
     """
     Simple plot function for 1D and 2D coordinate arrays. If the data is complex, the absolute square value of the data will be plottted.
     
     Parameters
     -----------
-    carr: coordinate array
+    arg: coordinate array
           the input data
     
     **kwargs: additional parameters to be passed to the plot functions
@@ -111,11 +154,27 @@ def plot(carr,*args,**kwargs):
     plot: output of ax.plot for 1D and ax.imshow for 2D arrays
     
     """
-    
+    import pycas
     import numpy as np
-    if not np.can_cast(carr.data.dtype, np.float): carr = abs(carr)**2
-    if len(carr.axis) == 1: return line_plot(carr,*args,**kwargs)
-    elif len(carr.axis) == 2: return image_plot(carr,*args,**kwargs)
+
+    if isinstance(arg,pycas.Expression):
+        from pypropagate import Settings
+
+        if len(args) > 0 and isinstance(args[0],Settings):
+            settings = args[0]
+            args = list(args)
+            del args[0]
+        else:
+            settings = kwargs.get('settings')
+            if not settings:
+                raise ValueError('cannot plot expression: no settings provided')
+            del kwargs['settings']
+
+        arg = expression_to_field(arg,settings)
+
+    if not np.can_cast(arg.data.dtype, np.float): arg = abs(arg) ** 2
+    if len(arg.axis) == 1: return line_plot(arg, *args, **kwargs)
+    elif len(arg.axis) == 2: return image_plot(arg, *args, **kwargs)
     else: raise ValueError("input array must be one or two dimensional")
     
     

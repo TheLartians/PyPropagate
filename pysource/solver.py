@@ -55,7 +55,7 @@ class Solver(object):
             raise ValueError("there are undefined symbols: %s" % ", ".join([str(s) for s in settings.undefined_keys()]))
         self._updaters = settings.updaters.copy()
         self._i = 0
-        self._transform = settings.get_unitless_transform()
+        self._transform = settings.get_numeric_transform()
         
     def _step(self):
         raise NotImplementedError('step function not implemented')

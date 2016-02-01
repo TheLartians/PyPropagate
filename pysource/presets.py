@@ -11,13 +11,24 @@ def add_simulation_box_symbols(settings):
     y = sb.create_key("y",Symbol("y",type = Types.Real),info="second coordinate for 2D simulations")
     z = sb.create_key("z",Symbol("z",type = Types.Real),info="propagation direction")
 
-    sb.x = Symbol("x",type = Types.Real)
-    sb.y = Symbol("y",type = Types.Real)
-    sb.z = Symbol("z",type = Types.Real)
+    sb.x = x
+    sb.y = y
+    sb.z = z
 
-    nx = sb.create_key("nx", Symbol("n_x",type = Types.Integer,positive=True),info="voxels in x direction")
-    ny = sb.create_key("ny", Symbol("n_y",type = Types.Integer,positive=True),info="voxels in y direction")
-    nz = sb.create_key("nz", Symbol("n_z",type = Types.Integer,positive=True),info="voxels in z direction")
+    nx = sb.create_key("nx", Symbol("n_x",type = Types.Integer,positive=True),info="voxels in x direction minus the boundary conditions")
+    ny = sb.create_key("ny", Symbol("n_y",type = Types.Integer,positive=True),info="voxels in y direction minus the boundary conditions")
+    nz = sb.create_key("nz", Symbol("n_z",type = Types.Integer,positive=True),info="voxels in z direction minus the boundary condition")
+
+    Nx = sb.create_key("Nx", Symbol("N_x",type = Types.Integer,positive=True),info="voxels in x direction")
+    Ny = sb.create_key("Ny", Symbol("N_y",type = Types.Integer,positive=True),info="voxels in y direction")
+    Nz = sb.create_key("Nz", Symbol("N_z",type = Types.Integer,positive=True),info="voxels in z direction")
+
+    sb.Nx = nx+2
+    sb.Ny = ny+2
+    sb.Nz = nz+1
+    sb.lock('Nx','defined by nx')
+    sb.lock('Nz','defined by ny')
+    sb.lock('Nz','defined by nz')
 
     sx = sb.create_key("sx",Symbol("s_x",type = Types.Real,positive=True),info="simulation box size in x direction")
     sy = sb.create_key("sy",Symbol("s_y",type = Types.Real,positive=True),info="simulation box size in y direction")
@@ -27,16 +38,19 @@ def add_simulation_box_symbols(settings):
     sb.create_key("dy",Symbol("d_y",type = Types.Real,positive=True),info="voxel size in y direction")
     settings.simulation_box.create_key("dz",Symbol("d_z",type = Types.Real,positive=True),info="voxel size in z direction")
 
-    xmin = sb.create_key("xmin", Symbol("x_min",type = Types.Real),info="smallest x value inside simulation box")
-    xmax = sb.create_key("xmax", Symbol("x_max",type = Types.Real),info="largest x value inside simulation box")
-    ymin = sb.create_key("ymin", Symbol("y_min",type = Types.Real),info="smallest y value inside simulation box")
-    ymax = sb.create_key("ymax", Symbol("y_max",type = Types.Real),info="largest y value inside simulation box")
-    zmin = sb.create_key("zmin", Symbol("z_min",type = Types.Real),info="smallest z value inside simulation box")
-    zmax = sb.create_key("zmax", Symbol("z_max",type = Types.Real),info="largest z value inside simulation box")
+    xmin = sb.create_key("xmin", Symbol("x_min",type = Types.Real),info="x value at the lower simulation box boundary")
+    xmax = sb.create_key("xmax", Symbol("x_max",type = Types.Real),info="x value at the upper simulation box boundary")
+    ymin = sb.create_key("ymin", Symbol("y_min",type = Types.Real),info="y value at the lower simulation box boundary")
+    ymax = sb.create_key("ymax", Symbol("y_max",type = Types.Real),info="y value at the upper simulation box boundary")
+    zmin = sb.create_key("zmin", Symbol("z_min",type = Types.Real),info="z value at the lower simulation box boundary")
+    zmax = sb.create_key("zmax", Symbol("z_max",type = Types.Real),info="z value at the upper simulation box boundary")
 
-    sb.dx = sx/nx
-    sb.dy = sy/ny
+    sb.dx = sx/(nx+1)
+    sb.dy = sy/(ny+1)
     sb.dz = sz/nz
+    sb.lock('dx','defined by sx and nx')
+    sb.lock('dy','defined by sy and ny')
+    sb.lock('dz','defined by sz and nz')
 
     sb.sx = xmax - xmin
     sb.sy = ymax - ymin
@@ -44,6 +58,9 @@ def add_simulation_box_symbols(settings):
     sb.lock('sx','defined by xmin and xmax')
     sb.lock('sy','defined by ymin and ymax')
     sb.lock('sz','defined by zmin and zmax')
+
+    sb.create_key("fy",Symbol("fixed y",type = Types.Real),info="fixed y value for 2D simulations")
+    sb.fy = (ymin + ymax)/2
 
     sb.create_key("downscale", Symbol("downscale"), 1,info="factor by which the resulting field of the simulation will be scaled down")
 

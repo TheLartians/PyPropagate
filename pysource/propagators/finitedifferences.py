@@ -16,9 +16,7 @@ class FiniteDifferencesPropagator1D(Propagator):
         sb = settings.simulation_box
         pe = settings.paraxial_equation
         
-        y = (sb.ymin + sb.ymax)/2
-        
-        F,A,u0,u_boundary = settings.get_unitless(pc.Tuple(pe.F,pe.A, pe.u0, pe.u_boundary).subs(sb.y,y))
+        F,A,u0,u_boundary = settings.get_unitless(pc.Tuple(pe.F,pe.A, pe.u0, pe.u_boundary).subs(sb.y,sb.fy))
         xmin,xmax,zmin,dz = settings.get_as((sb.xmin,sb.xmax,sb.zmin,sb.dz),float)
 
         lib = pc.ccompile(
@@ -37,16 +35,10 @@ class FiniteDifferencesPropagator1D(Propagator):
         self._solver.z = zmin
         self._solver.dz = dz
 
-        if initial == None:
-            initial = lib.u0(np.linspace(xmin,xmax,self._nx),zmin)
+        self._set_initial_field(initial,settings)
 
-        self.__zmin = zmin
-        self.__initial = initial
-        self.set_field(initial)
-
-    def _reset(self):
-        self._solver.z = self.__zmin
-        self.set_field(self.__initial)
+    def _set_z(self,z):
+        self._solver.z = z
 
     def _step(self):
         self._solver.step()
@@ -90,17 +82,10 @@ class FiniteDifferencesPropagator2D(Propagator):
         self._solver.dz = dz
         self._solver.z = zmin
 
-        if initial == None:
-            npy,npx = np.meshgrid(np.linspace(ymin,ymax,self._ny),np.linspace(xmin,xmax,self._nx))
-            initial = lib.u0(npx,npy,zmin)
+        self._set_initial_field(initial,settings)
 
-        self.__zmin = zmin
-        self.__initial = initial
-        self.set_field(initial)
-
-    def _reset(self):
-        self._solver.z = self.__zmin
-        self.set_field(self.__initial)
+    def _set_z(self,z):
+        self._solver.z = z
 
     def _step(self):
         self._solver.step()

@@ -24,34 +24,38 @@ namespace lars {
       s=field.size();
       if(field.size()<2) throw std::runtime_error("field has size smaller than 2");
       dx=(xmax-xmin)/s;
-      rx=A*dz/(dx*dx);
+      rx=A*dz/(2*dx*dx);
       Ax.resize(s-2);
-      for(int i=0;i<Ax.size();++i) Ax[i]=-rx/2.;
+      for(int i=0;i<Ax.size();++i) Ax[i]=-rx;
       Bx.resize(s-2);
       Dx.resize(s-2);
       tmp.resize(s-2);
+      C.resize(s-2);
+      
+      for(int i=1;i<s-1;++i){
+        real x=xmin+dx*i;
+        C[i-1]=F(x,z)*dz/2.;
+      }
+      
       ready=true;
     }
     
     void finite_difference_1D::step(){
       if(!ready) init();
-      real zh=z+dz/2;
       real zn=z+dz;
       
       for(int i=1;i<s-1;++i){
+        Dx[i-1]=(1.-2.*rx+C[i-1])*field[i]+rx*(field[i-1]+field[i+1]);
         real x=xmin+dx*i;
-        complex C=F(x,zh)*dz/2.;
-        Bx[i-1]=1.+rx-C;
-        Dx[i-1]=(1.-rx+C)*field[i];
-        Dx[i-1]+=rx/2.*field[i-1];
-        Dx[i-1]+=rx/2.*field[i+1];
+        C[i-1]=F(x,zn)*dz/2.;
+        Bx[i-1]=1.+2.*rx-C[i-1];
       }
       
       field[0]   = u_boundary(xmin,zn);
       field[s-1] = u_boundary(xmax,zn);
       
-      Dx[0]   += rx/2.*field[0];
-      Dx[s-3] += rx/2.*field[s-1];
+      Dx[0]   += rx*field[0];
+      Dx[s-3] += rx*field[s-1];
       
       auto block = field.block(1, 0, s-2, 1);
       algebra::tridiagonal(Ax,Bx,Ax,Dx,block,tmp);
@@ -59,119 +63,119 @@ namespace lars {
       z+=dz;
     }
     
-    //
-    // ----------------------- Finite differences 2D -----------------------
-    //
+  //
+  // ----------------------- Finite differences 2D -----------------------
+  //
   
   
-    finite_difference_2D::finite_difference_2D():Cx(Ax),Cy(Ay){
-      ready=false;
-      sx=sy=0;
-    }
+  finite_difference_2D::finite_difference_2D():Cx(Ax),Cy(Ay){
+    ready=false;
+    sx=sy=0;
+  }
   
-    void finite_difference_2D::init(){
-      sx = field1.rows();
-      sy = field1.cols();
-      
-      dx=(xmax-xmin)/sx;
-      dy=(ymax-ymin)/sy;
-      
-      if(field1.size() < 9) throw std::runtime_error("field has size smaller than 9");
-      
-      rx=A*dz/(dx*dx);
-      ry=A*dz/(dy*dy);
-      
-      Ax.resize(sx-2);
-      Ay.resize(sy-2);
-      for(int i=0;i<Ax.size();++i)Ax[i]=-rx/2.;
-      for(int i=0;i<Ay.size();++i)Ay[i]=-ry/2.;
-      
-      field2.resize(sx, sy);
-      CField1.resize(sx-2,sy-2);
-      CField2.resize(sx-2,sy-2);
-      
-      z-=dz;
-      update();
-      update();
-      
-      ready=true;
-    }
+  void finite_difference_2D::init(){
+    sx = field1.rows();
+    sy = field1.cols();
     
-    finite_differences::complex finite_difference_2D::C(int xi,int yi,int zi){
-      return (zi==0) ? CField1(xi-1,yi-1) : CField2(xi-1,yi-1);
-    }
+    dx=(xmax-xmin)/(sx+1);
+    dy=(ymax-ymin)/(sy+1);
     
-    finite_differences::complex &finite_difference_2D::u(int xi,int yi,int zi){
-      return (zi==0) ? field1(xi,yi) : field2(xi,yi);
-    }
+    if(field1.size() < 9) throw std::runtime_error("field has size smaller than 9");
     
-    void finite_difference_2D::step(){
-      if(!ready) init();
-      
-      struct parallel_data{
-        vector B,D,U,tmp;
-        parallel_data(unsigned s):B(s),D(s),U(s),tmp(s){}
-      };
-      
-      unique_parallel_for(1, sy-1, [&](unsigned yi,parallel_data &d){
-        for (int xi=1; xi<sx-1; ++xi) {
-          d.B[xi-1]=1.+rx-C(xi,yi,1);
-          d.D[xi-1]=(1.-ry+C(xi,yi,0))*u(xi,yi,0)+ry/2.*(u(xi,yi-1,0)+u(xi,yi+1,0));
-        }
-
-        d.D[0]+=rx/2.*u(0,yi,1);
-        d.D[sx-3]+=rx/2.*u(sx-1,yi,1);
-        
-        algebra::tridiagonal(Ax,d.B,Cx,d.D,d.U,d.tmp);
-        for (int xi=1; xi<=sx-2; ++xi) u(xi,yi,1)=d.U[xi-1];
-      },parallel_data(sx-2));
-      
-      update();
-      
-      unique_parallel_for(1, sx-1, [&](unsigned xi,parallel_data &d){
-        for (int yi=1; yi<sy-1; ++yi) {
-          d.B[yi-1]=1.+ry-C(xi,yi,1);
-          d.D[yi-1]=(1.-rx+C(xi,yi,0))*u(xi,yi,0)+rx/2.*(u(xi-1,yi,0)+u(xi+1,yi,0));
-        }
-        
-        d.D[0]+=ry/2.*u(xi,0,1);
-        d.D[sy-3]+=ry/2.*u(xi,sy-1,1);
-        
-        algebra::tridiagonal(Ay,d.B,Cy,d.D,d.U,d.tmp);
-        for (int yi=1; yi<=sy-2; ++yi) u(xi,yi,1)=d.U[yi-1];
-      },parallel_data(sy-2));
-      
-      update();
+    rx=A*dz/(2*dx*dx);
+    ry=A*dz/(2*dy*dy);
     
-    }
-        
-    void finite_difference_2D::update(){
-      real zn=z+dz;
-      z+=dz/2.;
-      
-      CField1.swap(CField2);
-      
-      parallel_for(1, sx-1, [&](unsigned i){ for(int j=1;j<sy-1;++j){ CField2(i-1,j-1)=F(xmin+i*dx,ymin+j*dy,zn)*dz/4.; } });
-
-      field1.swap(field2);
-
-      auto f1 = std::async(std::launch::async,[&](){ for(int i=1;i<sx-1;++i)field2(i , 0  )=u_boundary(xmin+i*dx ,ymin,zn); });
-      auto f2 = std::async(std::launch::async,[&](){ for(int i=1;i<sx-1;++i)field2(i ,sy-1)=u_boundary(xmin+i*dx ,ymax,zn); });
-      auto f3 = std::async(std::launch::async,[&](){ for(int i=1;i<sy-1;++i)field2( 0  ,i )=u_boundary(xmin, ymin+i*dy,zn); });
-      auto f4 = std::async(std::launch::async,[&](){ for(int i=1;i<sy-1;++i)field2(sx-1,i )=u_boundary(xmax, ymin+i*dy,zn); });
-
-      f1.wait(); f2.wait(); f3.wait(); f4.wait();
-    }
+    Ax.resize(sx-2);
+    Ay.resize(sy-2);
+    for(int i=0;i<Ax.size();++i)Ax[i]=-rx;
+    for(int i=0;i<Ay.size();++i)Ay[i]=-ry;
+    
+    field2.resize(sx, sy);
+    CField1.resize(sx-2,sy-2);
+    CField2.resize(sx-2,sy-2);
+    
+    z-=dz;
+    update();
+    update();
+    
+    ready=true;
+  }
   
-    finite_difference_2D::field & finite_difference_2D::get_field(){
-      return field1;
-    }
+  finite_differences::complex finite_difference_2D::C(int xi,int yi,int zi){
+    return (zi==0) ? CField1(xi-1,yi-1) : CField2(xi-1,yi-1);
+  }
   
-    void finite_difference_2D::set_field(const field &field){
-      field1 = field;
-      ready = false;
-    }
+  finite_differences::complex &finite_difference_2D::u(int xi,int yi,int zi){
+    return (zi==0) ? field1(xi,yi) : field2(xi,yi);
+  }
+  
+  void finite_difference_2D::step(){
+    if(!ready) init();
+    
+    struct parallel_data{
+      vector B,D,U,tmp;
+      parallel_data(unsigned s):B(s),D(s),U(s),tmp(s){}
+    };
+    
+    unique_parallel_for(1, sy-1, [&](unsigned yi,parallel_data &d){
+      for (int xi=1; xi<sx-1; ++xi) {
+        d.B[xi-1]=1.+2.*rx-C(xi,yi,1);
+        d.D[xi-1]=(1.-2.*ry+C(xi,yi,0))*u(xi,yi,0)+ry*(u(xi,yi-1,0)+u(xi,yi+1,0));
+      }
+      
+      d.D[0]+=rx*u(0,yi,1);
+      d.D[sx-3]+=rx*u(sx-1,yi,1);
+      
+      algebra::tridiagonal(Ax,d.B,Cx,d.D,d.U,d.tmp);
+      for (int xi=1; xi<=sx-2; ++xi) u(xi,yi,1)=d.U[xi-1];
+    },parallel_data(sx-2));
+    
+    update();
+    
+    unique_parallel_for(1, sx-1, [&](unsigned xi,parallel_data &d){
+      for (int yi=1; yi<sy-1; ++yi) {
+        d.B[yi-1]=1.+2.*ry-C(xi,yi,1);
+        d.D[yi-1]=(1.-2.*rx+C(xi,yi,0))*u(xi,yi,0)+rx*(u(xi-1,yi,0)+u(xi+1,yi,0));
+      }
+      
+      d.D[0]+=ry*u(xi,0,1);
+      d.D[sy-3]+=ry*u(xi,sy-1,1);
+      
+      algebra::tridiagonal(Ay,d.B,Cy,d.D,d.U,d.tmp);
+      for (int yi=1; yi<=sy-2; ++yi) u(xi,yi,1)=d.U[yi-1];
+    },parallel_data(sy-2));
+    
+    update();
+    
+  }
+  
+  void finite_difference_2D::update(){
+    real zn=z+dz;
+    z+=dz/2.;
+    
+    CField1.swap(CField2);
+    
+    parallel_for(1, sx-1, [&](unsigned i){ for(int j=1;j<sy-1;++j){ CField2(i-1,j-1)=F(xmin+i*dx,ymin+j*dy,zn)*dz/4.; } });
+    
+    field1.swap(field2);
+    
+    auto f1 = std::async(std::launch::async,[&](){ for(int i=1;i<sx-1;++i)field2(i , 0  )=u_boundary(xmin+i*dx ,ymin,zn); });
+    auto f2 = std::async(std::launch::async,[&](){ for(int i=1;i<sx-1;++i)field2(i ,sy-1)=u_boundary(xmin+i*dx ,ymax,zn); });
+    auto f3 = std::async(std::launch::async,[&](){ for(int i=1;i<sy-1;++i)field2( 0  ,i )=u_boundary(xmin, ymin+i*dy,zn); });
+    auto f4 = std::async(std::launch::async,[&](){ for(int i=1;i<sy-1;++i)field2(sx-1,i )=u_boundary(xmax, ymin+i*dy,zn); });
+    
+    f1.wait(); f2.wait(); f3.wait(); f4.wait();
+  }
+  
+  finite_difference_2D::field & finite_difference_2D::get_field(){
+    return field1;
+  }
+  
+  void finite_difference_2D::set_field(const field &field){
+    field1 = field;
+    ready = false;
+  }
   
 }
 
- 
+

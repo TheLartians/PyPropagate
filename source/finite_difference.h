@@ -29,7 +29,7 @@ namespace lars {
     using vector = finite_differences::vector;
     
   private:
-    vector Ax,Bx,Dx,tmp;
+    vector Ax,Bx,Dx,C,tmp;
     complex rx;
     bool ready;
     unsigned s;

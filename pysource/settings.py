@@ -113,13 +113,20 @@ class Settings(CategorizedDictionary):
 
     def _get_cached(self,*args):
         cache = self.__dict__.get('__cache')
+
         if cache is None:
             cache = {}
             self.__dict__['__cache'] = cache
+
         if args in cache:
             return cache[args]
+
         from pycas import ReplacementMap
-        cache[args] = (self._get_evaluator(*args),(ReplacementMap(),ReplacementMap()))
+
+        if 'eval_cache' not in cache:
+            cache['eval_cache'] = ReplacementMap()
+
+        cache[args] = (self._get_evaluator(*args),(ReplacementMap(),cache['eval_cache']))
         return cache[args]
 
     def get(self,expr,numeric = False,unitless = False,evaluate = True):
@@ -146,8 +153,8 @@ class Settings(CategorizedDictionary):
             return [type(e) for e in res]
         return type(res)
 
-    def get_unitless_transform(self):
-        return lambda x: self.get_unitless(x)
+    def get_numeric_transform(self):
+        return lambda x: self.get_numeric(x)
 
 
 

@@ -32,7 +32,7 @@ def add_metric_prefixes(name):
         globals()[p+name] = 10**v*s
 
 def create_unit(name):
-    u = pc.Symbol("SI base unit "+name, type=pc.Types.Unit ,latex=r'\mathrm{%s}' % name)
+    u = pc.Symbol("SI base unit "+name, type=pc.Types.Unit ,latex=r'\mathrm{%s}' % name,repr = name)
     globals()[name] = u
     base_units.add(u)
     add_metric_prefixes(name)
