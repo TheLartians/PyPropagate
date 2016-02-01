@@ -12,7 +12,8 @@ SET (CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 FILE (GLOB sources ${PROJECT_SOURCE_DIR}/*.cpp)
 FILE (GLOB headers ${PROJECT_SOURCE_DIR}/*.h)
 FILE (GLOB_RECURSE pythons ${PROJECT_PYSOURCE_DIR}/*.py)
-list(# group python sources
+
+# group python sources
 foreach (resource ${pythons})
   get_filename_component(currentdir ${resource} PATH)
   list (APPEND includeDirs ${currentdir})
