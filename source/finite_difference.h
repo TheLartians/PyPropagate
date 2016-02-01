@@ -29,21 +29,21 @@ namespace lars {
     using vector = finite_differences::vector;
     
   private:
-    
     vector Ax,Bx,Dx,tmp;
     complex rx;
     bool ready;
     unsigned s;
-    real xb;
     vector field;
-    
+    real dx;
+
   public:
-    real dx,dz,z;
+    real xmin,xmax;
+    real dz,z;
+    
     complex A;
     
     std::function<complex(real,real)> F;
-    std::function<complex(real,real)> u0;
-    std::function<complex(real,real)> u0_boundary;
+    std::function<complex(real,real)> u_boundary;
     
     const vector & get_field()const{ return field; }
     void set_field(const vector::Base &f){ ready = false; field = f; }
@@ -69,7 +69,7 @@ namespace lars {
     complex rx,ry;
     bool ready;
     int sx,sy;
-    real xb,yb;
+    real dx,dy;
     
     void update();
     
@@ -77,24 +77,20 @@ namespace lars {
     complex &u(int xi,int yi,int zi);
     
   public:
-    real dx,dy,dz,z;
+    real xmin,xmax,ymin,ymax,dz,z;
     complex A;
     
     std::function<complex(real,real,real)> F;
-    std::function<complex(real,real,real)> u0;
-    std::function<complex(real,real,real)> u0_boundary;
+    std::function<complex(real,real,real)> u_boundary;
     
     finite_difference_2D();
     
     void init();
     void step();
     
-    Eigen::Block<finite_difference_2D::field> get_field();
-    finite_difference_2D::field & get_full_field();
+    field & get_field();
     
     void set_field(const field &field);
-    
-    void resize(int sx,int sy);
   };
   
 }

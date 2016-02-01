@@ -11,8 +11,9 @@ class Category(object):
         self._locked = False
         self.__doc__ = ""
         self._key_doc = {}
+        self._anon_count = 0
         self.__initialised = True
-    
+
     def copy(self,parent=None,copy=None):
         "Return a copy of the Category."
         if parent == None:
@@ -89,9 +90,12 @@ class Category(object):
         """Adds a subcategory."""
         if self._locked:
             raise AttributeError("modifying locked category")
-        if hasattr(self,name):
+        if name in self.subcategories:
             import warnings
-            warnings.warn("overwriting attribute %s" % name, UserWarning)
+            warnings.warn("overwriting subcategory %s" % name, UserWarning)
+            del self.subcategories[name]
+            if name in self.__dict__:
+                del self.__dict__[name]
         self.subcategories[name] = category
         self._set_attribute(name,category)
     
@@ -143,7 +147,7 @@ class Category(object):
         
         self._create_key(name,key,value,info,self)
         self.add_key(name,key,info)
-        
+
         return key
     
     def add_key(self,name,key,info=None,warn=True):
@@ -155,16 +159,21 @@ class Category(object):
         if warn and name in self.__dict__: 
             import warnings
             warnings.warn("overwriting attribute %s" % name, UserWarning)
+            raise RuntimeError()
         if name == None:
-            name = "_anonymous_key_" + str(len(self._keys)+1)
+            self._anon_count += 1
+            name = "_anonymous_key_%s" % self._anon_count
         self._keys[name] = key
         if info!=None:
             self._key_doc[name] = info
         self._set_attribute(name,key)
 
     def _set_attribute(self,attr,value):
-        super(Category,self).__setattr__(attr, value)
-        
+        if attr in self.__dict__:
+            import warnings
+            warnings.warn("overwriting attribute %s" % name, UserWarning)
+        self.__dict__[attr] = value
+
     def remove_key(self,key):
         """Removes a key from the category. The global key still remains valid."""
         for name, comp in self._keys.iteritems():
@@ -172,16 +181,16 @@ class Category(object):
                 self.remove_name(name) 
                 return
         import warnings
-        warnings.warn("removing undefined key %s" % name, UserWarning)
+        warnings.warn("attempting to remove undefined key %s" % name, UserWarning)
     
     def remove_name(self,name):
         """Removes a name from the category. The associated key still remains valid."""
         
         if name not in self._keys:
             import warnings
-            warnings.warn("removing undefined name %s" % name, UserWarning)
+            warnings.warn("attempting to remove undefined name %s" % name, UserWarning)
             return
-        
+
         del self._keys[name]
         del self.__dict__[name]
         if name in self._key_doc:
@@ -238,8 +247,8 @@ class Category(object):
                 dictionary.add_key(name,self.get_key(name),info=info)
         else:
             dictionary.update(self._keys)
-            
-                    
+
+
 class CategorizedDictionary(Category):
     
     """
@@ -335,5 +344,3 @@ class CategorizedDictionary(Category):
         if keys == None:
             keys = self.data.keys()
         return {key:self.data[key] for key in keys if self.data[key]!=None}
-
-

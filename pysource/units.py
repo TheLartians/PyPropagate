@@ -1,17 +1,38 @@
 
 import pycas as pc
 
-metric_prefixes = [('Y',1e+24),('Z',1e+21),('E',1e+18),('P',1e+15),('T',1e+12),('G',1e+09),('M',1e+06),('k',1e+03),('h',1e+02),('da',1e+01),('d',1e-01),('c',1e-02),('m',1e-03),('u',1e-06),('n',1e-09),('p',1e-12),('f',1e-15),('a ',1e-18),('z',1e-21),('y',1e-24)]
+metric_prefixes = [
+     ('Y', 24, '\\mathrm{Y}'),
+     ('Z', 21, '\\mathrm{Z}'),
+     ('E', 18, '\\mathrm{E}'),
+     ('P', 15, '\\mathrm{P}'),
+     ('T', 12, '\\mathrm{T}'),
+     ('G', 9, '\\mathrm{G}'),
+     ('M', 6, '\\mathrm{M}'),
+     ('k', 3, '\\mathrm{k}'),
+     ('h', 2, '\\mathrm{h}'),
+     ('da', 1, '\\mathrm{da}'),
+     ('d', -1, '\\mathrm{d}'),
+     ('c', -2, '\\mathrm{c}'),
+     ('m', -3, '\\mathrm{m}'),
+     ('u', -6, '\\mu'),
+     ('n', -9, '\\mathrm{n}'),
+     ('p', -12, '\\mathrm{p}'),
+     ('f', -15, '\\mathrm{f}'),
+     ('a ', -18, '\\mathrm{a }'),
+     ('z', -21, '\\mathrm{z}'),
+     ('y', -24, '\\mathrm{y}')
+]
 
 base_units = set()
 
 def add_metric_prefixes(name):
     s = globals()[name]
-    for p,v in metric_prefixes:
-        globals()[p+name] = v*s
+    for p,v,l in metric_prefixes:
+        globals()[p+name] = 10**v*s
 
 def create_unit(name):
-    u = pc.Symbol("SI base unit "+name, type=pc.Types.Unit ,latex=r'\text{%s}' % name)
+    u = pc.Symbol("SI base unit "+name, type=pc.Types.Unit ,latex=r'\mathrm{%s}' % name)
     globals()[name] = u
     base_units.add(u)
     add_metric_prefixes(name)
@@ -65,38 +86,36 @@ def contains_unit(expr):
             return True
     return False
 
-def get_unit(expr,only_base_units = False):
+def get_unit(expr,only_base_units = False,evaluate=True):
+    res = None
     if expr.is_symbol:
         if only_base_units:
             if expr in base_units:
-                return expr
-            return None
+                res = expr
         else:
             if pc.Type(expr).evaluate() == pc.Types.Unit:
-                return expr
-            return None
-    if expr.function == pc.Multiplication:
+                res = expr
+    elif expr.function == pc.Multiplication:
         units = []
         for arg in expr.args:
-            u = get_unit(arg)
+            u = get_unit(arg,only_base_units,False)
             if u is not None:
                 units.append(u)
-        if len(units) == 0:
-            return None
-        return pc.Multiplication(*units)
-    if pc.Negative == expr.function:
-        return get_unit(expr.args[0])
-    if pc.Fraction == expr.function:
-        inner_unit = get_unit(expr.args[0])
+        if len(units) != 0:
+            res = pc.Multiplication(*units)
+    elif pc.Negative == expr.function:
+        res = get_unit(expr.args[0],only_base_units,False)
+    elif pc.Fraction == expr.function:
+        inner_unit = get_unit(expr.args[0],only_base_units,False)
         if inner_unit is not None:
-            return pc.Fraction(inner_unit)
-        return None
-    if pc.Exponentiation == expr.function:
-        inner_unit = get_unit(expr.args[0])
+            res = pc.Fraction(inner_unit)
+    elif pc.Exponentiation == expr.function:
+        inner_unit = get_unit(expr.args[0],only_base_units,False)
         if inner_unit is not None:
-            return pc.Exponentiation(inner_unit,expr.args[1])
-        return None
-    return None
+            res = pc.Exponentiation(inner_unit,expr.args[1])
+    if res is not None and evaluate:
+        res = res.evaluate()
+    return res
 
 
 

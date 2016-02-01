@@ -31,7 +31,7 @@ class Solver(object):
     _downscale:                 int [optional, defaults to 1]
                                 How much the result should be downscaled
     _transform:                 callable object [optional, defaults to lambda x:x]
-                                Function that transforms length symbols
+                                Function that converts symbolic expression to numeric values
     dtype:                      numpy dtype
                                 internal data type    
     _step():                    function
@@ -55,7 +55,7 @@ class Solver(object):
             raise ValueError("there are undefined symbols: %s" % ", ".join([str(s) for s in settings.undefined_keys()]))
         self._updaters = settings.updaters.copy()
         self._i = 0
-        self._transform = settings.get_transform()
+        self._transform = settings.get_unitless_transform()
         
     def _step(self):
         raise NotImplementedError('step function not implemented')
@@ -168,7 +168,6 @@ class Solver(object):
         
     def run(self,*args,**kwargs):
         """Simulate for _nt steps and return the resulting CoordinateNDArray."""
-
         return self.run_slice(self._get_nd_axis_symbols(self.ndim)[1:],*args,**kwargs)
 
     def run_slice(self,axis,display_progress=True,autohide_progress=False,slice_positions=None):

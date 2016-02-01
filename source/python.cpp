@@ -109,91 +109,54 @@ std::function<python::scalar(double,double,double)> get_3D_function_from_pointer
 class py_finite_difference_1D:public lars::finite_difference_1D{
   public:
   PyObject * get_field() const{ return python::convert_vector_to_python(finite_difference_1D::get_field(),false); }
+  void set_field(PyObject *arr){ lars::finite_difference_1D::set_field(python::convert_to_vector(arr)); }
   
   void set_F(size_t f){ F = get_2D_function_from_pointer(f); }
-  void set_u0(size_t f){ u0 = get_2D_function_from_pointer(f); }
-  void set_u0_boundary(size_t f){ u0_boundary = get_2D_function_from_pointer(f); }
+  void set_u_boundary(size_t f){ u_boundary = get_2D_function_from_pointer(f); }
 };
 
 
 class py_finite_difference_2D:public lars::finite_difference_2D{
 public:
   PyObject * get_field(){ return python::convert_matrix_to_python(finite_difference_2D::get_field(),false); }
-  PyObject * get_full_field(){ return python::convert_matrix_to_python(finite_difference_2D::get_full_field(),false); }
+  void set_field(PyObject *arr){ lars::finite_difference_2D::set_field( python::convert_to_matrix(arr) ); }
 
   void set_F(size_t f){ F = get_3D_function_from_pointer(f); }
-  void set_u0(size_t f){ u0 = get_3D_function_from_pointer(f); }
-  void set_u0_boundary(size_t f){ u0_boundary = get_3D_function_from_pointer(f); }
+  void set_u_boundary(size_t f){ u_boundary = get_3D_function_from_pointer(f); }
 };
 
-PyObject * create_2D_field_from_function(size_t f,unsigned nx,unsigned ny,double xmin,double xmax,double ymin,double ymax){
-  python::matrix_map map((python::scalar*)malloc( sizeof(python::scalar) * nx * ny ),ny,nx);
-  auto g = get_2D_function_from_pointer(f);
-  
-  auto dx = (xmax-xmin)/(nx-1);
-  auto dy = (ymax-ymin)/(ny-1);
-  
-  parallel_for<unsigned>(0, nx, [&](unsigned xi){
-    for(auto yi:range(ny)){
-      auto x = xmin + xi * dx;
-      auto y = ymin + yi * dy;
-      map(yi,xi) = g(x,y);
-    }
-  });
-  
-  auto r = python::convert_matrix_to_python(map, true, true);
-  return r;
-}
-
-PyObject * create_1D_field_from_function(size_t f,unsigned nx,double xmin,double xmax){
-  python::vector_map map((python::scalar*)malloc( sizeof(python::scalar) * nx ),nx);
-  auto g = get_1D_function_from_pointer(f);
-  
-  auto dx = (xmax-xmin)/(nx-1);
-  
-    for(auto xi:range(nx)){
-      auto x = xmin + xi * dx;
-      map(xi) = g(x);
-    }
-  
-  auto r = python::convert_vector_to_python(map, true, true);
-  return r;
-}
 
 using namespace boost::python;
 
 BOOST_PYTHON_MODULE(_pypropagate){
   
-  def("create_2D_field_from_function", create_2D_field_from_function);
-  def("create_1D_field_from_function", create_1D_field_from_function);
-  
   class_<py_finite_difference_1D>("finite_difference_1D")
     .def("get_field",&py_finite_difference_1D::get_field)
+    .def("set_field",&py_finite_difference_1D::set_field)
     .def("set_F",&py_finite_difference_1D::set_F)
-    .def("set_u0",&py_finite_difference_1D::set_u0)
-    .def("set_u0_boundary",&py_finite_difference_1D::set_u0_boundary)
-    .def_readwrite("dx",&py_finite_difference_1D::dx)
+    .def("set_u_boundary",&py_finite_difference_1D::set_u_boundary)
+    .def_readwrite("xmin",&py_finite_difference_1D::xmin)
+    .def_readwrite("xmax",&py_finite_difference_1D::xmax)
     .def_readwrite("dz",&py_finite_difference_1D::dz)
     .def_readwrite("z",&py_finite_difference_1D::z)
     .def_readwrite("A",&py_finite_difference_1D::A)
     .def("step",&py_finite_difference_1D::step)
-    .def("resize",&py_finite_difference_1D::resize)
     .def("init",&py_finite_difference_1D::init)
   ;
   
   class_<py_finite_difference_2D>("finite_difference_2D")
   .def("get_field",&py_finite_difference_2D::get_field)
-  .def("get_full_field",&py_finite_difference_2D::get_full_field)
+  .def("set_field",&py_finite_difference_2D::set_field)
   .def("set_F",&py_finite_difference_2D::set_F)
-  .def("set_u0",&py_finite_difference_2D::set_u0)
-  .def("set_u0_boundary",&py_finite_difference_2D::set_u0_boundary)
-  .def_readwrite("dx",&py_finite_difference_2D::dx)
-  .def_readwrite("dy",&py_finite_difference_2D::dy)
+  .def("set_u_boundary",&py_finite_difference_2D::set_u_boundary)
+  .def_readwrite("xmin",&py_finite_difference_2D::xmin)
+  .def_readwrite("xmax",&py_finite_difference_2D::xmax)
+  .def_readwrite("ymin",&py_finite_difference_2D::ymin)
+  .def_readwrite("ymax",&py_finite_difference_2D::ymax)
   .def_readwrite("dz",&py_finite_difference_2D::dz)
   .def_readwrite("z",&py_finite_difference_2D::z)
   .def_readwrite("A",&py_finite_difference_2D::A)
   .def("step",&py_finite_difference_2D::step)
-  .def("resize",&py_finite_difference_2D::resize)
   .def("init",&py_finite_difference_2D::init)
   ;
 

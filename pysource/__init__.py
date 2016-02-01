@@ -12,15 +12,16 @@
 
 #import propagators
 
-import pycas as pc
 #import matplotlib.pyplot as plt
 #np = coordinate_ndarray.WrappedNumpy()
 
 
-
+import pycas as pc
 
 import units
 import presets
+import propagators
 
+from .plot import plot
 from .settings import Settings
 

@@ -6,7 +6,7 @@ class Settings(CategorizedDictionary):
     There is an additional symbols member containing aliases to all keys. Adding a key with the same name will overwrite the name in the symbols member.
     The `get` function provides a method of transforming an expression using all known substitutions defined by the key/value pairs of this dictionary.
     """
-    
+
     def __init__(self,create_categories = True):
         import collections
 
@@ -21,6 +21,17 @@ class Settings(CategorizedDictionary):
             self.create_category("numerics",info="pure numerical values")
             self.create_category("unitless",info="conversions to unitless coordinates")
             self.create_category("symbols",info="symbol aliases to frequently used symbols")
+
+    def create_category(self,*args,**kwargs):
+        import pycas as pc
+        cat = super(Settings, self).create_category(*args,**kwargs)
+
+        def create_symbol(name,value=None,info=None,**kwargs):
+            return cat.create_key(name,pc.Symbol(name,**kwargs),value,info)
+
+        cat._set_attribute('create_symbol',create_symbol)
+
+        return cat
 
     def initialize(self):
         for initializer in self.initializers.values():
@@ -38,12 +49,19 @@ class Settings(CategorizedDictionary):
         "Tests if a value should be classified as numeric"
         if isinstance(value,(bool,int,long,float,complex)):
             return True
-        try:
-            from pycas import S
-            S(value).N()
-            return True
-        except:
-            pass
+
+        import pycas as pc
+        if isinstance(value,pc.Expression):
+            try:
+                value.N()
+                return True
+            except:
+                pass
+
+            import units
+            if units.contains_unit(value):
+                return True
+
         return False
 
     def _set_value(self,key,value):
@@ -60,9 +78,11 @@ class Settings(CategorizedDictionary):
         elif key in self.numerics.keys() and not is_numeric:
             self.numerics.remove_key(key)
 
-    def get(self,expr,numeric = False,unitless = False,evaluate = True):
-        from pycas import Expression,RewriteEvaluator,ReplaceEvaluator,MultiEvaluator,Wildcard,S
-        import units
+        if '__cache' in self.__dict__:
+            del self.__dict__['__cache']
+
+    def _get_evaluator(self,numeric = False,unitless = False):
+        from pycas import Expression,RewriteEvaluator,ReplaceEvaluator,MultiEvaluator,Wildcard,S,Tuple
 
         replacement_evaluator = ReplaceEvaluator(recursive=True)
         rule_evaluator = RewriteEvaluator(recursive=True)
@@ -76,12 +96,12 @@ class Settings(CategorizedDictionary):
 
         for s,r in self.data.iteritems():
 
-            if (not numeric and (s in numeric_keys)) or (not unitless and s in unitless_keys):
+            if (not numeric and (s in numeric_keys)) or (not unitless and (s in unitless_keys)):
                 continue
 
             if isinstance(s,Expression) and isinstance(r,(Expression,int,float,complex)):
                 sr = S(r)
-                if s==sr or (not numeric and units.contains_unit(sr)):
+                if s==sr:
                     continue
                 if s.is_function:
                     wc_args = {arg:Wildcard(arg.name) for arg in s.args}
@@ -89,11 +109,25 @@ class Settings(CategorizedDictionary):
                 else:
                     replacement_evaluator.add_replacement(s,r)
 
-        res = evaluator(expr)
+        return evaluator
 
+    def _get_cached(self,*args):
+        cache = self.__dict__.get('__cache')
+        if cache is None:
+            cache = {}
+            self.__dict__['__cache'] = cache
+        if args in cache:
+            return cache[args]
+        from pycas import ReplacementMap
+        cache[args] = (self._get_evaluator(*args),(ReplacementMap(),ReplacementMap()))
+        return cache[args]
+
+    def get(self,expr,numeric = False,unitless = False,evaluate = True):
+        cache = self._get_cached(numeric,unitless)
+        evaluator = cache[0]
+        res = evaluator(expr,cache = cache[1][0])
         if evaluate == True:
-            res = res.evaluate()
-
+            res = res.evaluate(cache = cache[1][1])
         return res
 
     def get_numeric(self,expr,**kwargs):
@@ -105,12 +139,15 @@ class Settings(CategorizedDictionary):
     def get_definition(self,expr):
         return self.data[expr]
 
+    def get_as(self,expr,type):
+        import pycas as pc
+        res = self.get_unitless(expr)
+        if res.function == pc.Tuple:
+            return [type(e) for e in res]
+        return type(res)
 
-
-
-
-
-
+    def get_unitless_transform(self):
+        return lambda x: self.get_unitless(x)
 
 
 

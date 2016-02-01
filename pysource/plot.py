@@ -8,36 +8,18 @@ def get_metric_prefix(numbers):
     def get_exponent(number):
         return int(np.log10(np.abs(number))) if number != 0 else 0
     
-    units = [(-24,"\mathrm{y}"),(-21,"\mathrm{z}"),(-18,"\mathrm{a}"),(-15,"\mathrm{f}"),
-             (-12,"\mathrm{p}"),(-9,"\mathrm{n}"),(-6,"\mu"),(-3,"\mathrm{m}"),(0,""),
-             (3,"\mathrm{k}"),(6,"\mathrm{M}"),(9,"\mathrm{G}"),
-             (12,"\mathrm{T}"),(15,"\mathrm{P}"),(18,"\mathrm{E}"),(21,"\mathrm{Z}"),(24,"\mathrm{Y}")]
+    from units import metric_prefixes
     
     exponents = [get_exponent(number) for number in numbers]
     largest = max(exponents,key=lambda x:abs(x))
     
-    closest = min(units, key=lambda x:abs(x[0]-largest))
-    
-    return (closest[1],10**closest[0])
-
-def get_unit(expr):
-
-    if not isinstance(expr,Mul):
-        try:
-            float(expr)
-            return None
-        except TypeError:
-            return expr
-    
-    args = []
-    for arg in expr.args:
-        if any([isinstance(arg,T) for T in [Symbol,Unit]]):
-            args.append(arg)
-    
-    return Mul(*args)
+    closest = min(metric_prefixes, key=lambda x:abs(x[1]+1-largest))
+    return (closest[2],10**closest[1])
 
 def get_unitless_bounds(array):
-    
+
+    from .units import get_unit
+
     bounds = []
         
     for l,r in array.bounds:
@@ -57,6 +39,10 @@ def get_unitless_bounds(array):
 def image_plot(carr,ax = None,figsize = None,title = None, **kwargs):
     import matplotlib.pyplot as plt
 
+    # fix missing \text support
+    from pycas import latex as rlatex
+    latex = lambda x:rlatex(x).replace(r'\text',r'\mathrm')
+
     fig = None
     if ax == None:
         fig, ax = plt.subplots(figsize=figsize)
@@ -75,12 +61,19 @@ def image_plot(carr,ax = None,figsize = None,title = None, **kwargs):
     
     if fig:
         fig.colorbar(image)
-        
+
+    if ax == None:
+        plt.show()
+
     return image
         
 def line_plot(carr,ax = None,ylabel = None,figsize = None,title = None,**kwargs):
     import matplotlib.pyplot as plt
     import numpy as np
+
+    # fix missing \text support
+    from pycas import latex as rlatex
+    latex = lambda x:rlatex(x).replace(r'\text',r'\mathrm')
 
     fig = None
     if ax == None:
@@ -96,7 +89,10 @@ def line_plot(carr,ax = None,ylabel = None,figsize = None,title = None,**kwargs)
     lines = ax.plot(np.linspace(float(e[0])/factor,float(e[1])/factor,carr.data.shape[0]),carr.data, **kwargs)
     ax.set_xlabel("$%s$ [$%s %s$]" % (latex(carr.axis[0]),prefix,latex(e[2])))
     if ylabel: ax.set_ylabel(ylabel)
-    
+
+    if ax == None:
+        plt.show()
+
     return lines[0]
         
 def plot(carr,*args,**kwargs):

@@ -45,7 +45,7 @@ def add_simulation_box_symbols(settings):
     sb.lock('sy','defined by ymin and ymax')
     sb.lock('sz','defined by zmin and zmax')
 
-    sb.create_key("downscale", Symbol("\mathrm{downscale}"), 1,info="factor by which the resulting field of the simulation will be scaled down")
+    sb.create_key("downscale", Symbol("downscale"), 1,info="factor by which the resulting field of the simulation will be scaled down")
 
     sb.lock()
 
@@ -87,7 +87,7 @@ def add_simulation_box_symbols(settings):
             unit_name = str(unit)
             if not settings.unitless.has_name(unit_name):
                 settings.unitless.create_key(unit_name,unit)
-            setattr(settings.unitless,unit_name,(unit/s).evaluate())
+            setattr(settings.unitless,unit_name,(2*unit/s).evaluate())
 
 
     def set_voxel_size(nx,ny,nz):
@@ -189,6 +189,8 @@ def set_plane_wave(settings):
     The boundary are set to the index of refraction at z=0."""
     from pycas import exp
 
-    z = settings.simulation_box.z
-    settings.wave_equation.u0 = 1
-    settings.wave_equation.u0_boundary = exp(settings.finitedifferences.F.subs(z,0)*z)
+    s = settings.simulation_box
+    pe = settings.paraxial_equation
+
+    pe.u0 = 1
+    pe.u_boundary = exp(pe.F.subs(s.z,0)*s.z)
