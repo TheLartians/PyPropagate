@@ -26,8 +26,7 @@ endforeach()
 
 # ---- Lars libs ----
 
-ADD_SUBDIRECTORY(${PROJECT_LIBS_DIR}/lars)
-
+ADD_SUBDIRECTORY(${PROJECT_LIBS_DIR}/lars)t.boeddeker
 # ---- Finite Differences ----
 
 LIST(REMOVE_ITEM sources ${PROJECT_SOURCE_DIR}/python.cpp ${PROJECT_SOURCE_DIR}/main.cpp)

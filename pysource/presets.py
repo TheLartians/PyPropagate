@@ -19,9 +19,9 @@ def add_simulation_box_symbols(settings):
     ny = sb.create_key("ny", Symbol("n_y",type = Types.Integer,positive=True),info="voxels in y direction minus the boundary conditions")
     nz = sb.create_key("nz", Symbol("n_z",type = Types.Integer,positive=True),info="voxels in z direction minus the boundary condition")
 
-    Nx = sb.create_key("Nx", Symbol("N_x",type = Types.Integer,positive=True),info="voxels in x direction")
-    Ny = sb.create_key("Ny", Symbol("N_y",type = Types.Integer,positive=True),info="voxels in y direction")
-    Nz = sb.create_key("Nz", Symbol("N_z",type = Types.Integer,positive=True),info="voxels in z direction")
+    sb.create_key("Nx", Symbol("N_x",type = Types.Integer,positive=True),info="voxels in x direction")
+    sb.create_key("Ny", Symbol("N_y",type = Types.Integer,positive=True),info="voxels in y direction")
+    sb.create_key("Nz", Symbol("N_z",type = Types.Integer,positive=True),info="voxels in z direction")
 
     sb.Nx = nx+2
     sb.Ny = ny+2

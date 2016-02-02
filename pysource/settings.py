@@ -78,8 +78,7 @@ class Settings(CategorizedDictionary):
         elif key in self.numerics.keys() and not is_numeric:
             self.numerics.remove_key(key)
 
-        if '__cache' in self.__dict__:
-            del self.__dict__['__cache']
+        self.clear_cache()
 
     def _get_evaluator(self,numeric = False,unitless = False):
         from pycas import Expression,RewriteEvaluator,ReplaceEvaluator,MultiEvaluator,Wildcard,S,Tuple
@@ -111,30 +110,35 @@ class Settings(CategorizedDictionary):
 
         return evaluator
 
+    def clear_cache(self,*args):
+        self._set_attribute('_cache',None)
+
     def _get_cached(self,*args):
-        cache = self.__dict__.get('__cache')
 
-        if cache is None:
-            cache = {}
-            self.__dict__['__cache'] = cache
+        try:
+            cache = self._cache
+        except AttributeError:
+            cache = None
 
-        if args in cache:
-            return cache[args]
+        if cache and args in cache:
+            c = cache[args]
+            return (c[0],(c[1],cache['eval_cache']))
 
         from pycas import ReplacementMap
 
-        if 'eval_cache' not in cache:
+        if cache is None:
+            self._set_attribute('_cache',{})
+            cache = self._cache
             cache['eval_cache'] = ReplacementMap()
 
-        cache[args] = (self._get_evaluator(*args),(ReplacementMap(),cache['eval_cache']))
-        return cache[args]
+        cache[args] = (self._get_evaluator(*args),ReplacementMap())
+        return self._get_cached(*args)
 
     def get(self,expr,numeric = False,unitless = False,evaluate = True):
-        cache = self._get_cached(numeric,unitless)
-        evaluator = cache[0]
-        res = evaluator(expr,cache = cache[1][0])
+        evaluator,(expr_cache,eval_cache) = self._get_cached(numeric,unitless)
+        res = evaluator(expr,cache = expr_cache)
         if evaluate == True:
-            res = res.evaluate(cache = cache[1][1])
+            res = res.evaluate(cache = self._cache['eval_cache'])
         return res
 
     def get_numeric(self,expr,**kwargs):

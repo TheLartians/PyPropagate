@@ -28,7 +28,7 @@ class CoordinateNDArray(object):
     WARNING: 
     reverse iteration (slicing with a negative step size) is not supported yet
     """
-    
+
     @staticmethod
     def __default_transform(x):
         return x
@@ -230,7 +230,7 @@ def numpy_function_wrapper(function):
     return wrapped_function
         
 class WrappedNumpy(object):
-    
+
     """
     Numpy wrapper for CoordinateNDArrays. Wrappes functions of a module that accept numpy arrays to functions that also accept CoordinateNDArrays.
     
