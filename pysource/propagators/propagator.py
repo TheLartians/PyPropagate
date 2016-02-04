@@ -63,7 +63,6 @@ class Propagator(Solver):
         return self._nzmin + self._i * self._ndz
 
     def _reset(self):
-        self._set_z(self._nzmin)
         self.set_field(self.__initial)
 
     def __get_x_coordinates(self):
@@ -98,9 +97,9 @@ class Propagator(Solver):
         sb = settings.simulation_box
 
         if self.ndim == 1:
-            expressions = [settings.get_unitless(expr.subs(sb.y,sb.fy)) for expr in expressions]
+            expressions = [settings.get_optimized(expr.subs(sb.y,sb.fy)) for expr in expressions]
         else:
-            expressions = [settings.get_unitless(expr) for expr in expressions]
+            expressions = [settings.get_optimized(expr) for expr in expressions]
 
         definitions = [pc.FunctionDefinition('f%s' % i,args,expr,parallel=self.ndim>1,**kwargs)
                        for i,expr in enumerate(expressions)]

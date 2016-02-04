@@ -32,7 +32,7 @@ def add_metric_prefixes(name):
         globals()[p+name] = 10**v*s
 
 def create_unit(name):
-    u = pc.Symbol("SI base unit "+name, type=pc.Types.Unit ,latex=r'\mathrm{%s}' % name,repr = name)
+    u = pc.Symbol("SI base unit "+name, type=pc.Types.Real, positive=True ,latex=r'\mathrm{%s}' % name,repr = name)
     globals()[name] = u
     base_units.add(u)
     add_metric_prefixes(name)
@@ -86,35 +86,35 @@ def contains_unit(expr):
             return True
     return False
 
-def get_unit(expr,only_base_units = False,evaluate=True):
+def get_unit(expr,only_base_units = False,evaluate=True,cache = None):
     res = None
     if expr.is_symbol:
-        if only_base_units:
+        #if only_base_units:
             if expr in base_units:
                 res = expr
-        else:
-            if pc.Type(expr).evaluate() == pc.Types.Unit:
-                res = expr
+        #else:
+        #    if pc.Type(expr).evaluate(cache = cache) == pc.Types.Unit:
+        #        res = expr
     elif expr.function == pc.Multiplication:
         units = []
         for arg in expr.args:
-            u = get_unit(arg,only_base_units,False)
+            u = get_unit(arg,only_base_units,False,cache)
             if u is not None:
                 units.append(u)
         if len(units) != 0:
             res = pc.Multiplication(*units)
     elif pc.Negative == expr.function:
-        res = get_unit(expr.args[0],only_base_units,False)
+        res = get_unit(expr.args[0],only_base_units,False,cache)
     elif pc.Fraction == expr.function:
-        inner_unit = get_unit(expr.args[0],only_base_units,False)
+        inner_unit = get_unit(expr.args[0],only_base_units,False,cache)
         if inner_unit is not None:
             res = pc.Fraction(inner_unit)
     elif pc.Exponentiation == expr.function:
-        inner_unit = get_unit(expr.args[0],only_base_units,False)
+        inner_unit = get_unit(expr.args[0],only_base_units,False,cache)
         if inner_unit is not None:
             res = pc.Exponentiation(inner_unit,expr.args[1])
     if res is not None and evaluate:
-        res = res.evaluate()
+        res = res.evaluate(cache = cache)
     return res
 
 

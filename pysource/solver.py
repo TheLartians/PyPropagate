@@ -51,8 +51,8 @@ class Solver(object):
     
     def __init__(self,settings):
         settings.initialize()
-        if len(settings.undefined_keys()) > 0:
-            raise ValueError("there are undefined symbols: %s" % ", ".join([str(s) for s in settings.undefined_keys()]))
+        #if len(settings.undefined_keys()) > 0:
+        #    raise ValueError("there are undefined symbols: %s" % ", ".join([str(s) for s in settings.undefined_keys()]))
         self._updaters = settings.updaters.copy()
         self._i = 0
         self._transform = settings.get_numeric_transform()
@@ -175,7 +175,8 @@ class Solver(object):
         
         import numpy as np
         from progressbar import ProgressBar
-        # self.reset()
+
+        self.reset()
         
         if not isinstance(axis, (list,tuple)):
             axis = [axis]

@@ -31,7 +31,7 @@ def get_unitless_bounds(array):
                 bounds.append((float(l),float(r),1)) 
             else:
                 bounds.append((float(l/unit),float(r/unit),unit)) 
-        except TypeError:
+        except:
             raise ValueError('Cannot convert to unitless expression: %s with unit: %s' % ((l,r),unit))
     
     return bounds
@@ -103,10 +103,9 @@ def line_plot(carr,ax = None,ylabel = None,figsize = None,title = None,**kwargs)
 def expression_to_field(expression,settings):
     import pycas
     import numpy as np
-    from pypropagate import Settings
 
     s = settings.simulation_box
-    expr = settings.get_unitless(expression)
+    expr = settings.get_optimized(expression)
     sym = pycas.get_symbols_in(expr)
 
     from .coordinate_ndarray import CoordinateNDArray
@@ -114,7 +113,11 @@ def expression_to_field(expression,settings):
     if sym - {s.x,s.y,s.z} != set():
         raise ValueError('cannot create field: contains non coordinate symbols %s' % ','.join([str(a) for a in sym - {s.x,s.y,s.z}]))
     if len(sym) == 0:
-        raise ValueError('cannot create field: expression contains no symbols')
+        c = complex(expr)
+        if c.imag == 0:
+            return c.real
+        return c
+        #raise ValueError('cannot create field: expression contains no symbols')
     elif len(sym) == 1:
         x = sym.pop()
         keys = tuple([getattr(s,p % x.name) for p in ['%smin','%smax','N%s']])
@@ -156,9 +159,10 @@ def plot(arg, *args, **kwargs):
     """
     import pycas
     import numpy as np
+    from coordinate_ndarray import CoordinateNDArray
 
     if isinstance(arg,pycas.Expression):
-        from pypropagate import Settings
+        from .settings import Settings
 
         if len(args) > 0 and isinstance(args[0],Settings):
             settings = args[0]
@@ -171,6 +175,13 @@ def plot(arg, *args, **kwargs):
             del kwargs['settings']
 
         arg = expression_to_field(arg,settings)
+
+        if isinstance(arg,(float,complex)):
+            print arg
+            return
+
+    elif not isinstance(arg,CoordinateNDArray):
+        raise ValueError('cannot plot non CoordinateNDArray object. For plotting regular arrays please use the matplotlib.pyplot module.')
 
     if not np.can_cast(arg.data.dtype, np.float): arg = abs(arg) ** 2
     if len(arg.axis) == 1: return line_plot(arg, *args, **kwargs)

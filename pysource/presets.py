@@ -96,15 +96,15 @@ def add_simulation_box_symbols(settings):
         from units import get_unit
         defined = set()
 
-        for s in (sx,sy,sz):
-            unit = get_unit(s)
+        for s in settings.get_numeric((sx,sy,sz)):
+            unit = get_unit(s,cache = settings.get_cache())
             if unit is None or unit in defined:
                 continue
             defined.add(unit)
             unit_name = str(unit)
             if not settings.unitless.has_name(unit_name):
                 settings.unitless.create_key(unit_name,unit)
-            setattr(settings.unitless,unit_name,(2*unit/s).evaluate())
+            setattr(settings.unitless,unit_name,(2*unit/s).evaluate(cache=settings.get_cache()))
 
 
     def set_voxel_size(nx,ny,nz):
@@ -201,7 +201,7 @@ def create_paraxial_wave_equation_settings():
 
     return settings
 
-def set_plane_wave(settings):
+def set_plane_wave_initial_conditions(settings):
     """Sets the intial conditions to a plane wave with intensity 1.
     The boundary are set to the index of refraction at z=0."""
     from pycas import exp
