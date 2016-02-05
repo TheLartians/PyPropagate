@@ -66,7 +66,7 @@ class Solver(object):
     def _get_field(self):
         raise NotImplementedError('get field function not implemented')
         
-    def _set_field(self):
+    def _set_field(self,field):
         raise NotImplementedError('set field function not implemented')
     
     def _get_transform(self):
@@ -103,25 +103,25 @@ class Solver(object):
             return self._z
         raise IndexError('axis out of range, define custom _get_axis_symbol')
         
-    def _get_box_size(self,axis):
+    def _get_box_size(self,axis,downscaled=True):
         downscale = self._get_downscale()
 
         if axis == 0:
-            return self._nt/downscale+1
+            return self._nt/downscale+1 if downscaled else self._nt
         if axis == 1:
-            return self._nx/downscale
+            return self._nx/downscale if downscaled else self._nx
         if axis == 2:
-            return self._ny/downscale
+            return self._ny/downscale if downscaled else self._ny
         if axis == 3:
-            return self._nz/downscale
+            return self._nz/downscale if downscaled else self._nz
         raise IndexError('axis out of range, define custom _get_box_size')
         
-    def _get_nd_box_size(self,n = None):
+    def _get_nd_box_size(self,n = None,**kwargs):
         if n == None:
             n = self.ndim
         res = []
         for i in range(n+1):
-            res.append(self._get_box_size(i))
+            res.append(self._get_box_size(i,**kwargs))
         return res
     
     def _get_nd_boundary(self,n = None):
@@ -151,7 +151,7 @@ class Solver(object):
         if isinstance(field,CoordinateNDArray):
             field = field.data
         
-        for x,xi,xj in zip(self._get_nd_axis_symbols()[1:],self._get_nd_box_size()[1:],field.shape):
+        for x,xi,xj in zip(self._get_nd_axis_symbols()[1:],self._get_nd_box_size(downscaled=False)[1:],field.shape):
             if xi != xj:
                 raise ValueError('Field size in %s direction (%s) doesn\'t match size defined in settings: %s' % (x,xj,xi))
         self._set_field(field)

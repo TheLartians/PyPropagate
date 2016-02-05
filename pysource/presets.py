@@ -15,20 +15,32 @@ def add_simulation_box_symbols(settings):
     sb.y = y
     sb.z = z
 
-    nx = sb.create_key("nx", Symbol("n_x",type = Types.Integer,positive=True),info="voxels in x direction minus the boundary conditions")
-    ny = sb.create_key("ny", Symbol("n_y",type = Types.Integer,positive=True),info="voxels in y direction minus the boundary conditions")
-    nz = sb.create_key("nz", Symbol("n_z",type = Types.Integer,positive=True),info="voxels in z direction minus the boundary condition")
+    sb.create_key("nx", Symbol("n_x",type = Types.Integer,positive=True),info="voxels in x direction minus the boundary conditions")
+    sb.create_key("ny", Symbol("n_y",type = Types.Integer,positive=True),info="voxels in y direction minus the boundary conditions")
+    sb.create_key("nz", Symbol("n_z",type = Types.Integer,positive=True),info="voxels in z direction minus the boundary condition")
 
-    sb.create_key("Nx", Symbol("N_x",type = Types.Integer,positive=True),info="voxels in x direction")
-    sb.create_key("Ny", Symbol("N_y",type = Types.Integer,positive=True),info="voxels in y direction")
-    sb.create_key("Nz", Symbol("N_z",type = Types.Integer,positive=True),info="voxels in z direction")
+    sb.create_key("Nx", Symbol("N_x",type = Types.Integer,positive=True),info="actual voxels in x direction")
+    sb.create_key("Ny", Symbol("N_y",type = Types.Integer,positive=True),info="actual voxels in y direction")
+    sb.create_key("Nz", Symbol("N_z",type = Types.Integer,positive=True),info="actual voxels in z direction")
 
-    sb.Nx = nx+2
-    sb.Ny = ny+2
-    sb.Nz = nz+1
-    sb.lock('Nx','defined by nx')
-    sb.lock('Nz','defined by ny')
-    sb.lock('Nz','defined by nz')
+    sb.nx = sb.Nx - 2
+    sb.ny = sb.Ny - 2
+    sb.nz = sb.Nz - 1
+    sb.lock('nx','defined by Nx')
+    sb.lock('ny','defined by Ny')
+    sb.lock('nz','defined by Nz')
+
+    sb.create_key("downscale", Symbol("downscale"), 1,info="factor by which the resulting field of the simulation will be scaled down")
+
+    sb.create_key("Nxd", Symbol("N_x_d",type = Types.Integer,positive=True),info="downscaled voxels in x direction")
+    sb.create_key("Nyd", Symbol("N_y_d",type = Types.Integer,positive=True),info="downscaled voxels in y direction")
+    sb.create_key("Nzd", Symbol("N_z_d",type = Types.Integer,positive=True),info="downscaled voxels in z direction")
+    sb.Nxd = sb.Nx/sb.downscale
+    sb.Nyd = sb.Ny/sb.downscale
+    sb.Nzd = sb.Nz/sb.downscale
+    sb.lock('Nxd','defined by Nx')
+    sb.lock('Nyd','defined by Ny')
+    sb.lock('Nzd','defined by nz')
 
     sx = sb.create_key("sx",Symbol("s_x",type = Types.Real,positive=True),info="simulation box size in x direction")
     sy = sb.create_key("sy",Symbol("s_y",type = Types.Real,positive=True),info="simulation box size in y direction")
@@ -45,12 +57,14 @@ def add_simulation_box_symbols(settings):
     zmin = sb.create_key("zmin", Symbol("z_min",type = Types.Real),info="z value at the lower simulation box boundary")
     zmax = sb.create_key("zmax", Symbol("z_max",type = Types.Real),info="z value at the upper simulation box boundary")
 
-    sb.dx = sx/(nx+1)
-    sb.dy = sy/(ny+1)
-    sb.dz = sz/nz
-    sb.lock('dx','defined by sx and nx')
-    sb.lock('dy','defined by sy and ny')
-    sb.lock('dz','defined by sz and nz')
+    sb.zmin = 0
+
+    sb.dx = sx/(sb.Nx-1)
+    sb.dy = sy/(sb.Ny-1)
+    sb.dz = sz/(sb.Nz-1)
+    sb.lock('dx','defined by sx and Nx')
+    sb.lock('dy','defined by sy and Ny')
+    sb.lock('dz','defined by sz and Nz')
 
     sb.sx = xmax - xmin
     sb.sy = ymax - ymin
@@ -62,7 +76,10 @@ def add_simulation_box_symbols(settings):
     sb.create_key("fy",Symbol("fixed y",type = Types.Real),info="fixed y value for 2D simulations")
     sb.fy = (ymin + ymax)/2
 
-    sb.create_key("downscale", Symbol("downscale"), 1,info="factor by which the resulting field of the simulation will be scaled down")
+    import pycas as pc
+    sb.create_key("xi",Function("x_i")(x),pc.floor((sb.x-sb.xmin)/sb.dx),info="grid index for x value")
+    sb.create_key("yi",Function("y_i")(y),pc.floor((sb.y-sb.ymin)/sb.dy),info="grid index for y value")
+    sb.create_key("zi",Function("z_i")(z),pc.floor((sb.z-sb.zmin)/sb.dz),info="grid index for z value")
 
     sb.lock()
 
@@ -81,17 +98,15 @@ def add_simulation_box_symbols(settings):
         sb.sx,sb.sy,sb.sz = (sx,sy,sz)
         sb.xmin = -sb.sx/2
         sb.ymin = -sb.sy/2
-        sb.zmin = 0
-        sb.xmax = sb.sx/2
-        sb.ymax = sb.sy/2
-        sb.zmax = sb.sz
+        sb.xmax = sb.xmin + sb.sx
+        sb.ymax = sb.ymin + sb.sy
+        sb.zmax = sb.zmin + sb.sz
 
         sb.lock('xmin','defined by sx')
-        sb.lock('xmax','defined by sx')
+        sb.lock('xmax','defined by xmin and sx')
         sb.lock('ymin','defined by sy')
-        sb.lock('ymax','defined by sy')
-        sb.lock('zmin','defined by sz')
-        sb.lock('zmax','defined by sz')
+        sb.lock('ymax','defined by ymin and sy')
+        sb.lock('zmax','defined by zmin and sz')
 
         from units import get_unit
         defined = set()
@@ -106,11 +121,10 @@ def add_simulation_box_symbols(settings):
                 settings.unitless.create_key(unit_name,unit)
             setattr(settings.unitless,unit_name,(2*unit/s).evaluate(cache=settings.get_cache()))
 
-
-    def set_voxel_size(nx,ny,nz):
+    def set_voxel_size(Nx,Ny,Nz):
         'Sets the voxe size of the simulation in x, y and z direction'
-        voxel_size = (nx,ny,nz)
-        sb.nx,sb.ny,sb.nz = voxel_size
+        voxel_size = (Nx,Ny,Nz)
+        sb.Nx,sb.Ny,sb.Nz = voxel_size
 
     def set_simulation_box(physical_size,voxel_size):
         """Sets the simulation box size using the physical_size and voxel_size arguments which are 3-tupels containing the simulation box dimensions in x, y, and z directions."""
@@ -211,3 +225,77 @@ def set_plane_wave_initial_conditions(settings):
 
     pe.u0 = 1
     pe.u_boundary = exp(pe.F.subs(s.z,0)*s.z)
+
+def create_next_settings(old_settings):
+    settings = old_settings.copy(copy_initializers = False,copy_updaters = False)
+
+    sb = settings.simulation_box
+    sb.unlock('zmin')
+    sb.unlock('zmax')
+    sb.unlock('sz')
+
+    sb.zmin = old_settings.get_numeric(sb.zmax)
+    sb.zmax = sb.zmin + sb.sz
+
+    sb.lock('zmin','defined by previous simulation')
+    sb.lock('zmax','defined by zmin and sz')
+
+    return settings
+
+def add_padding(array,factor,mode = 'edge',**kwargs):
+    import numpy as np
+    from coordinate_ndarray import CoordinateNDArray
+
+    padding_points = [int(x*factor) for x in array.data.shape]
+    new_data = np.pad(array.data,padding_points,mode,**kwargs)
+
+    extension = [d*p for d,p in zip(array._dbounds,padding_points)]
+    new_bounds = [(b-i,e+i) for i,(b,e) in zip(extension,array.bounds)]
+
+    return CoordinateNDArray(new_data,new_bounds,array.axis,array.evaluate)
+
+
+def set_initial(settings,initial_array):
+    import pycas as pc
+
+    initial = pc.array("initial",initial_array)
+    sb = settings.simulation_box
+
+    if tuple(initial_array.axis) == (sb.x,):
+        settings.paraxial_equation.u0 = initial(sb.xi)
+    elif tuple(initial_array.axis) == (sb.x,sb.y):
+        settings.paraxial_equation.u0 = initial(sb.xi,sb.yi)
+        sb.unlock('ymin')
+        sb.unlock('ymax')
+        sb.unlock('sy')
+        sb.ymin = initial_array.bounds[1][0]
+        sb.ymax = initial_array.bounds[1][1]
+        sb.sy = sb.ymax - sb.ymin
+        sb.lock('ymin','defined by initial array')
+        sb.lock('ymax','defined by initial array')
+        sb.lock('sy','defined by ymin and ymax')
+    else:
+        raise ValueError('initial array axis must be (x,) or (x,y)')
+
+    sb.unlock('xmin')
+    sb.unlock('xmax')
+    sb.unlock('sx')
+    sb.xmin = initial_array.bounds[0][0]
+    sb.xmax = initial_array.bounds[0][1]
+    sb.sx = sb.xmax - sb.xmin
+    sb.lock('xmin','defined by initial array')
+    sb.lock('xmax','defined by initial array')
+    sb.lock('sx','defined by xmin and xmax')
+
+
+
+
+
+
+
+
+
+
+
+
+

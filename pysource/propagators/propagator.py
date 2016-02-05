@@ -33,12 +33,15 @@ class Propagator(Solver):
         self._ndy = settings.get_as(sb.dy,float)
         self._ndz = settings.get_as(sb.dz,float)
 
-    def _set_initial_field(self,initial,settings):
+        import pycas as pc
+        pe = settings.paraxial_equation
 
-        if initial is None:
-            u0 = self._get_evaluators(settings.paraxial_equation.u0,settings)
-            initial = u0(*self._get_coordinates())
+        self._F_is_zero = settings.get_unitless( pe.F ) == pc.Zero
+        self._F_is_constant = settings.get_unitless( pc.derivative(pe.F,sb.z) ) == pc.Zero
 
+    def _set_initial_field(self,settings):
+        u0 = self._get_evaluators(settings.paraxial_equation.u0,settings)
+        initial = u0(*self._get_coordinates())
         self.__initial = initial
         self.set_field(initial)
 

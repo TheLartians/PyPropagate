@@ -13,8 +13,8 @@ class CoordinateNDArray(object):
                 A list with n elements containing the physical boundaries of the array
     axis:       list (optional, defaults to range(n))
                 A list with n elements containing the names of the axes (eg. ["x","y","z"])
-    transform:  function-like (optional, defaults to lambda x:x)
-                When accessing the array, arguments are transformed by this function
+    evaluate:   function-like (optional, defaults to lambda x:x)
+                When accessing the array, arguments are evaluated by this function
     
     Example:
     --------
@@ -29,22 +29,18 @@ class CoordinateNDArray(object):
     reverse iteration (slicing with a negative step size) is not supported yet
     """
 
-    @staticmethod
-    def __default_transform(x):
-        return x
-    
-    def __init__(self,data,bounds = None,axis = None,transform=None):        
+    def __init__(self,data,bounds = None,axis = None,evaluate=lambda x:x):
         self.data = np.array(data)
+        self.evaluate = evaluate
         n = len(self.data.shape)
-        self.bounds = [(b[0],b[1]) for b in bounds] if bounds != None else [(0,1)]*n
+        self.bounds = [(self.evaluate(b[0]),self.evaluate(b[1])) for b in bounds] if bounds != None else [(0,1)]*n
         self.axis = [a for a in axis] if axis != None else range(n)
-        self.evaluate = transform if transform != None else self.__default_transform
         if not len(self.data.shape) == len(self.bounds) == len(self.axis):
             raise ValueError("dimensions do not match")
-        self.__dbounds = [self.evaluate((b[1] - b[0])/int(n-1)) for b,n in zip(self.bounds,self.data.shape)]
+        self._dbounds = [self.evaluate((b[1] - b[0]) / int(n - 1)) for b, n in zip(self.bounds, self.data.shape)]
 
     def _get_index(self, value, axis):
-        return int(self.evaluate((value - self.bounds[axis][0]) / self.__dbounds[axis]) + 0.5)
+        return int(self.evaluate((value - self.bounds[axis][0]) / self._dbounds[axis]) + 0.5)
 
     def __convert_slice(self,sliced,axis):
         if isinstance(sliced,slice):
@@ -55,7 +51,7 @@ class CoordinateNDArray(object):
             else: s[1] = min(self._get_index(s[1], axis), self.data.shape[axis] - 1)
             if s[2] is None: s[2] = 1
             else:
-                s[2] = int(self.evaluate(s[2] / self.__dbounds[axis]))
+                s[2] = int(self.evaluate(s[2] / self._dbounds[axis]))
                 if s[2] == 0: s[2] = 1
             return slice(*s)
         else:
@@ -71,7 +67,7 @@ class CoordinateNDArray(object):
     
     def __get_bounds_for_slice(self,sliced,axis):
         n = self.__convert_slice(sliced,axis)
-        slice_bounds = [self.bounds[axis][0]+n.start*self.__dbounds[axis],self.bounds[axis][0]+n.stop*self.__dbounds[axis]]
+        slice_bounds = [self.bounds[axis][0] + n.start * self._dbounds[axis], self.bounds[axis][0] + n.stop * self._dbounds[axis]]
         slice_bounds = [self.evaluate(b) for b in slice_bounds]
         return slice_bounds,n
     

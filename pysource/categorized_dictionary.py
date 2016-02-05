@@ -159,7 +159,6 @@ class Category(object):
         if warn and name in self.__dict__: 
             import warnings
             warnings.warn("overwriting attribute %s" % name, UserWarning)
-            raise RuntimeError()
         if name == None:
             self._anon_count += 1
             name = "_anonymous_key_%s" % self._anon_count

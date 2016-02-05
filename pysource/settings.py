@@ -15,6 +15,7 @@ class Settings(CategorizedDictionary):
         self._cache = dict()
         self._eval_cache = dict()
         self._initialized = True
+        self._initializing = False
         self._initializers = collections.OrderedDict()
 
         super(Settings,self).__init__()
@@ -28,47 +29,64 @@ class Settings(CategorizedDictionary):
 
     def create_category(self,cat_name,*args,**kwargs):
         import pycas as pc
+
+        def add_symbol_creation_to_category(cat,cat_name,cat_path=[]):
+            cat_path = cat_path + [cat_name]
+            def create_symbol(name,value=None,info=None,**kwargs):
+                prefix = '_'.join(cat_path)
+                return cat.create_key(name,pc.Symbol("%s_%s" % (name,prefix),**kwargs),value,info)
+            def create_function(name,args,value=None,info=None,**kwargs):
+                prefix = '_'.join(cat_path)
+                return cat.create_key(name,pc.Function("%s_%s" % (name,prefix),**kwargs)(*args),value,info)
+            old_create_category = cat.create_category
+            def create_category(cat_name,*args,**kwargs):
+                inner_cat = old_create_category(cat_name,*args,**kwargs)
+                add_symbol_creation_to_category(inner_cat,cat_name,cat_path)
+                return inner_cat
+
+            cat._set_attribute('create_symbol',create_symbol)
+            cat._set_attribute('create_function',create_function)
+            cat._set_attribute('create_category',create_category)
+
         cat = super(Settings, self).create_category(cat_name,*args,**kwargs)
-
-        def create_symbol(name,value=None,info=None,**kwargs):
-            return cat.create_key(name,pc.Symbol("%s_%s" % (name,cat_name),**kwargs),value,info)
-        def create_function(name,args,value=None,info=None,**kwargs):
-            return cat.create_key(name,pc.Function("%s_%s" % (name,cat_name),**kwargs)(*args),value,info)
-
-        cat._set_attribute('create_symbol',create_symbol)
-        cat._set_attribute('create_function',create_function)
+        add_symbol_creation_to_category(cat,cat_name)
 
         return cat
 
     @property
     def initializers(self):
 
-        parent = self
-
         class Initializers(object):
+            def __init__(self,parent):
+                self.parent = parent
             def __getitem__(self, item):
-                return parent._initializers[item]
+                return self.parent._initializers[item]
             def __setitem__(self, key, value):
-                parent._initialized = False
-                parent._initializers.__setitem__(key,value)
+                self.parent._initialized = self.parent._initializing
+                self.parent._initializers.__setitem__(key,value)
 
-        return Initializers()
+        return Initializers(self)
 
     def initialize(self):
-        if self._initialized:
+        if self._initialized or self._initializing:
             return
-        self._initialized = True
+
+        self._initializing = True
 
         for initializer in self._initializers.values():
             initializer(self)
 
+        self._initialized = True
+        self._initializing = False
 
-    def copy(self):
+    def copy(self,copy_initializers = True,copy_updaters = True):
         "Return a soft copy of the Settings object."
         copy = Settings(create_categories = False)
         super(Settings,self).copy(copy = copy)
-        copy._initializers = (self._initializers.copy())
-        copy.updaters = (self.updaters.copy())
+        if copy_initializers:
+            copy._initializers = (self._initializers.copy())
+        if copy_updaters:
+            copy.updaters = (self.updaters.copy())
         return copy
 
     def _is_numeric(self,value):
@@ -96,6 +114,9 @@ class Settings(CategorizedDictionary):
         if isinstance(value,pycas.Expression):
             value = value.evaluate(cache = self.get_cache())
 
+        if key in self.data and self.data[key] == value:
+            return
+
         super(Settings,self)._set_value(key,value)
         is_numeric = self._is_numeric(value)
         
@@ -105,7 +126,7 @@ class Settings(CategorizedDictionary):
             self.numerics.remove_key(key)
 
         self._eval_cache = {}
-        self._initialized = False
+        self._initialized = self._initializing
 
     def _get_evaluator(self,numeric = False,unitless = False):
 

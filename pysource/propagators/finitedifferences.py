@@ -10,7 +10,7 @@ class FiniteDifferencesPropagator1D(Propagator):
     ndim = 1
     dtype = np.complex128
     
-    def __init__(self,settings,initial=None):
+    def __init__(self,settings):
         super(FiniteDifferencesPropagator1D,self).__init__(settings)
     
         sb = settings.simulation_box
@@ -22,11 +22,10 @@ class FiniteDifferencesPropagator1D(Propagator):
         lib = pc.ccompile(
                 pc.FunctionDefinition("F",(sb.x,sb.z),F,return_type=pc.Types.Complex),
                 pc.FunctionDefinition("u_boundary",(sb.x,sb.z),u_boundary,return_type=pc.Types.Complex),
-                pc.FunctionDefinition("u0",(sb.x,sb.z),u0,return_type=pc.Types.Complex),
         )
 
         self._solver = finite_difference_1D()
-        
+
         self._solver.set_F(lib.F.address())
         self._solver.set_u_boundary(lib.u_boundary.address())
         self._solver.A = complex(A)
@@ -35,7 +34,7 @@ class FiniteDifferencesPropagator1D(Propagator):
         self._solver.z = zmin
         self._solver.dz = dz
 
-        self._set_initial_field(initial,settings)
+        self._set_initial_field(settings)
 
     def _set_z(self,z):
         self._solver.z = z
@@ -56,7 +55,7 @@ class FiniteDifferencesPropagator2D(Propagator):
     ndim = 2
     dtype = np.complex128
     
-    def __init__(self,settings,initial = None):
+    def __init__(self,settings):
         super(FiniteDifferencesPropagator2D,self).__init__(settings)
     
         sb = settings.simulation_box
@@ -68,7 +67,6 @@ class FiniteDifferencesPropagator2D(Propagator):
         lib = pc.ccompile(
                 pc.FunctionDefinition("F",(sb.x,sb.y,sb.z),F,return_type=pc.Types.Complex),
                 pc.FunctionDefinition("u_boundary",(sb.x,sb.y,sb.z),u_boundary,return_type=pc.Types.Complex),
-                pc.FunctionDefinition("u0",(sb.x,sb.y,sb.z),u0,return_type=pc.Types.Complex),
         )
 
         self._solver = finite_difference_2D()
@@ -82,7 +80,7 @@ class FiniteDifferencesPropagator2D(Propagator):
         self._solver.dz = dz
         self._solver.z = zmin
 
-        self._set_initial_field(initial,settings)
+        self._set_initial_field(settings)
 
     def _set_z(self,z):
         self._solver.z = z

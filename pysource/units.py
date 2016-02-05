@@ -95,24 +95,24 @@ def get_unit(expr,only_base_units = False,evaluate=True,cache = None):
         #else:
         #    if pc.Type(expr).evaluate(cache = cache) == pc.Types.Unit:
         #        res = expr
-    elif expr.function == pc.Multiplication:
+    elif expr.function == pc.multiplication:
         units = []
         for arg in expr.args:
             u = get_unit(arg,only_base_units,False,cache)
             if u is not None:
                 units.append(u)
         if len(units) != 0:
-            res = pc.Multiplication(*units)
-    elif pc.Negative == expr.function:
+            res = pc.multiplication(*units)
+    elif pc.negative == expr.function:
         res = get_unit(expr.args[0],only_base_units,False,cache)
-    elif pc.Fraction == expr.function:
+    elif pc.fraction == expr.function:
         inner_unit = get_unit(expr.args[0],only_base_units,False,cache)
         if inner_unit is not None:
-            res = pc.Fraction(inner_unit)
-    elif pc.Exponentiation == expr.function:
+            res = pc.fraction(inner_unit)
+    elif pc.exponentiation == expr.function:
         inner_unit = get_unit(expr.args[0],only_base_units,False,cache)
         if inner_unit is not None:
-            res = pc.Exponentiation(inner_unit,expr.args[1])
+            res = pc.exponentiation(inner_unit,expr.args[1])
     if res is not None and evaluate:
         res = res.evaluate(cache = cache)
     return res
