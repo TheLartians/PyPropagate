@@ -77,9 +77,9 @@ def add_simulation_box_symbols(settings):
     sb.fy = (ymin + ymax)/2
 
     import pycas as pc
-    sb.create_key("xi",Function("x_i")(x),pc.floor((sb.x-sb.xmin)/sb.dx),info="grid index for x value")
-    sb.create_key("yi",Function("y_i")(y),pc.floor((sb.y-sb.ymin)/sb.dy),info="grid index for y value")
-    sb.create_key("zi",Function("z_i")(z),pc.floor((sb.z-sb.zmin)/sb.dz),info="grid index for z value")
+    sb.create_key("xi",Function("x_i")(x),pc.round((sb.x-sb.xmin)/sb.dx),info="grid index for x value")
+    sb.create_key("yi",Function("y_i")(y),pc.round((sb.y-sb.ymin)/sb.dy),info="grid index for y value")
+    sb.create_key("zi",Function("z_i")(z),pc.round((sb.z-sb.zmin)/sb.dz),info="grid index for z value")
 
     sb.lock()
 
@@ -246,14 +246,13 @@ def add_padding(array,factor,mode = 'edge',**kwargs):
     import numpy as np
     from coordinate_ndarray import CoordinateNDArray
 
-    padding_points = [int(x*factor) for x in array.data.shape]
+    padding_points = [[int(x*factor)]*2 for x in array.data.shape]
     new_data = np.pad(array.data,padding_points,mode,**kwargs)
 
-    extension = [d*p for d,p in zip(array._dbounds,padding_points)]
+    extension = [d*p[0] for d,p in zip(array._dbounds,padding_points)]
     new_bounds = [(b-i,e+i) for i,(b,e) in zip(extension,array.bounds)]
 
     return CoordinateNDArray(new_data,new_bounds,array.axis,array.evaluate)
-
 
 def set_initial(settings,initial_array):
     import pycas as pc
@@ -264,13 +263,14 @@ def set_initial(settings,initial_array):
     if tuple(initial_array.axis) == (sb.x,):
         settings.paraxial_equation.u0 = initial(sb.xi)
     elif tuple(initial_array.axis) == (sb.x,sb.y):
-        settings.paraxial_equation.u0 = initial(sb.xi,sb.yi)
+        settings.paraxial_equation.u0 = initial(sb.yi,sb.xi)
         sb.unlock('ymin')
         sb.unlock('ymax')
         sb.unlock('sy')
         sb.ymin = initial_array.bounds[1][0]
         sb.ymax = initial_array.bounds[1][1]
         sb.sy = sb.ymax - sb.ymin
+        sb.Ny = initial_array.shape[1]
         sb.lock('ymin','defined by initial array')
         sb.lock('ymax','defined by initial array')
         sb.lock('sy','defined by ymin and ymax')
@@ -283,6 +283,7 @@ def set_initial(settings,initial_array):
     sb.xmin = initial_array.bounds[0][0]
     sb.xmax = initial_array.bounds[0][1]
     sb.sx = sb.xmax - sb.xmin
+    sb.Nx = initial_array.shape[0]
     sb.lock('xmin','defined by initial array')
     sb.lock('xmax','defined by initial array')
     sb.lock('sx','defined by xmin and xmax')

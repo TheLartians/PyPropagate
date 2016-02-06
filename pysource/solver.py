@@ -142,8 +142,8 @@ class Solver(object):
     
     def get_field(self):
         res = self._get_field()
-        if self._get_downscale() != 1:
-            res = rebin(res,self._get_nd_box_size()[1:])
+        #if self._get_downscale() != 1:
+        #    res = rebin(res,self._get_nd_box_size()[1:])
         return CoordinateNDArray(res,self._get_nd_boundary()[1:],self._get_nd_axis_symbols()[1:],self._get_transform())
     
     def set_field(self,field):

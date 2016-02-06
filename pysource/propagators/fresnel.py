@@ -38,18 +38,15 @@ class FresnelPropagator2D(Propagator):
     def _step(self):
         from numpy.fft import fft2,ifft2
 
-        if self._F_is_constant:
+        if self._F_is_zero:
             freq = fft2(self._get_initial())
             freq *= self.__D_step**self._i
             self.__data = ifft2(freq)
-            if not self._F_is_zero:
-                self.__data *= self.__R(*self._get_coordinates())**self._i
         else:
             freq = fft2(self.__data)
             freq *= self.__D_step
             self.__data = ifft2(freq)
-            if not self._F_is_zero:
-                self.__data *= self.__R(*self._get_coordinates())
+            self.__data *= self.__R(*self._get_coordinates())
 
     def _get_field(self):
         return self.__data
@@ -88,18 +85,15 @@ class FresnelPropagator1D(Propagator):
 
     def _step(self):
         from numpy.fft import fft,ifft
-        if self._F_is_constant:
+        if self._F_is_zero:
             freq = fft(self._get_initial())
             freq *= self.__D_step**self._i
             self.__data = ifft(freq)
-            if not self._F_is_zero:
-                self.__data *= self.__R(*self._get_coordinates())**self._i
         else:
             freq = fft(self.__data)
             freq *= self.__D_step
             self.__data = ifft(freq)
-            if not self._F_is_zero:
-                self.__data *= self.__R(*self._get_coordinates())
+            self.__data *= self.__R(*self._get_coordinates())
 
     def _get_field(self):
         return self.__data

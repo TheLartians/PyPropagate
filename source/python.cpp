@@ -140,6 +140,7 @@ BOOST_PYTHON_MODULE(_pypropagate){
     .def_readwrite("dz",&py_finite_difference_1D::dz)
     .def_readwrite("z",&py_finite_difference_1D::z)
     .def_readwrite("A",&py_finite_difference_1D::A)
+    .def_readwrite("constant_F",&py_finite_difference_1D::constant_F)
     .def("step",&py_finite_difference_1D::step)
     .def("init",&py_finite_difference_1D::init)
   ;
@@ -156,6 +157,7 @@ BOOST_PYTHON_MODULE(_pypropagate){
   .def_readwrite("dz",&py_finite_difference_2D::dz)
   .def_readwrite("z",&py_finite_difference_2D::z)
   .def_readwrite("A",&py_finite_difference_2D::A)
+  .def_readwrite("constant_F",&py_finite_difference_2D::constant_F)
   .def("step",&py_finite_difference_2D::step)
   .def("init",&py_finite_difference_2D::init)
   ;

@@ -33,6 +33,7 @@ class FiniteDifferencesPropagator1D(Propagator):
         self._solver.xmax = xmax
         self._solver.z = zmin
         self._solver.dz = dz
+        self._solver.constant_F = self._F_is_constant
 
         self._set_initial_field(settings)
 
@@ -79,6 +80,7 @@ class FiniteDifferencesPropagator2D(Propagator):
         self._solver.ymax = ymax
         self._solver.dz = dz
         self._solver.z = zmin
+        self._solver.constant_F = self._F_is_constant
 
         self._set_initial_field(settings)
 

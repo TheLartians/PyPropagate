@@ -44,11 +44,19 @@ namespace lars {
       if(!ready) init();
       real zn=z+dz;
       
-      for(int i=1;i<s-1;++i){
-        Dx[i-1]=(1.-2.*rx+C[i-1])*field[i]+rx*(field[i-1]+field[i+1]);
-        real x=xmin+dx*i;
-        C[i-1]=F(x,zn)*dz/2.;
-        Bx[i-1]=1.+2.*rx-C[i-1];
+      if(constant_F){
+        for(int i=1;i<s-1;++i){
+          Dx[i-1]=(1.-2.*rx+C[i-1])*field[i]+rx*(field[i-1]+field[i+1]);
+          Bx[i-1]=1.+2.*rx-C[i-1];
+        }
+      }
+      else{
+        for(int i=1;i<s-1;++i){
+          Dx[i-1]=(1.-2.*rx+C[i-1])*field[i]+rx*(field[i-1]+field[i+1]);
+          real x=xmin+dx*i;
+          C[i-1]=F(x,zn)*dz/2.;
+          Bx[i-1]=1.+2.*rx-C[i-1];
+        }
       }
       
       field[0]   = u_boundary(xmin,zn);
@@ -74,6 +82,8 @@ namespace lars {
   }
   
   void finite_difference_2D::init(){
+    ready=false;
+
     sx = field1.rows();
     sy = field1.cols();
     
@@ -153,9 +163,10 @@ namespace lars {
     real zn=z+dz;
     z+=dz/2.;
     
-    CField1.swap(CField2);
-    
-    parallel_for(1, sx-1, [&](unsigned i){ for(int j=1;j<sy-1;++j){ CField2(i-1,j-1)=F(xmin+i*dx,ymin+j*dy,zn)*dz/4.; } });
+    if(!constant_F || !ready){
+      CField1.swap(CField2);
+      parallel_for(1, sx-1, [&](unsigned i){ for(int j=1;j<sy-1;++j){ CField2(i-1,j-1)=F(xmin+i*dx,ymin+j*dy,zn)*dz/4.; } });
+    }
     
     field1.swap(field2);
     

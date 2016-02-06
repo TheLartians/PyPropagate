@@ -37,9 +37,10 @@ namespace lars {
     real dx;
 
   public:
+    
+    bool constant_F = false;
     real xmin,xmax;
     real dz,z;
-    
     complex A;
     
     std::function<complex(real,real)> F;
@@ -77,6 +78,8 @@ namespace lars {
     complex &u(int xi,int yi,int zi);
     
   public:
+    
+    bool constant_F = false;
     real xmin,xmax,ymin,ymax,dz,z;
     complex A;
     
