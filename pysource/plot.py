@@ -128,7 +128,7 @@ def expression_to_field(expression,settings):
         data =  pycas.numpyfy(expr)(**{x.name:npx})
         res =  CoordinateNDArray(data,[(xmin,xmax)],(x,),settings.get_numeric_transform())
     elif len(sym) == 2:
-        y,x = sym.pop(),sym.pop()
+        y,x = sorted([sym.pop(),sym.pop()],key = lambda x:x.name)[::-1]
         keys = tuple([getattr(s,p % i) for i in (x,y) for p in ['%smin','%smax','N%sd']])
         xmin,xmax,nx,ymin,ymax,ny = settings.get_numeric( keys )
         nxmin,nxmax,nymin,nymax = settings.get_as( (xmin,xmax,ymin,ymax) , float )
@@ -183,7 +183,9 @@ def plot(arg, *args, **kwargs):
     elif not isinstance(arg,CoordinateNDArray):
         raise ValueError('cannot plot non CoordinateNDArray object. For plotting regular arrays please use the matplotlib.pyplot module.')
 
-    if not np.can_cast(arg.data.dtype, np.float): arg = abs(arg) ** 2
+    if not np.can_cast(arg.data.dtype, np.float128):
+        if np.all(arg.data.imag == 0): arg = arg.real
+        else: arg = abs(arg) ** 2
     if len(arg.axis) == 1: return line_plot(arg, *args, **kwargs)
     elif len(arg.axis) == 2: return image_plot(arg, *args, **kwargs)
     else: raise ValueError("input array must be one or two dimensional")

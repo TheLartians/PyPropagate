@@ -192,6 +192,8 @@ class CoordinateNDArray(object):
                 def wrapped_function(*args,**kwargs):
                     return self.__mutated_copy(wrapped_member,*args,**kwargs)
                 return wrapped_function
+            if isinstance(res,np.ndarray) and res.shape == self.data.shape:
+                return CoordinateNDArray(res,self.bounds,self.axis,self.evaluate)
             return res
         
     def save_to_file(self,path,warn_transform = True):

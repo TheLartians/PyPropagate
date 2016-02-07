@@ -5,7 +5,7 @@ def add_simulation_box_symbols(settings):
 
     sb = settings.create_category("simulation_box",info="parameters and dimensions of the simulation box")
 
-    from pycas import Symbol,symbols,Function,pi,I,Types
+    from pycas import Symbol,symbols,Function,pi,I,Types,sqrt
 
     x = sb.create_key("x",Symbol("x",type = Types.Real),info="field coordinate for 1D simulations")
     y = sb.create_key("y",Symbol("y",type = Types.Real),info="second coordinate for 2D simulations")
@@ -72,6 +72,8 @@ def add_simulation_box_symbols(settings):
     sb.lock('sx','defined by xmin and xmax')
     sb.lock('sy','defined by ymin and ymax')
     sb.lock('sz','defined by zmin and zmax')
+
+    sb.create_key('r',Function('r')(sb.x,sb.y),sqrt(sb.x**2+sb.y**2),info='distance from origin')
 
     sb.create_key("fy",Symbol("fixed y",type = Types.Real),info="fixed y value for 2D simulations")
     sb.fy = (ymin + ymax)/2
@@ -224,7 +226,7 @@ def set_plane_wave_initial_conditions(settings):
     pe = settings.paraxial_equation
 
     pe.u0 = 1
-    pe.u_boundary = exp(pe.F.subs(s.z,0)*s.z)
+    pe.u_boundary = pe.u0.subs(s.z,0) * exp(pe.F.subs(s.z,0)*s.z)
 
 def create_next_settings(old_settings):
     settings = old_settings.copy(copy_initializers = False,copy_updaters = False)

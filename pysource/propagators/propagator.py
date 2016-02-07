@@ -40,7 +40,8 @@ class Propagator(Solver):
         self._F_is_constant = settings.get_unitless( pc.derivative(pe.F,sb.z) ) == pc.Zero
 
     def _set_initial_field(self,settings):
-        u0 = self._get_evaluators(settings.paraxial_equation.u0,settings)
+        sb = settings.simulation_box
+        u0 = self._get_evaluators(settings.paraxial_equation.u0.subs(sb.z,sb.zmin),settings)
         initial = u0(*self._get_coordinates())
         self.__initial = initial
         self.set_field(initial)

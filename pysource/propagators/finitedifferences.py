@@ -16,7 +16,7 @@ class FiniteDifferencesPropagator1D(Propagator):
         sb = settings.simulation_box
         pe = settings.paraxial_equation
         
-        F,A,u0,u_boundary = settings.get_unitless(pc.Tuple(pe.F,pe.A, pe.u0, pe.u_boundary).subs(sb.y,sb.fy))
+        F,A,u_boundary = settings.get_unitless(pc.Tuple(pe.F,pe.A, pe.u_boundary).subs(sb.y,sb.fy))
         xmin,xmax,zmin,dz = settings.get_as((sb.xmin,sb.xmax,sb.zmin,sb.dz),float)
 
         lib = pc.ccompile(
@@ -62,7 +62,7 @@ class FiniteDifferencesPropagator2D(Propagator):
         sb = settings.simulation_box
         pe = settings.paraxial_equation
 
-        F,A,u0,u_boundary = settings.get_unitless(( pe.F, pe.A, pe.u0, pe.u_boundary, ))
+        F,A,u_boundary = settings.get_unitless(( pe.F, pe.A, pe.u_boundary, ))
         xmin,xmax,ymin,ymax,zmin,dz = settings.get_as((sb.xmin,sb.xmax,sb.ymin,sb.ymax,sb.zmin,sb.dz),float)
 
         lib = pc.ccompile(
@@ -94,7 +94,7 @@ class FiniteDifferencesPropagator2D(Propagator):
         return self._solver.get_field().transpose()
     
     def _set_field(self,field):
-        self._solver.set_field(field)
+        self._solver.set_field(field.transpose())
         self._solver.init()
 
 

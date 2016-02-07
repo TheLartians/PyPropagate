@@ -80,6 +80,8 @@ hbar = h/(2*pc.pi)
 
 c = 299792458 * m / s
 
+degrees = pc.pi/180
+
 def contains_unit(expr):
     for e in pc.postorder_traversal(expr):
         if e in base_units:

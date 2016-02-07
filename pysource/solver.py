@@ -161,11 +161,11 @@ class Solver(object):
         self._i = 0
     
     def step(self):
+        self._i += 1
         for updater in self._updaters.values():
             updater(self._i,self._get_field())
         self._step()
-        self._i += 1
-        
+
     def run(self,*args,**kwargs):
         """Simulate for _nt steps and return the resulting CoordinateNDArray."""
         return self.run_slice(self._get_nd_axis_symbols(self.ndim)[1:],*args,**kwargs)

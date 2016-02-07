@@ -63,7 +63,7 @@ namespace python{
     auto flags = NPY_ARRAY_CARRAY;
     PyArrayObject * converted = (PyArrayObject *)PyArray_FromAny(Arr,PyArray_DescrFromType(py_scalar),2,2,flags,NULL);
     if(!converted) throw std::invalid_argument("cannot convert python object to matrix");
-    matrix_map M((scalar *) PyArray_DATA(converted),PyArray_DIM(converted,0),PyArray_DIM(converted,1));
+    matrix_map M((scalar *) PyArray_DATA(converted),PyArray_DIM(converted,1),PyArray_DIM(converted,0));
     return M;
   }
   
