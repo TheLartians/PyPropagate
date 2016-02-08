@@ -32,7 +32,7 @@ namespace lars {
       tmp.resize(s-2);
       C.resize(s-2);
       
-      for(int i=1;i<s-1;++i){
+      for(int i=1;i+1<s;++i){
         real x=xmin+dx*i;
         C[i-1]=F(x,z)*dz/2.;
       }
@@ -45,13 +45,13 @@ namespace lars {
       real zn=z+dz;
       
       if(constant_F){
-        for(int i=1;i<s-1;++i){
+        for(int i=1;i+1<s;++i){
           Dx[i-1]=(1.-2.*rx+C[i-1])*field[i]+rx*(field[i-1]+field[i+1]);
           Bx[i-1]=1.+2.*rx-C[i-1];
         }
       }
       else{
-        for(int i=1;i<s-1;++i){
+        for(int i=1;i+1<s;++i){
           Dx[i-1]=(1.-2.*rx+C[i-1])*field[i]+rx*(field[i-1]+field[i+1]);
           real x=xmin+dx*i;
           C[i-1]=F(x,zn)*dz/2.;
@@ -128,7 +128,7 @@ namespace lars {
     };
     
     unique_parallel_for(1, sy-1, [&](unsigned yi,parallel_data &d){
-      for (int xi=1; xi<sx-1; ++xi) {
+      for (int xi=1; xi+1<sx; ++xi) {
         d.B[xi-1]=1.+2.*rx-C(xi,yi,1);
         d.D[xi-1]=(1.-2.*ry+C(xi,yi,0))*u(xi,yi,0)+ry*(u(xi,yi-1,0)+u(xi,yi+1,0));
       }
@@ -143,7 +143,7 @@ namespace lars {
     update();
     
     unique_parallel_for(1, sx-1, [&](unsigned xi,parallel_data &d){
-      for (int yi=1; yi<sy-1; ++yi) {
+      for (int yi=1; yi+1<sy; ++yi) {
         d.B[yi-1]=1.+2.*ry-C(xi,yi,1);
         d.D[yi-1]=(1.-2.*rx+C(xi,yi,0))*u(xi,yi,0)+rx*(u(xi-1,yi,0)+u(xi+1,yi,0));
       }
@@ -170,10 +170,10 @@ namespace lars {
     
     field1.swap(field2);
     
-    auto f1 = std::async(std::launch::async,[&](){ for(int i=1;i<sx-1;++i)field2(i , 0  )=u_boundary(xmin+i*dx ,ymin,zn); });
-    auto f2 = std::async(std::launch::async,[&](){ for(int i=1;i<sx-1;++i)field2(i ,sy-1)=u_boundary(xmin+i*dx ,ymax,zn); });
-    auto f3 = std::async(std::launch::async,[&](){ for(int i=1;i<sy-1;++i)field2( 0  ,i )=u_boundary(xmin, ymin+i*dy,zn); });
-    auto f4 = std::async(std::launch::async,[&](){ for(int i=1;i<sy-1;++i)field2(sx-1,i )=u_boundary(xmax, ymin+i*dy,zn); });
+    auto f1 = std::async(std::launch::async,[&](){ for(int i=1;i+1<sx;++i)field2(i , 0  )=u_boundary(xmin+i*dx ,ymin,zn); });
+    auto f2 = std::async(std::launch::async,[&](){ for(int i=1;i+1<sx;++i)field2(i ,sy-1)=u_boundary(xmin+i*dx ,ymax,zn); });
+    auto f3 = std::async(std::launch::async,[&](){ for(int i=1;i+1<sy;++i)field2( 0  ,i )=u_boundary(xmin, ymin+i*dy,zn); });
+    auto f4 = std::async(std::launch::async,[&](){ for(int i=1;i+1<sy;++i)field2(sx-1,i )=u_boundary(xmax, ymin+i*dy,zn); });
     
     f1.wait(); f2.wait(); f3.wait(); f4.wait();
   }
