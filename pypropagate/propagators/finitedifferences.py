@@ -1,6 +1,6 @@
 
 from .propagator import Propagator
-from .._pypropagate import finite_difference_1D,finite_difference_2D
+from _pypropagate import finite_difference_1D,finite_difference_2D
 from ..coordinate_ndarray import CoordinateNDArray
 import expresso.pycas as pc
 import numpy as np
