@@ -40,7 +40,7 @@ def image_plot(carr,ax = None,figsize = None,title = None, **kwargs):
     import matplotlib.pyplot as plt
 
     # fix missing \text support
-    from pycas import latex as rlatex
+    from expresso.pycas import latex as rlatex
     latex = lambda x:rlatex(x).replace(r'\text',r'\mathrm')
 
     fig = None
@@ -77,7 +77,7 @@ def line_plot(carr,ax = None,ylabel = None,figsize = None,title = None,**kwargs)
     import numpy as np
 
     # fix missing \text support
-    from pycas import latex as rlatex
+    from expresso.pycas import latex as rlatex
     latex = lambda x:rlatex(x).replace(r'\text',r'\mathrm')
 
     fig = None
@@ -101,12 +101,12 @@ def line_plot(carr,ax = None,ylabel = None,figsize = None,title = None,**kwargs)
     return lines[0]
 
 def expression_to_field(expression,settings):
-    import pycas
+    import expresso.pycas
     import numpy as np
 
     s = settings.simulation_box
     expr = settings.get_optimized(expression)
-    sym = pycas.get_symbols_in(expr)
+    sym = expresso.pycas.get_symbols_in(expr)
 
     from .coordinate_ndarray import CoordinateNDArray
 
@@ -125,7 +125,7 @@ def expression_to_field(expression,settings):
         nxmin,nxmax = settings.get_as( (xmin,xmax) , float )
         nx = settings.get_as( nx , int )
         npx = np.linspace(nxmin,nxmax,nx)
-        data =  pycas.numpyfy(expr)(**{x.name:npx})
+        data =  expresso.pycas.numpyfy(expr)(**{x.name:npx})
         res =  CoordinateNDArray(data,[(xmin,xmax)],(x,),settings.get_numeric_transform())
     elif len(sym) == 2:
         y,x = sorted([sym.pop(),sym.pop()],key = lambda x:x.name)[::-1]
@@ -134,7 +134,7 @@ def expression_to_field(expression,settings):
         nxmin,nxmax,nymin,nymax = settings.get_as( (xmin,xmax,ymin,ymax) , float )
         nx,ny = settings.get_as( (nx,ny) , int )
         npy,npx = np.meshgrid(np.linspace(nymin,nymax,ny),np.linspace(nxmin,nxmax,nx))
-        data =  pycas.numpyfy(expr)(**{x.name:npx,y.name:npy})
+        data =  expresso.pycas.numpyfy(expr)(**{x.name:npx,y.name:npy})
         res =  CoordinateNDArray(data,[(xmin,xmax),(ymin,ymax)],(x,y),settings.get_numeric_transform())
     else:
         raise ValueError('cannot create field: three dimensional field creation not implemented')
@@ -157,11 +157,11 @@ def plot(arg, *args, **kwargs):
     plot: output of ax.plot for 1D and ax.imshow for 2D arrays
     
     """
-    import pycas
+    import expresso.pycas
     import numpy as np
     from coordinate_ndarray import CoordinateNDArray
 
-    if isinstance(arg,pycas.Expression):
+    if isinstance(arg,expresso.pycas.Expression):
         from .settings import Settings
 
         if len(args) > 0 and isinstance(args[0],Settings):

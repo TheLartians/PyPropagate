@@ -28,7 +28,7 @@ class Settings(CategorizedDictionary):
             self.create_category("symbols",info="symbol aliases to frequently used symbols")
 
     def create_category(self,cat_name,*args,**kwargs):
-        import pycas as pc
+        import expresso.pycas as pc
 
         def add_symbol_creation_to_category(cat,cat_name,cat_path=[]):
             cat_path = cat_path + [cat_name]
@@ -94,7 +94,7 @@ class Settings(CategorizedDictionary):
         if isinstance(value,(bool,int,long,float,complex)):
             return True
 
-        import pycas as pc
+        import expresso.pycas as pc
         if isinstance(value,pc.Expression):
             try:
                 value.N()
@@ -109,9 +109,9 @@ class Settings(CategorizedDictionary):
         return False
 
     def _set_value(self,key,value):
-        import pycas
+        import expresso.pycas
 
-        if isinstance(value,pycas.Expression):
+        if isinstance(value,expresso.pycas.Expression):
             value = value.evaluate(cache = self.get_cache())
 
         if key in self.data and self.data[key] == value:
@@ -137,7 +137,7 @@ class Settings(CategorizedDictionary):
             pass
 
 
-        from pycas import Expression,RewriteEvaluator,ReplaceEvaluator,MultiEvaluator,Wildcard,S,Tuple
+        from expresso.pycas import Expression,RewriteEvaluator,ReplaceEvaluator,MultiEvaluator,Wildcard,S,Tuple
 
         replacement_evaluator = ReplaceEvaluator(recursive=True)
         rule_evaluator = RewriteEvaluator(recursive=True)
@@ -190,15 +190,14 @@ class Settings(CategorizedDictionary):
         return self.get(expr,numeric=True,unitless=True,**kwargs)
 
     def get_optimized(self,expr,**kwargs):
-        from pycas.evaluators.optimizers import optimize_for_compilation
+        from expresso.pycas.evaluators.optimizers import optimize_for_compilation
         return optimize_for_compilation(self.get_unitless(expr,**kwargs),cache = self.get_cache())
-
 
     def get_definition(self,expr):
         return self.data[expr]
 
     def get_as(self,expr,type):
-        import pycas as pc
+        import expresso.pycas as pc
         res = self.get_unitless(expr)
         if res.function == pc.Tuple:
             return [type(e) for e in res]

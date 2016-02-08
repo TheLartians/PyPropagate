@@ -33,7 +33,7 @@ class Propagator(Solver):
         self._ndy = settings.get_as(sb.dy,float)
         self._ndz = settings.get_as(sb.dz,float)
 
-        import pycas as pc
+        import expresso.pycas as pc
         pe = settings.paraxial_equation
 
         self._F_is_zero = settings.get_unitless( pe.F ) == pc.Zero
@@ -89,7 +89,7 @@ class Propagator(Solver):
         return self.__initial
 
     def _get_evaluators(self,expressions,settings,**kwargs):
-        import pycas as pc
+        import expresso.pycas as pc
 
         if not isinstance(expressions,(list,tuple)):
             return_single = True

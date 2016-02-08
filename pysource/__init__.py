@@ -8,7 +8,7 @@
 #from .animation import create_animation
 
 
-import pycas as pc
+import expresso.pycas as pc
 
 import units
 import presets

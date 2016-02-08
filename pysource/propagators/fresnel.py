@@ -15,7 +15,7 @@ class FresnelPropagator2D(Propagator):
         sb = settings.simulation_box
         pe = settings.paraxial_equation
 
-        import pycas as pc
+        import expresso.pycas as pc
         R,D = self._get_evaluators([pc.exp(pe.F*sb.dz),pc.exp(-pe.A*sb.dz*(sb.x**2+sb.y**2))],settings,return_type=pc.Types.Complex)
 
         self.__R = R
@@ -69,7 +69,7 @@ class FresnelPropagator1D(Propagator):
         sb = settings.simulation_box
         pe = settings.paraxial_equation
 
-        import pycas as pc
+        import expresso.pycas as pc
         R,D = self._get_evaluators([pc.exp(pe.F*sb.dz),pc.exp(-pe.A*sb.dz*(sb.x**2))],settings,return_type=pc.Types.Complex)
 
         settings.get_unitless(pc.equal(pe.F,0))

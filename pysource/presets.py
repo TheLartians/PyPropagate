@@ -5,7 +5,7 @@ def add_simulation_box_symbols(settings):
 
     sb = settings.create_category("simulation_box",info="parameters and dimensions of the simulation box")
 
-    from pycas import Symbol,symbols,Function,pi,I,Types,sqrt
+    from expresso.pycas import Symbol,symbols,Function,pi,I,Types,sqrt
 
     x = sb.create_key("x",Symbol("x",type = Types.Real),info="field coordinate for 1D simulations")
     y = sb.create_key("y",Symbol("y",type = Types.Real),info="second coordinate for 2D simulations")
@@ -78,7 +78,7 @@ def add_simulation_box_symbols(settings):
     sb.create_key("fy",Symbol("fixed y",type = Types.Real),info="fixed y value for 2D simulations")
     sb.fy = (ymin + ymax)/2
 
-    import pycas as pc
+    import expresso.pycas as pc
     sb.create_key("xi",Function("x_i")(x),pc.round((sb.x-sb.xmin)/sb.dx),info="grid index for x value")
     sb.create_key("yi",Function("y_i")(y),pc.round((sb.y-sb.ymin)/sb.dy),info="grid index for y value")
     sb.create_key("zi",Function("z_i")(z),pc.round((sb.z-sb.zmin)/sb.dz),info="grid index for z value")
@@ -139,7 +139,7 @@ def add_simulation_box_symbols(settings):
 
 
 def add_paraxial_equation_symbols(settings):
-    from pycas import Symbol,Function,Types
+    from expresso.pycas import Symbol,Function,Types
 
     pe = settings.create_category("paraxial_equation",info="parameters of the paraxial differential equation")
     s = settings.simulation_box
@@ -163,7 +163,7 @@ def create_paraxial_settings():
 
 def add_wave_equation_symbols(settings):
     import units
-    from pycas import Function,Symbol,Types,pi
+    from expresso.pycas import Function,Symbol,Types,pi
 
     s = settings.simulation_box
 
@@ -203,7 +203,7 @@ def create_paraxial_wave_equation_settings():
     add_paraxial_equation_symbols(settings)
     settings.paraxial_equation.export(settings.symbols)
 
-    from pycas import I
+    from expresso.pycas import I
 
     pe = settings.paraxial_equation
     s = settings.symbols
@@ -220,7 +220,7 @@ def create_paraxial_wave_equation_settings():
 def set_plane_wave_initial_conditions(settings):
     """Sets the intial conditions to a plane wave with intensity 1.
     The boundary are set to the index of refraction at z=0."""
-    from pycas import exp
+    from expresso.pycas import exp
 
     s = settings.simulation_box
     pe = settings.paraxial_equation
@@ -257,7 +257,7 @@ def add_padding(array,factor,mode = 'edge',**kwargs):
     return CoordinateNDArray(new_data,new_bounds,array.axis,array.evaluate)
 
 def set_initial(settings,initial_array):
-    import pycas as pc
+    import expresso.pycas as pc
 
     initial = pc.array("initial",initial_array)
     sb = settings.simulation_box

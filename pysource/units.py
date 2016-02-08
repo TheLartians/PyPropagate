@@ -1,5 +1,5 @@
 
-import pycas as pc
+import expresso.pycas as pc
 
 metric_prefixes = [
      ('Y', 24, '\\mathrm{Y}'),
