@@ -29,7 +29,7 @@ namespace lars {
     for(uintptr_t i=0;i<thread_count;++i){
       handles[i] = std::async(std::launch::async,[&,f,i](){
         D unique(reference);
-        for(I j:range(start+block_size*i, (i!=thread_count-1)?start+block_size*(i+1):end)) f(j,unique);
+        for(auto j:range(start+block_size*i, (i!=thread_count-1)?start+block_size*(i+1):end)) f(j,unique);
       });
     }
     for(auto & handle:handles) handle.wait();
