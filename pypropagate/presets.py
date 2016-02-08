@@ -35,8 +35,8 @@ def add_simulation_box_symbols(settings):
     sb.create_key("Nxd", Symbol("N_x_d",type = Types.Integer,positive=True),info="downscaled voxels in x direction")
     sb.create_key("Nyd", Symbol("N_y_d",type = Types.Integer,positive=True),info="downscaled voxels in y direction")
     sb.create_key("Nzd", Symbol("N_z_d",type = Types.Integer,positive=True),info="downscaled voxels in z direction")
-    sb.Nxd = sb.Nx/sb.downscale
-    sb.Nyd = sb.Ny/sb.downscale
+    sb.Nxd = sb.Nx
+    sb.Nyd = sb.Ny
     sb.Nzd = sb.Nz/sb.downscale
     sb.lock('Nxd','defined by Nx')
     sb.lock('Nyd','defined by Ny')

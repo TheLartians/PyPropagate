@@ -109,11 +109,11 @@ class Solver(object):
         if axis == 0:
             return self._nt/downscale+1 if downscaled else self._nt
         if axis == 1:
-            return self._nx/downscale if downscaled else self._nx
+            return self._nx if downscaled else self._nx
         if axis == 2:
-            return self._ny/downscale if downscaled else self._ny
+            return self._ny if downscaled else self._ny
         if axis == 3:
-            return self._nz/downscale if downscaled else self._nz
+            return self._nz if downscaled else self._nz
         raise IndexError('axis out of range, define custom _get_box_size')
         
     def _get_nd_box_size(self,n = None,**kwargs):
@@ -212,15 +212,10 @@ class Solver(object):
         
         args = [slice(None) if i in indices[1:] else slice_positions[i-1] for i in range(1,nd+1)]
                                         
-        if downscale == 1:
-            def get_field():
-                return self._get_field()[args]
-        else:
-            def get_field():
-                return rebin(self._get_field()[args],box_size[1:])
-        
-        field[0] = get_field()
+        def get_field():
+            return self._get_field()[args]
 
+        field[0] = get_field()
         
         steps = range(1,box_size[0])
         
