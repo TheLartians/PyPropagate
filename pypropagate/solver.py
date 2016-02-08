@@ -174,7 +174,7 @@ class Solver(object):
         """Simulate for _nt steps and return the resulting CoordinateNDArray."""
         
         import numpy as np
-        from progressbar import ProgressBar
+        from .progressbar import ProgressBar
 
         self.reset()
         
