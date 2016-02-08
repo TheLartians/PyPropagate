@@ -26,13 +26,13 @@ namespace lars {
       dx=(xmax-xmin)/s;
       rx=A*dz/(2*dx*dx);
       Ax.resize(s-2);
-      for(int i=0;i<Ax.size();++i) Ax[i]=-rx;
+      for(unsigned i=0;i<Ax.size();++i) Ax[i]=-rx;
       Bx.resize(s-2);
       Dx.resize(s-2);
       tmp.resize(s-2);
       C.resize(s-2);
       
-      for(int i=1;i+1<s;++i){
+      for(unsigned i=1;i+1<s;++i){
         real x=xmin+dx*i;
         C[i-1]=F(x,z)*dz/2.;
       }
@@ -45,13 +45,13 @@ namespace lars {
       real zn=z+dz;
       
       if(constant_F){
-        for(int i=1;i+1<s;++i){
+        for(unsigned i=1;i+1<s;++i){
           Dx[i-1]=(1.-2.*rx+C[i-1])*field[i]+rx*(field[i-1]+field[i+1]);
           Bx[i-1]=1.+2.*rx-C[i-1];
         }
       }
       else{
-        for(int i=1;i+1<s;++i){
+        for(unsigned i=1;i+1<s;++i){
           Dx[i-1]=(1.-2.*rx+C[i-1])*field[i]+rx*(field[i-1]+field[i+1]);
           real x=xmin+dx*i;
           C[i-1]=F(x,zn)*dz/2.;
@@ -97,8 +97,8 @@ namespace lars {
     
     Ax.resize(sx-2);
     Ay.resize(sy-2);
-    for(int i=0;i<Ax.size();++i)Ax[i]=-rx;
-    for(int i=0;i<Ay.size();++i)Ay[i]=-ry;
+    for(unsigned i=0;i<Ax.size();++i)Ax[i]=-rx;
+    for(unsigned i=0;i<Ay.size();++i)Ay[i]=-ry;
     
     field2.resize(sx, sy);
     CField1.resize(sx-2,sy-2);
@@ -128,7 +128,7 @@ namespace lars {
     };
     
     unique_parallel_for(1, sy-1, [&](unsigned yi,parallel_data &d){
-      for (int xi=1; xi+1<sx; ++xi) {
+      for (unsigned xi=1; xi+1<sx; ++xi) {
         d.B[xi-1]=1.+2.*rx-C(xi,yi,1);
         d.D[xi-1]=(1.-2.*ry+C(xi,yi,0))*u(xi,yi,0)+ry*(u(xi,yi-1,0)+u(xi,yi+1,0));
       }
@@ -137,13 +137,13 @@ namespace lars {
       d.D[sx-3]+=rx*u(sx-1,yi,1);
       
       algebra::tridiagonal(Ax,d.B,Cx,d.D,d.U,d.tmp);
-      for (int xi=1; xi<=sx-2; ++xi) u(xi,yi,1)=d.U[xi-1];
+      for (unsigned xi=1; xi<=sx-2; ++xi) u(xi,yi,1)=d.U[xi-1];
     },parallel_data(sx-2));
     
     update();
     
     unique_parallel_for(1, sx-1, [&](unsigned xi,parallel_data &d){
-      for (int yi=1; yi+1<sy; ++yi) {
+      for (unsigned yi=1; yi+1<sy; ++yi) {
         d.B[yi-1]=1.+2.*ry-C(xi,yi,1);
         d.D[yi-1]=(1.-2.*rx+C(xi,yi,0))*u(xi,yi,0)+rx*(u(xi-1,yi,0)+u(xi+1,yi,0));
       }
@@ -152,7 +152,7 @@ namespace lars {
       d.D[sy-3]+=ry*u(xi,sy-1,1);
       
       algebra::tridiagonal(Ay,d.B,Cy,d.D,d.U,d.tmp);
-      for (int yi=1; yi<=sy-2; ++yi) u(xi,yi,1)=d.U[yi-1];
+      for (unsigned yi=1; yi<=sy-2; ++yi) u(xi,yi,1)=d.U[yi-1];
     },parallel_data(sy-2));
     
     update();
@@ -165,15 +165,15 @@ namespace lars {
     
     if(!constant_F || !ready){
       CField1.swap(CField2);
-      parallel_for(1, sx-1, [&](unsigned i){ for(int j=1;j<sy-1;++j){ CField2(i-1,j-1)=F(xmin+i*dx,ymin+j*dy,zn)*dz/4.; } });
+      parallel_for(1, sx-1, [&](unsigned i){ for(unsigned j=1;j+1<sy;++j){ CField2(i-1,j-1)=F(xmin+i*dx,ymin+j*dy,zn)*dz/4.; } });
     }
     
     field1.swap(field2);
     
-    auto f1 = std::async(std::launch::async,[&](){ for(int i=1;i+1<sx;++i)field2(i , 0  )=u_boundary(xmin+i*dx ,ymin,zn); });
-    auto f2 = std::async(std::launch::async,[&](){ for(int i=1;i+1<sx;++i)field2(i ,sy-1)=u_boundary(xmin+i*dx ,ymax,zn); });
-    auto f3 = std::async(std::launch::async,[&](){ for(int i=1;i+1<sy;++i)field2( 0  ,i )=u_boundary(xmin, ymin+i*dy,zn); });
-    auto f4 = std::async(std::launch::async,[&](){ for(int i=1;i+1<sy;++i)field2(sx-1,i )=u_boundary(xmax, ymin+i*dy,zn); });
+    auto f1 = std::async(std::launch::async,[&](){ for(unsigned i=1;i+1<sx;++i)field2(i , 0  )=u_boundary(xmin+i*dx ,ymin,zn); });
+    auto f2 = std::async(std::launch::async,[&](){ for(unsigned i=1;i+1<sx;++i)field2(i ,sy-1)=u_boundary(xmin+i*dx ,ymax,zn); });
+    auto f3 = std::async(std::launch::async,[&](){ for(unsigned i=1;i+1<sy;++i)field2( 0  ,i )=u_boundary(xmin, ymin+i*dy,zn); });
+    auto f4 = std::async(std::launch::async,[&](){ for(unsigned i=1;i+1<sy;++i)field2(sx-1,i )=u_boundary(xmax, ymin+i*dy,zn); });
     
     f1.wait(); f2.wait(); f3.wait(); f4.wait();
   }
