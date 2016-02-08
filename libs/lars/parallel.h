@@ -22,7 +22,7 @@ namespace lars {
     for(auto & handle:handles) handle.wait();
   }
   
-  template<typename D,typename I,typename F> void unique_parallel_for(I start,I end,F f,const D &reference = D(), uintptr_t thread_count = hardware_thread_count()){
+  template<typename D,typename I1,typename I2,typename F> void unique_parallel_for(I1 start,I2 end,F f,const D &reference = D(), uintptr_t thread_count = hardware_thread_count()){
     if(end-start < thread_count) thread_count = end-start;
     std::vector<std::future<void>> handles(thread_count);
     uintptr_t block_size = (end - start)/thread_count;
