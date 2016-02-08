@@ -69,7 +69,7 @@ namespace lars {
     vector Ax,Ay,&Cx,&Cy;
     complex rx,ry;
     bool ready;
-    int sx,sy;
+    unsigned sx,sy;
     real dx,dy;
     
     void update();
