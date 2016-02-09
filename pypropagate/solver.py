@@ -56,7 +56,7 @@ class Solver(object):
         self._updaters = settings.updaters.copy()
         self._i = 0
         self._transform = settings.get_numeric_transform()
-        
+
     def _step(self):
         raise NotImplementedError('step function not implemented')
     
@@ -104,10 +104,8 @@ class Solver(object):
         raise IndexError('axis out of range, define custom _get_axis_symbol')
         
     def _get_box_size(self,axis,downscaled=True):
-        downscale = self._get_downscale()
-
         if axis == 0:
-            return self._nt/downscale+1 if downscaled else self._nt
+            return self._nt/self._get_downscale()+1 if downscaled else self._nt+1
         if axis == 1:
             return self._nx if downscaled else self._nx
         if axis == 2:
@@ -145,7 +143,7 @@ class Solver(object):
         #if self._get_downscale() != 1:
         #    res = rebin(res,self._get_nd_box_size()[1:])
         return CoordinateNDArray(res,self._get_nd_boundary()[1:],self._get_nd_axis_symbols()[1:],self._get_transform())
-    
+
     def set_field(self,field):
         
         if isinstance(field,CoordinateNDArray):
@@ -166,78 +164,94 @@ class Solver(object):
             updater(self._i,self._get_field())
         self._step()
 
-    def run(self,*args,**kwargs):
-        """Simulate for _nt steps and return the resulting CoordinateNDArray."""
-        return self.run_slice(self._get_nd_axis_symbols(self.ndim)[1:],*args,**kwargs)
+    #def run(self,*args,**kwargs):
+    #    """Simulate for _nt steps and return the resulting CoordinateNDArray."""
+    #    return self._run_slice(self._get_nd_axis_symbols(self.ndim)[1:], *args, **kwargs)
 
-    def run_slice(self,axis,display_progress=True,autohide_progress=False,slice_positions=None):
+
+    def run_slice(self,**kwargs):
+
+        class RunSliceAgent:
+            def __init__(self,parent,shape,kwargs):
+                self.parent = parent
+                self.kwargs = kwargs
+                self.shape = shape
+            def __getitem__(self,sliced):
+                return self.parent._run_slice(sliced,**kwargs)
+
+        agent_axis = self._get_nd_axis_symbols()
+        agent_axis = agent_axis[1:] + [agent_axis[0]]
+        agent_bounds = self._get_nd_boundary()
+        agent_bounds= agent_bounds[1:] + [agent_bounds[0]]
+        agent_shape = self._get_nd_box_size()
+        agent_shape = agent_shape[1:] + [agent_shape[0]]
+
+        slice_agent = CoordinateNDArray(RunSliceAgent(self,agent_shape,kwargs),agent_bounds,agent_axis,self._get_transform())
+        return slice_agent
+
+    def run(self,callback = None):
+        for i in range(self._get_box_size(0)):
+            self.step()
+            if callback:
+                callback(self.get_field())
+
+    def _run_slice(self, sliced , display_progress=True, autohide_progress=False):
         """Simulate for _nt steps and return the resulting CoordinateNDArray."""
         
         import numpy as np
         from .progressbar import ProgressBar
 
         self.reset()
-        
-        if not isinstance(axis, (list,tuple)):
-            axis = [axis]
-        
-        nd = self.ndim
-        
-        all_axis = self._get_nd_axis_symbols(nd)
-        
-        indices = [0]
-                
-        for ax in axis:
-            if ax not in all_axis[1:]:
-                raise ValueError('no space axis %s defined' % ax)
-            for i in range(nd+1):
-                if all_axis[i] == ax:
-                    indices.append(i)
-                    break
-        
-        indices = sorted(set(indices))
-        
-        box_size = [self._get_box_size(i) for i in indices]
-        downscale = self._get_downscale()
-        
+
+        if not isinstance(sliced,(list,tuple)):
+            sliced = [sliced]
+        sliced = list(sliced)
+        if len(sliced) < self.ndim :
+            raise ValueError('not all dimension coordinates specified')
+        if len(sliced) != self.ndim + 1:
+            sliced.append(slice(0,self._get_box_size(0)))
+
+        sliced = [sliced[-1]] + list(sliced[:-1])
+        box_size = self._get_nd_box_size()
+
+        sliced_indices = [(s.indices(b) if isinstance(s,slice) else (s,s+1,1)) for b,s in zip(box_size,sliced)]
+
+        box_size = [ (s[1] - s[0])/s[2]+1 if s[2]!=1 else s[1] - s[0] for s in sliced_indices]
+        box_size = [b for b in box_size if b != 1]
+
         field = np.zeros(box_size , dtype = self.dtype)
-        
-        if slice_positions == None:
-            slice_positions = []
-            for i in range(1,nd+1):
-                slice_positions.append(downscale * self._get_box_size(i)/2)
-        
-        if len(slice_positions) != nd:
-            raise ValueError('dimension mismatch')
-        
-        args = [slice(None) if i in indices[1:] else slice_positions[i-1] for i in range(1,nd+1)]
-                                        
+
+        sliced = tuple([slice(*s) if s[0]+1 != s[1] else s[0] for s in sliced_indices[1:]])
         def get_field():
-            return self._get_field()[args]
+            return self._get_field().__getitem__(sliced)
+
+        i = 0
+
+        start,stop,step = sliced_indices[0]
+
+        for i in range(start):
+            print i
+            self.step()
 
         field[0] = get_field()
-        
-        steps = range(1,box_size[0])
-        
-        if display_progress == True:
-            steps = ProgressBar(steps, title='Simulation running. Step',autohide=autohide_progress)
-        
-        for i in steps:
-            if downscale == 1:
-                self.step()
-                field[i] = get_field()
-            else:
-                for j in range(downscale):
-                    self.step()
-                    field[i] += get_field()
-                field[i] /= downscale
 
-        
-        axis_symbols = [self._get_axis_symbol(i) for i in indices]
-        boundary = [self._get_boundary(i) for i in indices]
-        
-        res = CoordinateNDArray(field,boundary,axis_symbols, self._get_transform())
-        return res.transpose(res.axis[1:] + [res.axis[0]])    
+        run_steps = range(1,box_size[0])
+        if display_progress == True:
+            run_steps = ProgressBar(run_steps, title='Simulation running. Step',autohide=autohide_progress)
+
+        for j in run_steps:
+            for k in range(step):
+                self.step()
+                i += 1
+            field[j] = get_field()
+
+        for i in range(i+1,self._nt+1):
+            print i
+            self.step()
+
+        return field.transpose([len(field.shape)-1] + range(len(field.shape)-1))
+        #res = CoordinateNDArray(field, bounds, axis, self._get_transform())
+        #return res.transpose(res.axis[1:] + [res.axis[0]])
     
     
     

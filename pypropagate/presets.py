@@ -30,18 +30,6 @@ def add_simulation_box_symbols(settings):
     sb.lock('ny','defined by Ny')
     sb.lock('nz','defined by Nz')
 
-    sb.create_key("downscale", Symbol("downscale"), 1,info="factor by which the resulting field of the simulation will be scaled down")
-
-    sb.create_key("Nxd", Symbol("N_x_d",type = Types.Integer,positive=True),info="downscaled voxels in x direction")
-    sb.create_key("Nyd", Symbol("N_y_d",type = Types.Integer,positive=True),info="downscaled voxels in y direction")
-    sb.create_key("Nzd", Symbol("N_z_d",type = Types.Integer,positive=True),info="downscaled voxels in z direction")
-    sb.Nxd = sb.Nx
-    sb.Nyd = sb.Ny
-    sb.Nzd = sb.Nz/sb.downscale
-    sb.lock('Nxd','defined by Nx')
-    sb.lock('Nyd','defined by Ny')
-    sb.lock('Nzd','defined by nz')
-
     sx = sb.create_key("sx",Symbol("s_x",type = Types.Real,positive=True),info="simulation box size in x direction")
     sy = sb.create_key("sy",Symbol("s_y",type = Types.Real,positive=True),info="simulation box size in y direction")
     sz = sb.create_key("sz",Symbol("s_z",type = Types.Real,positive=True),info="simulation box size in z direction")

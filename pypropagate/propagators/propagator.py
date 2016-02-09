@@ -20,7 +20,6 @@ class Propagator(Solver):
         self._ymax = settings.get_numeric(sb.ymax)
         self._tmin = settings.get_numeric(sb.zmin)
         self._tmax = settings.get_numeric(sb.zmax)
-        self._downscale = settings.get_as(sb.downscale,int)
 
         self._nxmin = settings.get_as(sb.xmin,float)
         self._nxmax = settings.get_as(sb.xmax,float)

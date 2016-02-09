@@ -24,10 +24,10 @@ def display_animation(anim):
     return HTML(anim_to_html(anim))
 
 
-from matplotlib import animation
-animation.Animation._repr_html_ = anim_to_html
-
 def create_animation(settings,Propagator,plot_every=1,figsize = (5,5),transform = lambda field:abs(field)**2):
+    from matplotlib import animation
+    animation.Animation._repr_html_ = anim_to_html
+
     from IPython.display import HTML
     import IPython.display as display
     from finitedifferences import Solver2D

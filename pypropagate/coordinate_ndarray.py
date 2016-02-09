@@ -30,14 +30,16 @@ class CoordinateNDArray(object):
     """
 
     def __init__(self,data,bounds = None,axis = None,evaluate=lambda x:x):
-        self.data = np.array(data)
+        if not hasattr(data,'shape'):
+            raise ValueError('Coordinate Array can only hold objects with shape attribute')
+        self.data = data
         self.evaluate = evaluate
         n = len(self.data.shape)
         self.bounds = [(self.evaluate(b[0]),self.evaluate(b[1])) for b in bounds] if bounds != None else [(0,1)]*n
         self.axis = [a for a in axis] if axis != None else range(n)
         if not len(self.data.shape) == len(self.bounds) == len(self.axis):
             raise ValueError("dimensions do not match")
-        self._dbounds = [self.evaluate((b[1] - b[0]) / int(n - 1)) for b, n in zip(self.bounds, self.data.shape)]
+        self._dbounds = [self.evaluate((b[1] - b[0]) / float(n - 1)) for b, n in zip(self.bounds, self.data.shape)]
 
     def _get_index(self, value, axis):
         return int(self.evaluate((value - self.bounds[axis][0]) / self._dbounds[axis]) + 0.5)
@@ -63,14 +65,25 @@ class CoordinateNDArray(object):
             return slice(i,i+1)
 
     def __repr__(self):
-        return "<CoordinateNDArray, axis: %r, bounds %r, shape: %r, dtype: %s>" % (self.axis,self.bounds,self.data.shape,self.data.dtype)
+        return "<CoordinateNDArray, axis: %r, bounds %r, shape: %r%s>" % (self.axis,self.bounds,self.data.shape,
+                                                                          ", dtype: %s" % self.data.dtype if hasattr(self.data,'dtype') else '')
     
     def __get_bounds_for_slice(self,sliced,axis):
         n = self.__convert_slice(sliced,axis)
         slice_bounds = [self.bounds[axis][0] + n.start * self._dbounds[axis], self.bounds[axis][0] + n.stop * self._dbounds[axis]]
         slice_bounds = [self.evaluate(b) for b in slice_bounds]
         return slice_bounds,n
-    
+
+    def _get_slice_bounds(self,sliced):
+        if not isinstance(sliced,tuple): sliced = (sliced,)
+        bounds = []
+        for axis,sliced_part in enumerate(sliced):
+            b,n = self.__get_bounds_for_slice(sliced_part,axis)
+            bounds.append((b,n.indices(self.data.shape[axis])))
+        for axis in range(len(self.axis) - len(sliced)):
+            bounds.append(self.bounds[axis], (0,self.data.shape[axis],1))
+        return bounds
+
     def __getitem__(self,sliced):
         if not isinstance(sliced,tuple): sliced = (sliced,)
         assert len(sliced) <= len(self.axis), "too many indices for array"
@@ -226,7 +239,7 @@ def numpy_function_wrapper(function):
             return arr._CoordinateNDArray__mutated_copy(function,*args, **kwargs)
         else: return function(arr,*args,**kwargs)
     return wrapped_function
-        
+
 class WrappedNumpy(object):
 
     """

@@ -120,7 +120,7 @@ def expression_to_field(expression,settings):
         #raise ValueError('cannot create field: expression contains no symbols')
     elif len(sym) == 1:
         x = sym.pop()
-        keys = tuple([getattr(s,p % x.name) for p in ['%smin','%smax','N%sd']])
+        keys = tuple([getattr(s,p % x.name) for p in ['%smin','%smax','N%s']])
         xmin,xmax,nx = settings.get_numeric( keys )
         nxmin,nxmax = settings.get_as( (xmin,xmax) , float )
         nx = settings.get_as( nx , int )
@@ -129,7 +129,7 @@ def expression_to_field(expression,settings):
         res =  CoordinateNDArray(data,[(xmin,xmax)],(x,),settings.get_numeric_transform())
     elif len(sym) == 2:
         y,x = sorted([sym.pop(),sym.pop()],key = lambda x:x.name)[::-1]
-        keys = tuple([getattr(s,p % i) for i in (x,y) for p in ['%smin','%smax','N%sd']])
+        keys = tuple([getattr(s,p % i) for i in (x,y) for p in ['%smin','%smax','N%s']])
         xmin,xmax,nx,ymin,ymax,ny = settings.get_numeric( keys )
         nxmin,nxmax,nymin,nymax = settings.get_as( (xmin,xmax,ymin,ymax) , float )
         nx,ny = settings.get_as( (nx,ny) , int )
