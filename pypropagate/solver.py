@@ -230,7 +230,6 @@ class Solver(object):
         start,stop,step = sliced_indices[0]
 
         for i in range(start):
-            print i
             self.step()
 
         field[0] = get_field()
@@ -246,7 +245,6 @@ class Solver(object):
             field[j] = get_field()
 
         for i in range(i+1,self._nt+1):
-            print i
             self.step()
 
         return field.transpose([len(field.shape)-1] + range(len(field.shape)-1))
