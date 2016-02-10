@@ -105,7 +105,6 @@ std::function<python::scalar(double,double,double)> get_3D_function_from_pointer
   return [f](double x,double y,double z){ return python::convert(f_type(f)(x,y,z)); };
 }
 
-
 class py_finite_difference_1D:public lars::finite_difference_1D{
   public:
   PyObject * get_field() const{ return python::convert_vector_to_python(finite_difference_1D::get_field(),false); }
@@ -114,7 +113,6 @@ class py_finite_difference_1D:public lars::finite_difference_1D{
   void set_F(size_t f){ F = get_2D_function_from_pointer(f); }
   void set_u_boundary(size_t f){ u_boundary = get_2D_function_from_pointer(f); }
 };
-
 
 class py_finite_difference_2D:public lars::finite_difference_2D{
 public:
@@ -125,10 +123,16 @@ public:
   void set_u_boundary(size_t f){ u_boundary = get_3D_function_from_pointer(f); }
 };
 
+void tridiagonal(PyObject * v1,PyObject * v2,PyObject * v3,PyObject * v4,PyObject * v5,PyObject * v6){
+  auto a1 = python::convert_to_vector(v1),a2 = python::convert_to_vector(v2),a3 = python::convert_to_vector(v3),a4 = python::convert_to_vector(v4),a5 = python::convert_to_vector(v5),a6 = python::convert_to_vector(v6);
+  lars::algebra::tridiagonal(a1, a2, a3, a4, a5, a6);
+}
 
 using namespace boost::python;
 
 BOOST_PYTHON_MODULE(_pypropagate){
+  
+  def("tridiagonal",tridiagonal);
   
   class_<py_finite_difference_1D>("finite_difference_1D")
     .def("get_field",&py_finite_difference_1D::get_field)

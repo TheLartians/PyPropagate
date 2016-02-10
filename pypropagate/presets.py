@@ -34,9 +34,9 @@ def add_simulation_box_symbols(settings):
     sy = sb.create_key("sy",Symbol("s_y",type = Types.Real,positive=True),info="simulation box size in y direction")
     sz = sb.create_key("sz",Symbol("s_z",type = Types.Real,positive=True),info="simulation box size in z direction")
 
-    sb.create_key("dx",Symbol("d_x",type = Types.Real,positive=True),info="voxel size in x direction")
-    sb.create_key("dy",Symbol("d_y",type = Types.Real,positive=True),info="voxel size in y direction")
-    settings.simulation_box.create_key("dz",Symbol("d_z",type = Types.Real,positive=True),info="voxel size in z direction")
+    sb.create_key("dx",Symbol("Delta x",type = Types.Real,positive=True),info="voxel size in x direction")
+    sb.create_key("dy",Symbol("Delta y",type = Types.Real,positive=True),info="voxel size in y direction")
+    settings.simulation_box.create_key("dz",Symbol("Delta z",type = Types.Real,positive=True),info="voxel size in z direction")
 
     xmin = sb.create_key("xmin", Symbol("x_min",type = Types.Real),info="x value at the lower simulation box boundary")
     xmax = sb.create_key("xmax", Symbol("x_max",type = Types.Real),info="x value at the upper simulation box boundary")
