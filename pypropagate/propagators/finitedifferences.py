@@ -1,7 +1,6 @@
 
 from .propagator import Propagator
 from _pypropagate import finite_difference_1D,finite_difference_2D,crank_nicolson_2D
-from ..coordinate_ndarray import CoordinateNDArray
 import expresso.pycas as pc
 import numpy as np
 
@@ -97,7 +96,6 @@ class FiniteDifferencesPropagator2D(Propagator):
         self._solver.set_field(field.transpose())
         self._solver.init()
 
-
 class CrankNicolsonPropagator2D(Propagator):
 
     ndim = 2
@@ -169,5 +167,4 @@ class CrankNicolsonPropagator2D(Propagator):
 
     def _set_field(self,field):
         self._solver.u.as_numpy()[:] = field
-
 

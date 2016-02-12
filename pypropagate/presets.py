@@ -71,6 +71,15 @@ def add_simulation_box_symbols(settings):
     sb.create_key("yi",Function("y_i")(y),pc.round((sb.y-sb.ymin)/sb.dy),info="grid index for y value")
     sb.create_key("zi",Function("z_i")(z),pc.round((sb.z-sb.zmin)/sb.dz),info="grid index for z value")
 
+    sb.create_key('t',Symbol('t',type = Types.Real),info='time')
+    sb.create_key('tmin',Symbol('t_min',type = Types.Real))
+    sb.create_key('tmax',Symbol('t_max',type = Types.Real))
+    sb.create_key('st',Symbol('s_t',type = Types.Real),sb.tmax - sb.tmin)
+    sb.lock('st')
+    sb.create_key('Nt',Symbol('N_t',type = Types.Integer))
+    sb.create_key('dt',Symbol('Delta t',type = Types.Real),sb.st/(sb.Nt-1),info='time step interval')
+    sb.lock('dt')
+
     sb.lock()
 
     def set_physical_size(sx,sy,sz):
@@ -126,29 +135,26 @@ def add_simulation_box_symbols(settings):
     sb._set_attribute('set', set_simulation_box)
 
 
-def add_second_order_pde_symbols(settings):
+def add_pde_symbols(settings):
     from expresso.pycas import Symbol,Function,Types
 
-    pde = settings.create_category("second_order_pde",info="")
+    pde = settings.create_category("PDE",info="")
     s = settings.simulation_box
 
-    s.unlock()
-    s.create_key('dt',Symbol('Delta t'),info='time step interval')
-    s.create_key('t',Symbol('t'),info='time')
-    s.lock()
-
     for S in 'A,B,C,D,E,F'.split(','):
-        pde.create_key(S,Function(S)(s.x,s.z),0,info="Parameter of the differential equation")
+        pde.create_key(S,Function(S+'_PDE')(s.x,s.z,s.t),0,info="Parameter of the differential equation")
 
-    pde.create_key('ra',Function('r_A')(s.x,s.z),pde.A*s.dt/s.dx**2)
-    pde.create_key('rb',Function('r_B')(s.x,s.z),pde.B*s.dt/s.dy**2)
-    pde.create_key('rc',Function('r_C')(s.x,s.z),pde.C*s.dt/(s.dx*s.dy))
-    pde.create_key('rd',Function('r_D')(s.x,s.z),pde.D*s.dt/s.dx)
-    pde.create_key('re',Function('r_E')(s.x,s.z),pde.E*s.dt/s.dy)
-    pde.create_key('rf',Function('r_F')(s.x,s.z),pde.F*s.dt/2)
+    pde.create_key('ra',Function('r_A')(s.x,s.z,s.t),pde.A*s.dt/s.dx**2)
+    pde.create_key('rb',Function('r_B')(s.x,s.z,s.t),pde.B*s.dt/s.dy**2)
+    pde.create_key('rc',Function('r_C')(s.x,s.z,s.t),pde.C*s.dt/(s.dx*s.dy))
+    pde.create_key('rd',Function('r_D')(s.x,s.z,s.t),pde.D*s.dt/s.dx)
+    pde.create_key('re',Function('r_E')(s.x,s.z,s.t),pde.E*s.dt/s.dy)
+    pde.create_key('rf',Function('r_F')(s.x,s.z,s.t),pde.F*s.dt/2)
+
+    pde.create_key("u0",Function("u_0_PDE")(s.x,s.z,s.t),info="field initial condition")
+    pde.create_key("u_boundary",Function("u_boundary_PDE")(s.x,s.z,s.t),info="field boundary condition")
 
     pde.lock()
-
 
 def add_paraxial_equation_symbols(settings):
     from expresso.pycas import Symbol,Function,Types
@@ -161,11 +167,6 @@ def add_paraxial_equation_symbols(settings):
 
     pe.create_key("u0",Function("u_0")(s.x,s.y,s.z),info="field initial condition")
     pe.create_key("u_boundary",Function("u_boundary")(s.x,s.y,s.z),info="field boundary condition")
-
-    add_second_order_pde_symbols(settings)
-    pde = settings.second_order_pde
-    pde.A = pde.B = pe.A
-    pde.F = pe.F
 
     pe.lock()
 
@@ -205,6 +206,26 @@ def add_wave_equation_symbols(settings):
         we.E = value
 
     we._set_attribute('set_energy',set_energy)
+
+
+def init_for_solving_time_dependent_wave_equation(settings):
+    if not settings.has_category('wave_equation'):
+        add_wave_equation_symbols(settings)
+    if not settings.has_category('PDE'):
+        add_pde_symbols(settings)
+
+    import units
+
+    pde = settings.PDE
+    we = settings.wave_equation
+    sb = settings.simulation_box
+
+    n = we.n.subs(sb.y,sb.fy)
+
+    pde.A = 1j/(2*we.omega)*(units.c/n)**2
+    pde.B = pde.A
+    pde.D = 2j*we.k*pde.A
+    pde.F = we.k**2*(n**2-1)*pde.A
 
 def create_paraxial_wave_equation_settings():
 
