@@ -58,10 +58,6 @@ class Propagator(Solver):
         return self._tmax
 
     @property
-    def _current_z(self):
-        return self._zmin + self._i * self._dz
-
-    @property
     def _current_nz(self):
         return self._nzmin + self._i * self._ndz
 
@@ -71,6 +67,24 @@ class Propagator(Solver):
     def __get_x_coordinates(self):
         import numpy as np
         return np.linspace(self._nxmin,self._nxmax,self._nx)
+
+    def _get_x_coordinates(self):
+        try:
+            return self.__x_coordinates
+        except AttributeError:
+            self.__x_coordinates = self.__get_x_coordinates()
+            return self._get_x_coordinates()
+
+    def __get_y_coordinates(self):
+        import numpy as np
+        return np.linspace(self._nymin,self._nymax,self._ny)
+
+    def _get_y_coordinates(self):
+        try:
+            return self.__y_coordinates
+        except AttributeError:
+            self.__y_coordinates = self.__get_y_coordinates()
+            return self._get_y_coordinates()
 
     def __get_xy_coordinates(self):
         import numpy as np

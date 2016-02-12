@@ -126,6 +126,30 @@ def add_simulation_box_symbols(settings):
     sb._set_attribute('set', set_simulation_box)
 
 
+def add_second_order_pde_symbols(settings):
+    from expresso.pycas import Symbol,Function,Types
+
+    pde = settings.create_category("second_order_pde",info="")
+    s = settings.simulation_box
+
+    s.unlock()
+    s.create_key('dt',Symbol('Delta t'),info='time step interval')
+    s.create_key('t',Symbol('t'),info='time')
+    s.lock()
+
+    for S in 'A,B,C,D,E,F'.split(','):
+        pde.create_key(S,Function(S)(s.x,s.z),0,info="Parameter of the differential equation")
+
+    pde.create_key('ra',Function('r_A')(s.x,s.z),pde.A*s.dt/s.dx**2)
+    pde.create_key('rb',Function('r_B')(s.x,s.z),pde.B*s.dt/s.dy**2)
+    pde.create_key('rc',Function('r_C')(s.x,s.z),pde.C*s.dt/(s.dx*s.dy))
+    pde.create_key('rd',Function('r_D')(s.x,s.z),pde.D*s.dt/s.dx)
+    pde.create_key('re',Function('r_E')(s.x,s.z),pde.E*s.dt/s.dy)
+    pde.create_key('rf',Function('r_F')(s.x,s.z),pde.F*s.dt/2)
+
+    pde.lock()
+
+
 def add_paraxial_equation_symbols(settings):
     from expresso.pycas import Symbol,Function,Types
 
@@ -137,6 +161,11 @@ def add_paraxial_equation_symbols(settings):
 
     pe.create_key("u0",Function("u_0")(s.x,s.y,s.z),info="field initial condition")
     pe.create_key("u_boundary",Function("u_boundary")(s.x,s.y,s.z),info="field boundary condition")
+
+    add_second_order_pde_symbols(settings)
+    pde = settings.second_order_pde
+    pde.A = pde.B = pe.A
+    pde.F = pe.F
 
     pe.lock()
 
@@ -277,10 +306,6 @@ def set_initial(settings,initial_array):
     sb.lock('xmin','defined by initial array')
     sb.lock('xmax','defined by initial array')
     sb.lock('sx','defined by xmin and xmax')
-
-
-
-
 
 
 

@@ -22,6 +22,10 @@ using namespace lars;
 
 #include "finite_difference.h"
 
+
+#include "crank_nicolson.h"
+
+
 namespace python{
   using scalar = std::complex<double>;
   
@@ -67,12 +71,13 @@ namespace python{
     return M;
   }
   
-  template <class matrix> PyObject * convert_matrix_to_python(const matrix & b,bool writeable = false,bool owns_data = false){
+  PyObject * convert_matrix_to_python(const crank_nicolson_2D::field2D & b,bool writeable = false,bool owns_data = false){
     init();
+    
     std::array<long,2> size = {{b.cols(),b.rows()}};
     PyArrayObject * converted = (PyArrayObject *) PyArray_SimpleNewFromData(2,size.data(),py_scalar,(void*)b.data());
     
-    if( true ){
+    if( false ){ // For non contignous types
       PyArray_STRIDES(converted)[0] = (size_t)&b(0,1) - (size_t)&b(0,0);
       PyArray_STRIDES(converted)[1] = (size_t)&b(1,0) - (size_t)&b(0,0);
     
@@ -132,8 +137,6 @@ using namespace boost::python;
 
 BOOST_PYTHON_MODULE(_pypropagate){
   
-  def("tridiagonal",tridiagonal);
-  
   class_<py_finite_difference_1D>("finite_difference_1D")
     .def("get_field",&py_finite_difference_1D::get_field)
     .def("set_field",&py_finite_difference_1D::set_field)
@@ -165,6 +168,32 @@ BOOST_PYTHON_MODULE(_pypropagate){
   .def("step",&py_finite_difference_2D::step)
   .def("init",&py_finite_difference_2D::init)
   ;
+  
+  class_<lars::crank_nicolson_2D::field2D>("field2D",no_init)
+  .def("as_numpy", +[](const lars::crank_nicolson_2D::field2D &f){
+    return python::convert_matrix_to_python(f,true);
+  })
+  ;
+  
+  class_<lars::crank_nicolson_2D>("crank_nicolson_2D")
+  .def_readwrite("ra",&lars::crank_nicolson_2D::ra)
+  .def_readwrite("rb",&lars::crank_nicolson_2D::rb)
+  .def_readwrite("rc",&lars::crank_nicolson_2D::rc)
+  .def_readwrite("rd",&lars::crank_nicolson_2D::rd)
+  .def_readwrite("re",&lars::crank_nicolson_2D::re)
+  .def_readwrite("rf",&lars::crank_nicolson_2D::rf)
+  .def_readwrite("u",&lars::crank_nicolson_2D::u)
+  .def("step_1",&lars::crank_nicolson_2D::step_1)
+  .def("update",&lars::crank_nicolson_2D::update)
+  .def("step_2",&lars::crank_nicolson_2D::step_2)
+  .def("resize",&lars::crank_nicolson_2D::resize)
+  ;
+  
+  
+  
+  
+  
+  
 
 }
 

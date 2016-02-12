@@ -1,39 +1,55 @@
 
 
 #include <iostream>
+#include "crank_nicolson.h"
 #include "finite_difference.h"
 
 using namespace lars;
 using namespace std;
 
 
-complex<double> F(double x,double y,double z){
-  return (-(complex<double>(0.0,3040.638455120569)*((pow((((6000<z)|((0.0<2)&((5.*abs(x))<2)&(0<=x)))?(1):(true)?(complex<double>(0.999993994,-6.32e-07)):0),2.))+(-1.))));
+void init(crank_nicolson_2D &C){
+  C.ra.fill(crank_nicolson_2D::scalar(0,1));
+  C.rb.fill(crank_nicolson_2D::scalar(0,1));
+  C.rc.fill(0);
+  C.rd.fill(0);
+  C.re.fill(0);
+  C.rf.fill(0);
+  C.u.fill(1);
 }
-
-complex<double> u_boundary(double x,double y,double z){
-  return (exp(-(complex<double>(0.0,3040.638455120569)*z*((pow(((((5*abs(x))<2)&((5.*abs(y))<2)&(0<=x))?(1):(true)?(complex<double>(0.999993994,-6.32e-07)):0.),2.))+(-1.)))));
-}
-
 
 int main(){
   
-  finite_difference_1D solver;
+  crank_nicolson_2D C;
+  finite_difference_2D F;
   
-  solver.set_field(finite_difference_1D::vector::Ones(600));
-  solver.F = [](double x,double z){ return F(x,0,z); };
-  solver.u_boundary = [](double x,double z){ return u_boundary(x,0,z); };
-  solver.A = finite_difference_1D::complex(0,-8.221957450383127e-05);
-  solver.xmin = -1;
-  solver.xmax = 1;
-  solver.dz = 40./3;
-  solver.z = 0;
+  C.resize(5, 10);
   
+  init(C);
+  C.update();
+  init(C);
   
-  for(int i=0;i<1000;++i){
-    std::cout << abs(solver.get_field().mean()) << "\t" << abs(solver.get_field()(0))  << "\t" << abs(solver.get_field()(1)) << std::endl;
 
-    solver.step();
+  F.dz = 2;
+  F.A = finite_difference_2D::complex(0,1);
+  F.F = [](double x,double y,double z){ return 0; };
+  F.u_boundary = [](double x,double y,double z){ return 1; };
+  F.set_field(C.u.transpose());
+  F.xmin = 0;
+  F.ymin = 0;
+  F.ymax = C.u.rows()+1;
+  F.xmax = C.u.cols()+1;
+  
+
+  for(int i = 0;i<100;++i){
+    F.step();
+    
+    C.step_1();
+    C.update();
+    C.step_2();
+    C.update();
+
+    std::cout << F.get_field()(5,2) << "\t" << C.u(2,5) << std::endl;
   }
   
 }

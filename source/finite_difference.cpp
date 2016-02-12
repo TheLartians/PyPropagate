@@ -10,6 +10,7 @@
 #include "finite_difference.h"
 #include <lars/parallel.h>
 #include <iostream>
+
 namespace lars {
     
     //
@@ -95,6 +96,9 @@ namespace lars {
     rx=A*dz/(2*dx*dx);
     ry=A*dz/(2*dy*dy);
     
+    std::cout << "FD: rx = " << rx << std::endl;
+    std::cout << "FD: ry = " << ry << std::endl;
+    
     Ax.resize(sx-2);
     Ay.resize(sy-2);
     for(unsigned i=0;i<Ax.size();++i)Ax[i]=-rx;
@@ -138,6 +142,7 @@ namespace lars {
       
       algebra::tridiagonal(Ax,d.B,Cx,d.D,d.U,d.tmp);
       for (unsigned xi=1; xi<=sx-2; ++xi) u(xi,yi,1)=d.U[xi-1];
+      
     },parallel_data(sx-2));
     
     update();
