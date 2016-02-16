@@ -10,6 +10,7 @@
 #include "finite_difference.h"
 #include <lars/parallel.h>
 #include <iostream>
+
 namespace lars {
     
     //
@@ -138,6 +139,7 @@ namespace lars {
       
       algebra::tridiagonal(Ax,d.B,Cx,d.D,d.U,d.tmp);
       for (unsigned xi=1; xi<=sx-2; ++xi) u(xi,yi,1)=d.U[xi-1];
+      
     },parallel_data(sx-2));
     
     update();

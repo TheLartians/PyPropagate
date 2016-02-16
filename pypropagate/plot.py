@@ -110,7 +110,7 @@ def expression_to_field(expression,settings):
 
     from .coordinate_ndarray import CoordinateNDArray
 
-    if sym - {s.x,s.y,s.z} != set():
+    if sym - {s.x,s.y,s.z,s.t} != set():
         raise ValueError('cannot create field: contains non coordinate symbols %s' % ','.join([str(a) for a in sym - {s.x,s.y,s.z}]))
     if len(sym) == 0:
         c = complex(expr)

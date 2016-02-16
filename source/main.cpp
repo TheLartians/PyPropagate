@@ -1,39 +1,71 @@
 
 
 #include <iostream>
+#include "crank_nicolson.h"
 #include "finite_difference.h"
 
 using namespace lars;
 using namespace std;
 
+auto A = complex<double>(0,-0.00008221957450383126835);
+auto F = complex<double>(-0.00060812829915180474809, - 0.0060812799204732078091);
+auto dz = 16.032064128256513026;
+auto dx = 0.02020202020202020202;
+auto dy = 0.0067114093959731543624;
 
-complex<double> F(double x,double y,double z){
-  return (-(complex<double>(0.0,3040.638455120569)*((pow((((6000<z)|((0.0<2)&((5.*abs(x))<2)&(0<=x)))?(1):(true)?(complex<double>(0.999993994,-6.32e-07)):0),2.))+(-1.))));
+void init(crank_nicolson_2D &C){
+  
+  auto dt = dz/2;
+  
+  std::cout << "ra: " << A * dt/(dy*dy) << std::endl;
+  std::cout << "rb: " << A * dt/(dx*dx) << std::endl;
+  
+
+  C.ra.fill(A * dt/(dy*dy));
+  C.rc.fill(A * dt/(dx*dx));
+  C.rd.fill(0);
+  C.re.fill(0);
+  C.rf.fill(F * dt/2.);
+  C.u.fill(1);
+  
 }
 
-complex<double> u_boundary(double x,double y,double z){
-  return (exp(-(complex<double>(0.0,3040.638455120569)*z*((pow(((((5*abs(x))<2)&((5.*abs(y))<2)&(0<=x))?(1):(true)?(complex<double>(0.999993994,-6.32e-07)):0.),2.))+(-1.)))));
+std::complex<double> u_boundary(double x, double y, double z){
+  return exp(-z*std::complex<double>(0.0019357315193375983642, - 0.00019357324968815317454j)* std::complex<double>(0.0 , 3.1415926535897932385j));
 }
-
 
 int main(){
   
-  finite_difference_1D solver;
+  crank_nicolson_2D C;
+  finite_difference_2D FD;
   
-  solver.set_field(finite_difference_1D::vector::Ones(600));
-  solver.F = [](double x,double z){ return F(x,0,z); };
-  solver.u_boundary = [](double x,double z){ return u_boundary(x,0,z); };
-  solver.A = finite_difference_1D::complex(0,-8.221957450383127e-05);
-  solver.xmin = -1;
-  solver.xmax = 1;
-  solver.dz = 40./3;
-  solver.z = 0;
+  C.resize(100, 150);
   
-  
-  for(int i=0;i<1000;++i){
-    std::cout << abs(solver.get_field().mean()) << "\t" << abs(solver.get_field()(0))  << "\t" << abs(solver.get_field()(1)) << std::endl;
+  init(C);
+  C.update();
+  init(C);
 
-    solver.step();
+  FD.dz = dz;
+  FD.A = A;
+  FD.F = [=](double x,double y,double z){ return F; };
+  FD.u_boundary = u_boundary;
+  FD.set_field(C.u.transpose());
+  
+  FD.xmin = -1;
+  FD.xmax = 1;
+  FD.ymin = -0.5;
+  FD.ymax = 0.5;
+  
+  for(int i = 0;i<100;++i){
+    FD.step();
+    
+    C.step_1();
+    C.update();
+    C.step_2();
+    C.update();
+    
+    std::cout << pow(abs(FD.get_field()),2).mean() - pow(abs(FD.get_field()).mean(),2) << std::endl;
+    //std::cout << abs(FD.get_field().transpose() - C.u).mean() << std::endl;
   }
   
 }

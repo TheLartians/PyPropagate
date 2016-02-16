@@ -105,13 +105,13 @@ class Solver(object):
         
     def _get_box_size(self,axis,downscaled=True):
         if axis == 0:
-            return self._nt/self._get_downscale()+1 if downscaled else self._nt+1
+            return self._nt
         if axis == 1:
-            return self._nx if downscaled else self._nx
+            return self._nx
         if axis == 2:
-            return self._ny if downscaled else self._ny
+            return self._ny
         if axis == 3:
-            return self._nz if downscaled else self._nz
+            return self._nz
         raise IndexError('axis out of range, define custom _get_box_size')
         
     def _get_nd_box_size(self,n = None,**kwargs):

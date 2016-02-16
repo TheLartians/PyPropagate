@@ -70,7 +70,7 @@ class CoordinateNDArray(object):
     
     def __get_bounds_for_slice(self,sliced,axis):
         n = self.__convert_slice(sliced,axis)
-        slice_bounds = [self.bounds[axis][0] + n.start * self._dbounds[axis], self.bounds[axis][0] + n.stop * self._dbounds[axis]]
+        slice_bounds = [self.bounds[axis][0] + n.start * self._dbounds[axis], self.bounds[axis][0] + (n.stop-1) * self._dbounds[axis]]
         slice_bounds = [self.evaluate(b) for b in slice_bounds]
         return slice_bounds,n
 
