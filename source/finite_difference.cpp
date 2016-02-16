@@ -96,9 +96,6 @@ namespace lars {
     rx=A*dz/(2*dx*dx);
     ry=A*dz/(2*dy*dy);
     
-    std::cout << "FD: rx = " << rx << std::endl;
-    std::cout << "FD: ry = " << ry << std::endl;
-    
     Ax.resize(sx-2);
     Ay.resize(sy-2);
     for(unsigned i=0;i<Ax.size();++i)Ax[i]=-rx;

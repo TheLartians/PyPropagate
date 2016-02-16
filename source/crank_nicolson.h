@@ -23,13 +23,18 @@ namespace lars {
     
   private:
     
-    field2D rap,rbp,rcp,rdp,rep,rfp,up;
+    struct parallel_data{
+      field1D A,B,C,R,U,tmp;
+      parallel_data(unsigned s):A(s),B(s),C(s),R(s),U(s),tmp(s){}
+    };
+    
+    field2D rap,rcp,rdp,rep,rfp,up;
     scalar v1(unsigned i,unsigned j);
     scalar v2(unsigned i,unsigned j);
     
   public:
     
-    field2D ra,rb,rc,rd,re,rf,u;
+    field2D ra,rc,rd,re,rf,u;
     
     void resize(unsigned Nx,unsigned Ny);
     

@@ -177,7 +177,6 @@ BOOST_PYTHON_MODULE(_pypropagate){
   
   class_<lars::crank_nicolson_2D>("crank_nicolson_2D")
   .def_readwrite("ra",&lars::crank_nicolson_2D::ra)
-  .def_readwrite("rb",&lars::crank_nicolson_2D::rb)
   .def_readwrite("rc",&lars::crank_nicolson_2D::rc)
   .def_readwrite("rd",&lars::crank_nicolson_2D::rd)
   .def_readwrite("re",&lars::crank_nicolson_2D::re)

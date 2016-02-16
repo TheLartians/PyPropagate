@@ -125,13 +125,12 @@ class CrankNicolsonPropagator2D(Propagator):
 
         self._solver.resize(self._ny,self._nx)
 
-        ra = settings.get_as(pe.A*dt/(sb.dy**2),complex)
-        rb = settings.get_as(pe.A*dt/(sb.dx**2),complex)
+        ra = settings.get_as(pe.A*dt/sb.dy**2,complex)
+        rc = settings.get_as(pe.A*dt/sb.dx**2,complex)
 
         def init_solver():
             self._solver.ra.as_numpy().fill(ra)
-            self._solver.rb.as_numpy().fill(rb)
-            self._solver.rc.as_numpy().fill(0)
+            self._solver.rc.as_numpy().fill(rc)
             self._solver.rd.as_numpy().fill(0)
             self._solver.re.as_numpy().fill(0)
             self._rf(*self._get_coordinates(),res = self._solver.rf.as_numpy())

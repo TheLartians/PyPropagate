@@ -13,7 +13,7 @@ class Propagator(Solver):
         self._t = sb.z
         self._nx = settings.get_as(sb.Nx,int)
         self._ny = settings.get_as(sb.Ny,int)
-        self._nt = settings.get_as(sb.nz,int)
+        self._nt = settings.get_as(sb.Nz,int)
         self._xmin = settings.get_numeric(sb.xmin)
         self._xmax = settings.get_numeric(sb.xmax)
         self._ymin = settings.get_numeric(sb.ymin)

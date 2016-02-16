@@ -141,15 +141,17 @@ def add_pde_symbols(settings):
     pde = settings.create_category("PDE",info="")
     s = settings.simulation_box
 
-    for S in 'A,B,C,D,E,F'.split(','):
+    for S in 'A,C,D,E,F'.split(','):
         pde.create_key(S,Function(S+'_PDE')(s.x,s.z,s.t),0,info="Parameter of the differential equation")
 
-    pde.create_key('ra',Function('r_A')(s.x,s.z,s.t),pde.A*s.dt/s.dx**2)
-    pde.create_key('rb',Function('r_B')(s.x,s.z,s.t),pde.B*s.dt/s.dy**2)
-    pde.create_key('rc',Function('r_C')(s.x,s.z,s.t),pde.C*s.dt/(s.dx*s.dy))
-    pde.create_key('rd',Function('r_D')(s.x,s.z,s.t),pde.D*s.dt/s.dx)
-    pde.create_key('re',Function('r_E')(s.x,s.z,s.t),pde.E*s.dt/s.dy)
-    pde.create_key('rf',Function('r_F')(s.x,s.z,s.t),pde.F*s.dt/2)
+    pde.create_key('qa',Function('q_A')(s.x,s.z,s.t),pde.A/s.dx**2)
+    pde.create_key('qc',Function('q_C')(s.x,s.z,s.t),pde.C/s.dy**2)
+    pde.create_key('qd',Function('q_D')(s.x,s.z,s.t),pde.D/s.dx)
+    pde.create_key('qe',Function('q_E')(s.x,s.z,s.t),pde.E/s.dy)
+    pde.create_key('qf',Function('q_F')(s.x,s.z,s.t),pde.F/2)
+
+    for S in 'A,C,D,E,F'.split(','):
+        pde.create_key('r%s' % S.lower(),Function('r_%s'%S)(s.x,s.z,s.t),s.dt*pde.get_key('q%s' % S.lower()))
 
     pde.create_key("u0",Function("u_0_PDE")(s.x,s.z,s.t),info="field initial condition")
     pde.create_key("u_boundary",Function("u_boundary_PDE")(s.x,s.z,s.t),info="field boundary condition")
@@ -189,13 +191,12 @@ def add_wave_equation_symbols(settings):
 
     n = we.create_key("n",Function("n")(s.x,s.y,s.z))
     k = we.create_key("k",Symbol("k",type = Types.Complex))
-    wavelength = we.create_key("wavelength",Symbol(r"lambda",type = Types.Real,positive=True))
 
-    we.wavelength = 2*pi/k
-    omega = we.create_key("omega",Symbol(r"omega",type = Types.Real,positive=True),2*pi/wavelength)
+    we.create_key("omega",Symbol(r"omega",type = Types.Real,positive=True),k*units.c)
+    we.create_key("wavelength",Symbol(r"lambda",type = Types.Real,positive=True),2*pi/we.k)
 
-    we.lock('wavelength','defined by wave number')
-    we.lock('omega','defined by wavelength')
+    we.lock('wavelength','defined by k')
+    we.lock('omega','defined by omega')
 
     def set_energy(value):
         if not we.has_name('E'):
@@ -223,9 +224,9 @@ def init_for_solving_time_dependent_wave_equation(settings):
     n = we.n.subs(sb.y,sb.fy)
 
     pde.A = 1j/(2*we.omega)*(units.c/n)**2
-    pde.B = pde.A
-    pde.D = 2j*we.k*pde.A
-    pde.F = we.k**2*(n**2-1)*pde.A
+    pde.C = pde.A
+    pde.E = -units.c/n**2
+    pde.F = 1j*we.omega/2*(1-n**-2)
 
 def create_paraxial_wave_equation_settings():
 
@@ -245,8 +246,8 @@ def create_paraxial_wave_equation_settings():
 
     pe = settings.paraxial_equation
     s = settings.symbols
-    pe.F = -I*s.k/2*(s.n**2-1)
-    pe.A = -I/(2*s.k)
+    pe.F = I*s.k/2*(s.n**2-1)
+    pe.A = I/(2*s.k)
 
     pe.lock('F','defined by wave equation')
     pe.lock('A','defined by wave equation')

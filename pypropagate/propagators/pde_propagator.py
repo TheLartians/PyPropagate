@@ -4,6 +4,8 @@ from _pypropagate import crank_nicolson_2D
 import expresso.pycas as pc
 import numpy as np
 
+
+
 class PDEPropagator2D(TimeDomainPropagator):
 
     ndim = 2
@@ -16,11 +18,11 @@ class PDEPropagator2D(TimeDomainPropagator):
         pde = settings.PDE
 
         u_boundary,u0 = settings.get_unitless((pde.u_boundary,pde.u0))
-        ra,rb,rc,rd,re,rf = settings.get_unitless(pc.Tuple(pde.ra,pde.rb,pde.rc,pde.rd,pde.re,pde.rf))
+        # remember to flip the axis
+        ra,rc,re,rd,rf = settings.get_unitless(pc.Tuple(pde.ra,pde.rc,pde.rd,pde.re,pde.rf))
 
         lib = pc.ccompile(
                 pc.FunctionDefinition("ra",(sb.x,sb.z,sb.t),ra,return_type=pc.Types.Complex),
-                pc.FunctionDefinition("rb",(sb.x,sb.z,sb.t),rb,return_type=pc.Types.Complex),
                 pc.FunctionDefinition("rc",(sb.x,sb.z,sb.t),rc,return_type=pc.Types.Complex),
                 pc.FunctionDefinition("rd",(sb.x,sb.z,sb.t),rd,return_type=pc.Types.Complex),
                 pc.FunctionDefinition("re",(sb.x,sb.z,sb.t),re,return_type=pc.Types.Complex),
@@ -45,16 +47,15 @@ class PDEPropagator2D(TimeDomainPropagator):
     def _update(self):
         self._solver.update()
         self._lib.ra(*self._get_coordinates(),res = self._solver.ra.as_numpy())
-        self._lib.rb(*self._get_coordinates(),res = self._solver.rb.as_numpy())
         self._lib.rc(*self._get_coordinates(),res = self._solver.rc.as_numpy())
         self._lib.rd(*self._get_coordinates(),res = self._solver.rd.as_numpy())
         self._lib.re(*self._get_coordinates(),res = self._solver.re.as_numpy())
         self._lib.rf(*self._get_coordinates(),res = self._solver.rf.as_numpy())
 
     def _step(self):
-        self._update()
+        self._solver.update()
         self._solver.step_1()
-        self._update()
+        self._solver.update()
         self._solver.step_2()
 
     def _get_field(self):
