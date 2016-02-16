@@ -4,7 +4,7 @@ import numpy
 
 setup(
     name='pypropagate',
-    version='1.0',
+    version='1.0.1',
     description='A python based paraxial wave propagation framework',
     
     author='Lars Melchior',
@@ -26,7 +26,7 @@ setup(
 
     ext_modules=[
         Extension('_pypropagate',
-                  sources = glob('source/*.cpp'),
+                  sources = ['source/crank_nicolson.cpp','source/finite_difference.cpp','source/python.cpp'],
                   include_dirs=['libs',numpy.get_include()], 
                   libraries=['boost_python'], 
                   library_dirs=['/'],
