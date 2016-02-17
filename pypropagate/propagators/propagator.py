@@ -61,7 +61,11 @@ class Propagator(Solver):
     def _current_nz(self):
         return self._nzmin + self._i * self._ndz
 
+    def _set_z(self,z):
+        pass
+
     def _reset(self):
+        self._set_z(self._nzmin)
         self.set_field(self.__initial)
 
     def __get_x_coordinates(self):
