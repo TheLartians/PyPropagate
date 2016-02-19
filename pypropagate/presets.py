@@ -71,15 +71,6 @@ def add_simulation_box_symbols(settings):
     sb.create_key("yi",Function("y_i")(y),pc.round((sb.y-sb.ymin)/sb.dy),info="grid index for y value")
     sb.create_key("zi",Function("z_i")(z),pc.round((sb.z-sb.zmin)/sb.dz),info="grid index for z value")
 
-    sb.create_key('t',Symbol('t',type = Types.Real),info='time')
-    sb.create_key('tmin',Symbol('t_min',type = Types.Real))
-    sb.create_key('tmax',Symbol('t_max',type = Types.Real))
-    sb.create_key('st',Symbol('s_t',type = Types.Real),sb.tmax - sb.tmin)
-    sb.lock('st')
-    sb.create_key('Nt',Symbol('N_t',type = Types.Integer))
-    sb.create_key('dt',Symbol('Delta t',type = Types.Real),sb.st/(sb.Nt-1),info='time step interval')
-    sb.lock('dt')
-
     sb.lock()
 
     def set_physical_size(sx,sy,sz):
@@ -133,30 +124,6 @@ def add_simulation_box_symbols(settings):
     sb._set_attribute('set_physical_size', set_physical_size)
     sb._set_attribute('set_voxel_size', set_voxel_size)
     sb._set_attribute('set', set_simulation_box)
-
-
-def add_pde_symbols(settings):
-    from expresso.pycas import Symbol,Function,Types
-
-    pde = settings.create_category("PDE",info="")
-    s = settings.simulation_box
-
-    for S in 'A,C,D,E,F'.split(','):
-        pde.create_key(S,Function(S+'_PDE')(s.x,s.z,s.t),0,info="Parameter of the differential equation")
-
-    pde.create_key('qa',Function('q_A')(s.x,s.z,s.t),pde.A/s.dx**2)
-    pde.create_key('qc',Function('q_C')(s.x,s.z,s.t),pde.C/s.dy**2)
-    pde.create_key('qd',Function('q_D')(s.x,s.z,s.t),pde.D/s.dx)
-    pde.create_key('qe',Function('q_E')(s.x,s.z,s.t),pde.E/s.dy)
-    pde.create_key('qf',Function('q_F')(s.x,s.z,s.t),pde.F/2)
-
-    for S in 'A,C,D,E,F'.split(','):
-        pde.create_key('r%s' % S.lower(),Function('r_%s'%S)(s.x,s.z,s.t),s.dt*pde.get_key('q%s' % S.lower()))
-
-    pde.create_key("u0",Function("u_0_PDE")(s.x,s.z,s.t),info="field initial condition")
-    pde.create_key("u_boundary",Function("u_boundary_PDE")(s.x,s.z,s.t),info="field boundary condition")
-
-    pde.lock()
 
 def add_paraxial_equation_symbols(settings):
     from expresso.pycas import Symbol,Function,Types

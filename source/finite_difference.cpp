@@ -88,8 +88,8 @@ namespace lars {
     sx = field1.rows();
     sy = field1.cols();
     
-    dx=(xmax-xmin)/(sx+1);
-    dy=(ymax-ymin)/(sy+1);
+    dx=(xmax-xmin)/(sx-1);
+    dy=(ymax-ymin)/(sy-1);
     
     if(field1.size() < 9) throw std::runtime_error("field has size smaller than 9");
     
