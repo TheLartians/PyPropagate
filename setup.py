@@ -30,7 +30,7 @@ setup(
                   include_dirs=['libs',numpy.get_include()], 
                   libraries=['boost_python'], 
                   library_dirs=['/'],
-                  extra_compile_args=['-g','-std=c++11','-Wno-unknown-pragmas','--ffast-math','-O3']
+                  extra_compile_args=['-g','-std=c++11','-Wno-unknown-pragmas','-ffast-math','-O3']
                   ),
         ]
 )
