@@ -22,10 +22,6 @@ using namespace lars;
 
 #include "finite_difference.h"
 
-
-#include "crank_nicolson.h"
-
-
 namespace python{
   using scalar = std::complex<double>;
   
@@ -71,7 +67,7 @@ namespace python{
     return M;
   }
   
-  PyObject * convert_matrix_to_python(const crank_nicolson_2D::field2D & b,bool writeable = false,bool owns_data = false){
+  PyObject * convert_matrix_to_python(const finite_difference_2D::field & b,bool writeable = false,bool owns_data = false){
     init();
     
     std::array<long,2> size = {{b.cols(),b.rows()}};
@@ -168,31 +164,6 @@ BOOST_PYTHON_MODULE(_pypropagate){
   .def("step",&py_finite_difference_2D::step)
   .def("init",&py_finite_difference_2D::init)
   ;
-  
-  class_<lars::crank_nicolson_2D::field2D>("field2D",no_init)
-  .def("as_numpy", +[](const lars::crank_nicolson_2D::field2D &f){
-    return python::convert_matrix_to_python(f,true);
-  })
-  ;
-  
-  class_<lars::crank_nicolson_2D>("crank_nicolson_2D")
-  .def_readwrite("ra",&lars::crank_nicolson_2D::ra)
-  .def_readwrite("rc",&lars::crank_nicolson_2D::rc)
-  .def_readwrite("rd",&lars::crank_nicolson_2D::rd)
-  .def_readwrite("re",&lars::crank_nicolson_2D::re)
-  .def_readwrite("rf",&lars::crank_nicolson_2D::rf)
-  .def_readwrite("u",&lars::crank_nicolson_2D::u)
-  .def("step_1",&lars::crank_nicolson_2D::step_1)
-  .def("update",&lars::crank_nicolson_2D::update)
-  .def("step_2",&lars::crank_nicolson_2D::step_2)
-  .def("resize",&lars::crank_nicolson_2D::resize)
-  ;
-  
-  
-  
-  
-  
-  
 
 }
 
