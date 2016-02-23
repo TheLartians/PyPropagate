@@ -15,7 +15,7 @@ A paraxial wave propagation framework for python 2.7 .
 - matplotlib
 
 ## Citing PyPropagate
-When using PyPropagate in your work it would be very appriciated to give us a citation. You can use the following BibTeX template:
+When using PyPropagate in your work it would be very appreciated to give us a citation. You can use the following BibTeX template:
 
     @misc{LMPyPropagate2016,
       author = {Lars Melchior},
