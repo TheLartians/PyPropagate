@@ -265,7 +265,7 @@ def add_padding(array,factor,mode = 'edge',**kwargs):
 def set_initial(settings,initial_array):
     import expresso.pycas as pc
 
-    initial = pc.array("initial",initial_array)
+    initial = pc.array("initial",initial_array.data)
     sb = settings.simulation_box
 
     if tuple(initial_array.axis) == (sb.x,):
