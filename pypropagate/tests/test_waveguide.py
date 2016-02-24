@@ -125,7 +125,7 @@ class TestWaveguide(TestCase):
         s.n = pc.piecewise((wg.n_1,s.x**2+s.y**2<wg.r**2),(wg.n_2,True))
 
         settings.wave_equation.set_energy(12*units.keV)
-        settings.simulation_box.set((0.1*units.um,0.1*units.um,0.8*units.mm),(500,500,1000))
+        settings.simulation_box.set((0.1*units.um,0.1*units.um,0.8*units.mm),(750,750,2000))
 
         propagator = propagators.FiniteDifferencesPropagator2D(settings)
         an_field = analytical_circular_waveguide(settings)
