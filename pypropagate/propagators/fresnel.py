@@ -7,10 +7,15 @@ class FresnelPropagator2D(Propagator):
     ndim = 2
     dtype = np.complex128
     
-    def __init__(self,settings):
+    def __init__(self,settings,thread_count = None):
 
         super(FresnelPropagator2D,self).__init__(settings)
         self._set_initial_field(settings)
+
+        if thread_count == None:
+            import multiprocessing
+            thread_count = multiprocessing.cpu_count()
+        self._thread_count = thread_count
 
         sb = settings.simulation_box
         pe = settings.paraxial_equation
@@ -34,18 +39,20 @@ class FresnelPropagator2D(Propagator):
 
         self.__D_step = D(kx,ky,0)
 
-
     def _step(self):
-        from numpy.fft import fft2,ifft2
+        try:
+            from pyfftw.interfaces.numpy_fft import fft2,ifft2
+        except ImportError:
+            from numpy.fft import fft2,ifft2
 
         if self._F_is_zero:
-            freq = fft2(self._get_initial())
+            freq = self.__initial_fft
             freq *= self.__D_step**self._i
-            self.__data = ifft2(freq)
+            self.__data = ifft2(freq,threads=self._thread_count)
         else:
-            freq = fft2(self.__data)
+            freq = fft2(self.__data,threads=self._thread_count)
             freq *= self.__D_step
-            self.__data = ifft2(freq)
+            self.__data = ifft2(freq,threads=self._thread_count)
             self.__data *= self.__R(*self._get_coordinates())
 
     def _get_field(self):
@@ -53,7 +60,9 @@ class FresnelPropagator2D(Propagator):
     
     def _set_field(self,field):
         import numpy as np
+        from numpy.fft import fft2
         self.__data = field.astype(np.complex128)
+        self.__initial_fft = fft2(field)
 
     
 class FresnelPropagator1D(Propagator):

@@ -24,7 +24,7 @@ namespace lars {
     void finite_difference_1D::init(){
       s=field.size();
       if(field.size()<2) throw std::runtime_error("field has size smaller than 2");
-      dx=(xmax-xmin)/s;
+      dx=(xmax-xmin)/(s-1);
       rx=A*dz/(2*dx*dx);
       Ax.resize(s-2);
       for(unsigned i=0;i<Ax.size();++i) Ax[i]=-rx;
