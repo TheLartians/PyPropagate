@@ -219,7 +219,7 @@ class Solver(object):
         box_size = [ (s[1] - s[0])/s[2]+1 if s[2]!=1 else s[1] - s[0] for s in sliced_indices]
         box_size = [b for b in box_size if b != 1]
 
-        field = np.zeros(box_size , dtype = self.dtype)
+        field = np.zeros(box_size[::-1] , dtype = self.dtype).transpose()
 
         sliced = tuple([slice(*s) if s[0]+1 != s[1] else s[0] for s in sliced_indices[1:]])
         def get_field():

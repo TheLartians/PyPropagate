@@ -12,24 +12,24 @@ class Propagator(Solver):
         self._y = sb.y
         self._t = sb.z
         self._nx = settings.get_as(sb.Nx,int)
-        self._ny = settings.get_as(sb.Ny,int)
+        if self.ndim > 1: self._ny = settings.get_as(sb.Ny,int)
         self._nt = settings.get_as(sb.Nz,int)
         self._xmin = settings.get_numeric(sb.xmin)
         self._xmax = settings.get_numeric(sb.xmax)
-        self._ymin = settings.get_numeric(sb.ymin)
-        self._ymax = settings.get_numeric(sb.ymax)
+        if self.ndim > 1: self._ymin = settings.get_numeric(sb.ymin)
+        if self.ndim > 1: self._ymax = settings.get_numeric(sb.ymax)
         self._tmin = settings.get_numeric(sb.zmin)
         self._tmax = settings.get_numeric(sb.zmax)
 
         self._nxmin = settings.get_as(sb.xmin,float)
         self._nxmax = settings.get_as(sb.xmax,float)
-        self._nymin = settings.get_as(sb.ymin,float)
-        self._nymax = settings.get_as(sb.ymax,float)
+        if self.ndim > 1: self._nymin = settings.get_as(sb.ymin,float)
+        if self.ndim > 1: self._nymax = settings.get_as(sb.ymax,float)
         self._nzmin = settings.get_as(sb.zmin,float)
         self._nzmax = settings.get_as(sb.zmax,float)
 
         self._ndx = settings.get_as(sb.dx,float)
-        self._ndy = settings.get_as(sb.dy,float)
+        if self.ndim > 1: self._ndy = settings.get_as(sb.dy,float)
         self._ndz = settings.get_as(sb.dz,float)
 
         import expresso.pycas as pc

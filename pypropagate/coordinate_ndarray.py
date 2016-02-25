@@ -108,13 +108,13 @@ class CoordinateNDArray(object):
         """Creates a full copy."""
         bounds_copy = [(b[0],b[1]) for b in self.bounds]
         axis_copy = [a for a in self.axis]
-        return CoordinateNDArray(self.data.copy(),bounds_copy,axis_copy)
+        return CoordinateNDArray(self.data.copy(),bounds_copy,axis_copy,self.evaluate)
     
     def soft_copy(self):
         """Creates a copy referencing the same numpy data."""
         bounds_copy = [(b[0],b[1]) for b in self.bounds]
         axis_copy = [a for a in self.axis]
-        return CoordinateNDArray(self.data,bounds_copy,axis_copy)
+        return CoordinateNDArray(self.data,bounds_copy,axis_copy,self.evaluate)
 
     def is_compatible(self,value):
         """Axis and bounds checks."""

@@ -69,7 +69,7 @@ namespace lars {
       auto block = field.block(1, 0, s-2, 1);
       algebra::tridiagonal(Ax,Bx,Ax,Dx,block,tmp);
       
-      z+=dz;
+      z=zn;
     }
     
   //

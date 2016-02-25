@@ -95,7 +95,7 @@ class FresnelPropagator1D(Propagator):
     def _step(self):
         from numpy.fft import fft,ifft
         if self._F_is_zero:
-            freq = fft(self._get_initial())
+            freq = self.__initial_fft
             freq *= self.__D_step**self._i
             self.__data = ifft(freq)
         else:
@@ -108,5 +108,7 @@ class FresnelPropagator1D(Propagator):
         return self.__data
 
     def _set_field(self,field):
+        from numpy.fft import fft
         import numpy as np
         self.__data = field.astype(np.complex128)
+        self.__initial_fft = fft(field)
