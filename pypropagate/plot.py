@@ -50,6 +50,7 @@ def image_plot(carr,ax = None,figsize = None,title = None, **kwargs):
         ax.set_title(title)
     
     e = get_unitless_bounds(carr)
+
     xprefix,xfactor = get_metric_prefix(e[1][:2])
     yprefix,yfactor = get_metric_prefix(e[0][:2])
         

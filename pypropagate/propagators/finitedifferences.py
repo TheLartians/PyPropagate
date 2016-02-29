@@ -31,7 +31,7 @@ class FiniteDifferencesPropagator1D(Propagator):
         self._solver.xmin = xmin
         self._solver.xmax = xmax
         self._solver.z = zmin
-        self._solver.dz = dz
+        self._solver.dz = dz #settings.get_as((sb.zmax - sb.zmin)/(sb.Nz+2),float)
         self._solver.constant_F = self._F_is_constant
 
         self._set_initial_field(settings)

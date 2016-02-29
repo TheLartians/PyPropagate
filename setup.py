@@ -4,7 +4,7 @@ import numpy
 
 setup(
     name='pypropagate',
-    version='1.0.4',
+    version='1.0.5a1',
     description='A python based paraxial wave propagation framework',
 
     author='Lars Melchior',
@@ -30,7 +30,12 @@ setup(
                   include_dirs=['libs',numpy.get_include()],
                   libraries=['boost_python'],
                   library_dirs=['/'],
-                  extra_compile_args=['-g','-std=c++11','-Wno-unknown-pragmas','-ffast-math','-O3']
+                  extra_compile_args=['-g','-std=c++11','-Wno-unknown-pragmas','-Wno-unused-local-typedef','-ffast-math','-O3']
                   ),
-        ]
+        ],
+
+    test_suite='nose.collector',
+    tests_require=['nose','scipy'],
+
+
 )

@@ -64,7 +64,7 @@ def add_simulation_box_symbols(settings):
     sb.create_key('r',Function('r')(sb.x,sb.y),sqrt(sb.x**2+sb.y**2),info='distance from origin')
 
     sb.create_key("fy",Symbol("fixed y",type = Types.Real),info="fixed y value for 2D simulations")
-    sb.fy = (ymin + ymax)/2
+    sb.fy = 0
 
     import expresso.pycas as pc
     sb.create_key("xi",Function("x_i")(x),pc.round((sb.x-sb.xmin)/sb.dx),info="grid index for x value")
@@ -72,6 +72,41 @@ def add_simulation_box_symbols(settings):
     sb.create_key("zi",Function("z_i")(z),pc.round((sb.z-sb.zmin)/sb.dz),info="grid index for z value")
 
     sb.lock()
+
+    def set_2D_voxel_size(Nx,Nz):
+        'Sets the voxe size of the simulation in x, y and z direction'
+        voxel_size = (Nx,Nz)
+        sb.Nx,sb.Nz = voxel_size
+
+    def set_2D_physical_size(sx,sz):
+        'Sets the physical box size of the simulation in x, y and z direction'
+        sb.unlock('xmin')
+        sb.unlock('xmax')
+        sb.unlock('zmin')
+        sb.unlock('zmax')
+        sb.unlock('sx')
+        sb.unlock('sz')
+
+        sb.sx,sb.sz = (sx,sz)
+        sb.xmin = -sb.sx/2
+        sb.xmax = sb.xmin + sb.sx
+        sb.zmax = sb.zmin + sb.sz
+
+        sb.lock('xmax','defined by xmin and sx')
+        sb.lock('zmax','defined by zmin and sz')
+
+        from units import get_unit
+        defined = set()
+
+        for s in settings.get_numeric((sx,sz)):
+            unit = get_unit(s,cache = settings.get_cache())
+            if unit is None or unit in defined:
+                continue
+            defined.add(unit)
+            unit_name = str(unit)
+            if not settings.unitless.has_name(unit_name):
+                settings.unitless.create_key(unit_name,unit)
+            setattr(settings.unitless,unit_name,(2*unit/s).evaluate(cache=settings.get_cache()))
 
     def set_physical_size(sx,sy,sz):
         'Sets the physical box size of the simulation in x, y and z direction'
@@ -92,9 +127,7 @@ def add_simulation_box_symbols(settings):
         sb.ymax = sb.ymin + sb.sy
         sb.zmax = sb.zmin + sb.sz
 
-        sb.lock('xmin','defined by sx')
         sb.lock('xmax','defined by xmin and sx')
-        sb.lock('ymin','defined by sy')
         sb.lock('ymax','defined by ymin and sy')
         sb.lock('zmax','defined by zmin and sz')
 
@@ -118,11 +151,13 @@ def add_simulation_box_symbols(settings):
 
     def set_simulation_box(physical_size,voxel_size):
         """Sets the simulation box size using the physical_size and voxel_size arguments which are 3-tupels containing the simulation box dimensions in x, y, and z directions."""
-        set_physical_size(*physical_size)
-        set_voxel_size(*voxel_size)
+        if(len(physical_size) == 3):
+            set_physical_size(*physical_size)
+            set_voxel_size(*voxel_size)
+        else:
+            set_2D_physical_size(*physical_size)
+            set_2D_voxel_size(*voxel_size)
 
-    sb._set_attribute('set_physical_size', set_physical_size)
-    sb._set_attribute('set_voxel_size', set_voxel_size)
     sb._set_attribute('set', set_simulation_box)
 
 def add_paraxial_equation_symbols(settings):
@@ -175,25 +210,6 @@ def add_wave_equation_symbols(settings):
 
     we._set_attribute('set_energy',set_energy)
 
-
-def init_for_solving_time_dependent_wave_equation(settings):
-    if not settings.has_category('wave_equation'):
-        add_wave_equation_symbols(settings)
-    if not settings.has_category('PDE'):
-        add_pde_symbols(settings)
-
-    import units
-
-    pde = settings.PDE
-    we = settings.wave_equation
-    sb = settings.simulation_box
-
-    n = we.n.subs(sb.y,sb.fy)
-
-    pde.A = 1j/(2*we.omega)*(units.c/n)**2
-    pde.C = pde.A
-    pde.E = -units.c/n**2
-    pde.F = 1j*we.omega/2*(1-n**-2)
 
 def create_paraxial_wave_equation_settings():
 
@@ -262,44 +278,50 @@ def add_padding(array,factor,mode = 'edge',**kwargs):
 
     return CoordinateNDArray(new_data,new_bounds,array.axis,array.evaluate)
 
+
+
 def set_initial(settings,initial_array):
     import expresso.pycas as pc
+    from coordinate_ndarray import CoordinateNDArray
 
-    initial = pc.array("initial",initial_array.data)
+    if isinstance(initial_array,CoordinateNDArray):
+        initial = pc.array("initial",initial_array.data)
+    else:
+        initial = pc.array("initial",initial_array)
+
     sb = settings.simulation_box
 
     if tuple(initial_array.axis) == (sb.x,):
         settings.paraxial_equation.u0 = initial(sb.xi)
     elif tuple(initial_array.axis) == (sb.x,sb.y):
         settings.paraxial_equation.u0 = initial(sb.yi,sb.xi)
-        sb.unlock('ymin')
-        sb.unlock('ymax')
-        sb.unlock('sy')
-        sb.ymin = initial_array.bounds[1][0]
-        sb.ymax = initial_array.bounds[1][1]
-        sb.sy = sb.ymax - sb.ymin
         sb.Ny = initial_array.shape[1]
-        sb.lock('ymin','defined by initial array')
-        sb.lock('ymax','defined by initial array')
-        sb.lock('sy','defined by ymin and ymax')
+        if isinstance(initial_array,CoordinateNDArray):
+            sb.unlock('ymin')
+            sb.unlock('ymax')
+            sb.unlock('sy')
+            sb.ymin = initial_array.bounds[1][0]
+            sb.ymax = initial_array.bounds[1][1]
+            sb.sy = sb.ymax - sb.ymin
+            sb.lock('ymin','defined by initial array')
+            sb.lock('ymax','defined by initial array')
+            sb.lock('sy','defined by ymin and ymax')
+
     else:
         raise ValueError('initial array axis must be (x,) or (x,y)')
 
-    sb.unlock('xmin')
-    sb.unlock('xmax')
-    sb.unlock('sx')
-    sb.xmin = initial_array.bounds[0][0]
-    sb.xmax = initial_array.bounds[0][1]
-    sb.sx = sb.xmax - sb.xmin
     sb.Nx = initial_array.shape[0]
-    sb.lock('xmin','defined by initial array')
-    sb.lock('xmax','defined by initial array')
-    sb.lock('sx','defined by xmin and xmax')
 
-
-
-
-
+    if isinstance(initial_array,CoordinateNDArray):
+        sb.unlock('xmin')
+        sb.unlock('xmax')
+        sb.unlock('sx')
+        sb.xmin = initial_array.bounds[0][0]
+        sb.xmax = initial_array.bounds[0][1]
+        sb.sx = sb.xmax - sb.xmin
+        sb.lock('xmin','defined by initial array')
+        sb.lock('xmax','defined by initial array')
+        sb.lock('sx','defined by xmin and xmax')
 
 
 
