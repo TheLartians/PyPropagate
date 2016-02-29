@@ -42,17 +42,18 @@ class FresnelPropagator2D(Propagator):
     def _step(self):
         try:
             from pyfftw.interfaces.numpy_fft import fft2,ifft2
+            kwargs = {'threads':self._thread_count}
         except ImportError:
             from numpy.fft import fft2,ifft2
+            kwargs = {}
 
         if self._F_is_zero:
-            freq = self.__initial_fft
-            freq *= self.__D_step**self._i
-            self.__data = ifft2(freq,threads=self._thread_count)
+            freq = self.__initial_fft * self.__D_step**self._i
+            self.__data = ifft2(freq,**kwargs)
         else:
-            freq = fft2(self.__data,threads=self._thread_count)
+            freq = fft2(self.__data,**kwargs)
             freq *= self.__D_step
-            self.__data = ifft2(freq,threads=self._thread_count)
+            self.__data = ifft2(freq,**kwargs)
             self.__data *= self.__R(*self._get_coordinates())
 
     def _get_field(self):
@@ -95,8 +96,7 @@ class FresnelPropagator1D(Propagator):
     def _step(self):
         from numpy.fft import fft,ifft
         if self._F_is_zero:
-            freq = self.__initial_fft
-            freq *= self.__D_step**self._i
+            freq = self.__initial_fft * self.__D_step**self._i
             self.__data = ifft(freq)
         else:
             freq = fft(self.__data)

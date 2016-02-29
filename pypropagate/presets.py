@@ -211,25 +211,6 @@ def add_wave_equation_symbols(settings):
     we._set_attribute('set_energy',set_energy)
 
 
-def init_for_solving_time_dependent_wave_equation(settings):
-    if not settings.has_category('wave_equation'):
-        add_wave_equation_symbols(settings)
-    if not settings.has_category('PDE'):
-        add_pde_symbols(settings)
-
-    import units
-
-    pde = settings.PDE
-    we = settings.wave_equation
-    sb = settings.simulation_box
-
-    n = we.n.subs(sb.y,sb.fy)
-
-    pde.A = 1j/(2*we.omega)*(units.c/n)**2
-    pde.C = pde.A
-    pde.E = -units.c/n**2
-    pde.F = 1j*we.omega/2*(1-n**-2)
-
 def create_paraxial_wave_equation_settings():
 
     from .settings import Settings
@@ -297,44 +278,50 @@ def add_padding(array,factor,mode = 'edge',**kwargs):
 
     return CoordinateNDArray(new_data,new_bounds,array.axis,array.evaluate)
 
+
+
 def set_initial(settings,initial_array):
     import expresso.pycas as pc
+    from coordinate_ndarray import CoordinateNDArray
 
-    initial = pc.array("initial",initial_array.data)
+    if isinstance(initial_array,CoordinateNDArray):
+        initial = pc.array("initial",initial_array.data)
+    else:
+        initial = pc.array("initial",initial_array)
+
     sb = settings.simulation_box
 
     if tuple(initial_array.axis) == (sb.x,):
         settings.paraxial_equation.u0 = initial(sb.xi)
     elif tuple(initial_array.axis) == (sb.x,sb.y):
         settings.paraxial_equation.u0 = initial(sb.yi,sb.xi)
-        sb.unlock('ymin')
-        sb.unlock('ymax')
-        sb.unlock('sy')
-        sb.ymin = initial_array.bounds[1][0]
-        sb.ymax = initial_array.bounds[1][1]
-        sb.sy = sb.ymax - sb.ymin
         sb.Ny = initial_array.shape[1]
-        sb.lock('ymin','defined by initial array')
-        sb.lock('ymax','defined by initial array')
-        sb.lock('sy','defined by ymin and ymax')
+        if isinstance(initial_array,CoordinateNDArray):
+            sb.unlock('ymin')
+            sb.unlock('ymax')
+            sb.unlock('sy')
+            sb.ymin = initial_array.bounds[1][0]
+            sb.ymax = initial_array.bounds[1][1]
+            sb.sy = sb.ymax - sb.ymin
+            sb.lock('ymin','defined by initial array')
+            sb.lock('ymax','defined by initial array')
+            sb.lock('sy','defined by ymin and ymax')
+
     else:
         raise ValueError('initial array axis must be (x,) or (x,y)')
 
-    sb.unlock('xmin')
-    sb.unlock('xmax')
-    sb.unlock('sx')
-    sb.xmin = initial_array.bounds[0][0]
-    sb.xmax = initial_array.bounds[0][1]
-    sb.sx = sb.xmax - sb.xmin
     sb.Nx = initial_array.shape[0]
-    sb.lock('xmin','defined by initial array')
-    sb.lock('xmax','defined by initial array')
-    sb.lock('sx','defined by xmin and xmax')
 
-
-
-
-
+    if isinstance(initial_array,CoordinateNDArray):
+        sb.unlock('xmin')
+        sb.unlock('xmax')
+        sb.unlock('sx')
+        sb.xmin = initial_array.bounds[0][0]
+        sb.xmax = initial_array.bounds[0][1]
+        sb.sx = sb.xmax - sb.xmin
+        sb.lock('xmin','defined by initial array')
+        sb.lock('xmax','defined by initial array')
+        sb.lock('sx','defined by xmin and xmax')
 
 
 
