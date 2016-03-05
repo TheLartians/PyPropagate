@@ -33,14 +33,14 @@ class Propagator(Solver):
         self._ndz = settings.get_as(sb.dz,float)
 
         import expresso.pycas as pc
-        pe = settings.paraxial_equation
+        pe = settings.partial_differential_equation
 
         self._F_is_zero = settings.get_unitless( pe.F ) == pc.Zero
         self._F_is_constant = settings.get_unitless( pc.derivative(pe.F,sb.z) ) == pc.Zero
 
     def _set_initial_field(self,settings):
         sb = settings.simulation_box
-        u0 = self._get_evaluators(settings.paraxial_equation.u0.subs(sb.z,sb.zmin),settings)
+        u0 = self._get_evaluators(settings.partial_differential_equation.u0.subs(sb.z,sb.zmin),settings)
         initial = u0(*self._get_coordinates())
         self.__initial = initial
         self.set_field(initial)
@@ -92,20 +92,23 @@ class Propagator(Solver):
 
     def __get_xy_coordinates(self):
         import numpy as np
-        npy,npx = np.meshgrid(np.linspace(self._nymin,self._nymax,self._ny),np.linspace(self._nxmin,self._nxmax,self._nx))
+        npy,npx = np.meshgrid(np.linspace(self._nymin,self._nymax,self._ny),np.linspace(self._nxmin,self._nxmax,self._nx),dtype=float)
         return npx,npy
 
     def _get_coordinates(self):
         try:
-            return self.__coordinates + [self._current_nz]
+            self.__z_coordinates.fill(self._current_nz)
+            return self.__coordinates + [self.__z_coordinates]
         except AttributeError:
+            import numpy as np
             self.__coordinates = [self.__get_x_coordinates()] if self.ndim == 1 else list(self.__get_xy_coordinates())
+            self.__z_coordinates = np.zeros(self.__coordinates[0].shape)
             return self._get_coordinates()
 
     def _get_initial(self):
         return self.__initial
 
-    def _get_evaluators(self,expressions,settings,**kwargs):
+    def _get_evaluators(self,expressions,settings,compile_to_c = False,**kwargs):
         import expresso.pycas as pc
 
         if not isinstance(expressions,(list,tuple)):
@@ -122,13 +125,13 @@ class Propagator(Solver):
         else:
             expressions = [settings.get_optimized(expr) for expr in expressions]
 
-        definitions = [pc.FunctionDefinition('f%s' % i,args,expr,parallel=self.ndim>1,**kwargs)
+        definitions = [pc.FunctionDefinition('f%s' % i,args,expr,**kwargs)
                        for i,expr in enumerate(expressions)]
 
-        if self.ndim == 1:
+        if self.ndim == 1 and not compile_to_c:
             lib = pc.ncompile(*definitions)
         else:
-            lib = pc.ncompile(*definitions)
+            lib = pc.ccompile(*definitions)
 
         res = [getattr(lib,'f%s' % i) for i in range(len(expressions))]
 

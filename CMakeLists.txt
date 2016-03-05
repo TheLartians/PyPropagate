@@ -60,3 +60,32 @@ install(TARGETS _pypropagate DESTINATION .)
 # install(FILES ${pythons} DESTINATION pyfinitedifferences_3_2)
 install(DIRECTORY ${PROJECT_PYSOURCE_DIR}/ DESTINATION pypropagate)
 
+find_program(PYTHON "python")
+
+if (PYTHON)
+    set(SETUP_PY    "${CMAKE_CURRENT_SOURCE_DIR}/setup.py")
+    set(DEPS        "${CMAKE_CURRENT_SOURCE_DIR}/pypropagate/__init__.py")
+    set(OUTPUT      "${CMAKE_CURRENT_BINARY_DIR}/build")
+    install(CODE "execute_process(COMMAND ${PYTHON} ${SETUP_PY} build -b ${CMAKE_CURRENT_BINARY_DIR}/build install WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})")
+endif()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

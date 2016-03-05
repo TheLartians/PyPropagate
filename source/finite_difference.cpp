@@ -12,7 +12,43 @@
 #include <iostream>
 
 namespace lars {
+  
+  void finite_difference_aF::resize(size_t N){
+    rf.resize(N);
+    rfp.resize(N);
+    u.resize(N);
+    up.resize(N);
     
+    B.resize(N-2);
+    R.resize(N-2);
+    tmp.resize(N-2);
+  }
+  
+  void finite_difference_aF::step(){
+    auto v = [this](size_t i){ return (up[1+i]+up[i-1])*ra/2.+up[i]*(1.+rfp[i]-ra); };
+    
+    unsigned n = u.size()-2;
+    finite_differences::pseudo_field A(-ra/2.);
+    
+    for (unsigned i=1; i<=n; ++i) {
+      B[i-1] = 1.+ra-rf[i];
+      R[i-1] = v(i);
+    }
+    
+    R[0]   -= u[0] * (-ra/2.);
+    R[n-1] -= u[n+1] * (-ra/2.);
+        
+    auto us = u.slice(static_index_tuple<1>(),make_dynamic_index_tuple(n));
+    
+    algebra::tridiagonal(A,B,A,R,us,tmp);
+  }
+  
+  void finite_difference_aF::update(){
+    std::swap(rf, rfp);
+    std::swap(u, up);
+  }
+  
+  
     //
     // ----------------------- Finite differences 1D -----------------------
     //
@@ -66,7 +102,7 @@ namespace lars {
       Dx[0]   += rx*field[0];
       Dx[s-3] += rx*field[s-1];
       
-      auto block = field.block(1, 0, s-2, 1);
+      auto block = field.slice(array_1D::static_index_type<1>(), array_1D::index_type(s-2) );
       algebra::tridiagonal(Ax,Bx,Ax,Dx,block,tmp);
       
       z=zn;
@@ -85,8 +121,8 @@ namespace lars {
   void finite_difference_2D::init(){
     ready=false;
 
-    sx = field1.rows();
-    sy = field1.cols();
+    sx = field1.size();
+    sy = field1[0].size();
     
     dx=(xmax-xmin)/(sx-1);
     dy=(ymax-ymin)/(sy-1);
@@ -124,7 +160,7 @@ namespace lars {
     if(!ready) init();
     
     struct parallel_data{
-      vector B,D,U,tmp;
+      array_1D B,D,U,tmp;
       parallel_data(unsigned s):B(s),D(s),U(s),tmp(s){}
     };
     
