@@ -9,7 +9,6 @@
 
 #include "finite_difference.h"
 #include <lars/parallel.h>
-#include <iostream>
 
 namespace lars {
   

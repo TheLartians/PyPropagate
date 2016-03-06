@@ -1,6 +1,10 @@
+#pragma once
+
 #include <lars/iterators.h>
 #include <lars/index_tuple.h>
+
 #include <array>
+#include <vector>
 
 namespace lars{
 
