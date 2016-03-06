@@ -166,11 +166,11 @@ def add_partial_differential_equation_symbols(settings):
     pde = settings.create_category('partial_differential_equation',info="parameters of the partial differential equation")
 
     pde.create_key('A',pc.Function('A_PDE')(sb.x,sb.y,sb.z))
-    pde.create_key('B',pc.Function('B_PDE')(sb.x,sb.y,sb.z),pde.A)
+    pde.create_key('C',pc.Function('C_PDE')(sb.x,sb.y,sb.z),pde.A)
     pde.create_key('F',pc.Function('F_PDE')(sb.x,sb.y,sb.z))
 
     pde.create_key('ra',pc.Function('r_A_PDE')(sb.x,sb.y,sb.z),pde.A*sb.dz/sb.dx**2,info="finite difference paramter")
-    pde.create_key('rb',pc.Function('r_B_PDE')(sb.x,sb.y,sb.z),pde.A*sb.dz/sb.dy**2,info="finite difference paramter")
+    pde.create_key('rc',pc.Function('r_C_PDE')(sb.x,sb.y,sb.z),pde.A*sb.dz/sb.dy**2,info="finite difference paramter")
     pde.create_key('rf',pc.Function('r_F_PDE')(sb.x,sb.y,sb.z),pde.F*sb.dz/2,info="finite difference paramter")
 
     pde.create_key('u0',pc.Function('u_0_PDE')(sb.x,sb.y,sb.z),info="field initial condition")

@@ -1,5 +1,4 @@
 
-
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 
 #include <Python.h>
@@ -62,6 +61,18 @@ BOOST_PYTHON_MODULE(_pypropagate){
   .def("update", &finite_difference_aF::update)
   .def("resize", &finite_difference_aF::resize)
   ;
+  
+  class_<finite_difference_acF>("finite_difference_acF")
+  .def_readwrite("ra",&finite_difference_acF::ra)
+  .def_readwrite("rc",&finite_difference_acF::rc)
+  .def_readwrite("rf",&finite_difference_acF::rf)
+  .def_readwrite("u",&finite_difference_acF::u)
+  .def("step_1", &finite_difference_acF::step_1)
+  .def("step_2", &finite_difference_acF::step_2)
+  .def("update", &finite_difference_acF::update)
+  .def("resize", &finite_difference_acF::resize)
+  ;
+
 
 }
   

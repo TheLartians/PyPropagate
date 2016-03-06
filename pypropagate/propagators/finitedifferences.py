@@ -47,46 +47,63 @@ class FiniteDifferencesPropagator2D(Propagator):
     ndim = 2
     dtype = np.complex128
     
-    def __init__(self,settings):
-        from _pypropagate import finite_difference_2D
-
+    def __init__(self,settings):        
         super(FiniteDifferencesPropagator2D,self).__init__(settings)
-    
-        sb = settings.simulation_box
-        pe = settings.paraxial_equation
+        from _pypropagate import finite_difference_acF
 
-        F,A,u_boundary = settings.get_unitless(( pe.F, pe.A, pe.u_boundary, ))
-        xmin,xmax,ymin,ymax,zmin,dz = settings.get_as((sb.xmin,sb.xmax,sb.ymin,sb.ymax,sb.zmin,sb.dz),float)
+        pde = settings.partial_differential_equation        
+        ra = settings.get_as(pde.ra/2,complex)
+        rc = settings.get_as(pde.rc/2,complex)
 
-        lib = pc.ccompile(
-                pc.FunctionDefinition("F",(sb.x,sb.y,sb.z),F,return_type=pc.Types.Complex),
-                pc.FunctionDefinition("u_boundary",(sb.x,sb.y,sb.z),u_boundary,return_type=pc.Types.Complex),
-        )
+        self.__u_boundary,self.__rf = self._get_evaluators([ pde.u_boundary, pde.rf/2 ],settings,return_type=pc.Types.Complex,compile_to_c = not self._F_is_constant ,parallel=False)
 
-        self._solver = finite_difference_2D()
-        self._solver.set_F(lib.F.address())
-        self._solver.set_u_boundary(lib.u_boundary.address())
-        self._solver.A = complex(A)
-        self._solver.xmin = xmin
-        self._solver.xmax = xmax
-        self._solver.ymin = ymin
-        self._solver.ymax = ymax
-        self._solver.dz = dz
-        self._solver.z = zmin
-        self._solver.constant_F = self._F_is_constant
+        self._solver = finite_difference_acF()
+        self._solver.resize(self._nx,self._ny)
+        self._solver.ra = ra
+        self._solver.rc = rc
+        
+        d,u,l,r = [(self._get_x_coordinates(),np.ones(self._nx,dtype = float)*self._nymin),(self._get_x_coordinates(),np.ones(self._nx,dtype = float)*self._nymax),(np.ones(self._ny,dtype = float)*self._nxmin,self._get_y_coordinates()),(np.ones(self._ny,dtype = float)*self._nxmax,self._get_y_coordinates())]
+
+        self.__boundary_values = [np.concatenate([v[0] for v in d,u,l,r]),
+                                  np.concatenate([v[1] for v in d,u,l,r]),
+                                  np.zeros(2*self._nx+2*self._ny,dtype=float)]
 
         self._set_initial_field(settings)
+        self._reset()
+        
+    def _reset(self):
+        super(FiniteDifferencesPropagator2D,self)._reset()
+        self._update(True)
+        super(FiniteDifferencesPropagator2D,self)._reset()
+        self._update(True)
 
-    def _set_z(self,z):
-        self._solver.z = z
+    def _update_boundary(self):
+        self.__boundary_values[2].fill(self._current_nz)
+        boundary = self.__u_boundary(*self.__boundary_values)
 
+        self._solver.u.as_numpy()[:,0] = boundary[0:self._nx]
+        self._solver.u.as_numpy()[:,-1] = boundary[self._nx:2*self._nx]
+        self._solver.u.as_numpy()[0,:] = boundary[2*self._nx:2*self._nx+self._ny]
+        self._solver.u.as_numpy()[-1,:] = boundary[2*self._nx+self._ny:]
+        
+    def _update(self,force_update_F = False):
+        self._solver.update()
+        self._update_boundary()
+        if force_update_F:
+            self._solver.rf.as_numpy()[:] = self.__rf(*self._get_coordinates())
+        elif not self._F_is_constant:
+            self.__rf(*self._get_coordinates(),res=self._solver.rf.as_numpy())
+        
     def _step(self):
-        self._solver.step()
-    
+        self._update()
+        self._solver.step_1()
+        self._update()
+        self._solver.step_2()
+
     def _get_field(self):
-        return self._solver.get_field().transpose()
+        return self._solver.u.as_numpy()
     
     def _set_field(self,field):
-        self._solver.set_field(field.transpose())
-        self._solver.init()
+        self._solver.u.as_numpy()[:] = field
+
 

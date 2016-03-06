@@ -92,7 +92,7 @@ class Propagator(Solver):
 
     def __get_xy_coordinates(self):
         import numpy as np
-        npy,npx = np.meshgrid(np.linspace(self._nymin,self._nymax,self._ny),np.linspace(self._nxmin,self._nxmax,self._nx),dtype=float)
+        npy,npx = np.meshgrid(np.linspace(self._nymin,self._nymax,self._ny,dtype=float),np.linspace(self._nxmin,self._nxmax,self._nx,dtype=float))
         return npx,npy
 
     def _get_coordinates(self):
@@ -108,7 +108,7 @@ class Propagator(Solver):
     def _get_initial(self):
         return self.__initial
 
-    def _get_evaluators(self,expressions,settings,compile_to_c = False,**kwargs):
+    def _get_evaluators(self,expressions,settings,compile_to_c = None,**kwargs):
         import expresso.pycas as pc
 
         if not isinstance(expressions,(list,tuple)):
@@ -128,7 +128,7 @@ class Propagator(Solver):
         definitions = [pc.FunctionDefinition('f%s' % i,args,expr,**kwargs)
                        for i,expr in enumerate(expressions)]
 
-        if self.ndim == 1 and not compile_to_c:
+        if (self.ndim == 1 and compile_to_c != True) or compile_to_c == False:
             lib = pc.ncompile(*definitions)
         else:
             lib = pc.ccompile(*definitions)

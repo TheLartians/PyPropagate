@@ -301,12 +301,6 @@ public:
     return const_transposed_type(reverse(_shape),reverse(_stride),_offset,data());
   }
   
-  void transpose_in_place(){
-    for_all_lower_indices([&](index_type idx){ std::swap((*this)(idx),(*this)(reverse(idx))); });
-  }
-  
-  
-  
 };
 
 template <class T,typename Shape,typename Stride,typename Offset,typename Data> std::ostream & operator<<(std::ostream &stream,const ndarray_base<T, Shape, Stride, Offset, Data> & array){
@@ -395,6 +389,10 @@ public:
   
   template <typename S> void resize(S shape){ base::_shape.set(shape); base::_stride.set(ndarray_calculator<Shape>::stride(shape)); base::_data.resize(ndarray_calculator<Shape>::prod(shape).template get<0>()); }
   template <typename ... Args> void resize(size_t first,Args ... rest){ resize(Shape(first,rest...)); }
+  
+  void transpose_in_place(){
+    base::for_all_lower_indices([&](typename base::index_type idx){ std::swap((*this)(idx),(*this)(reverse(idx))); });
+  }
   
 };
   

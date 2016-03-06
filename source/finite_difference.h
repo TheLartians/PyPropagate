@@ -37,18 +37,18 @@ namespace lars {
   }
   
   class finite_difference_aF{
-    public:
+  public:
     
     using scalar = finite_differences::complex;
     using complex = finite_differences::complex;
     using field = finite_differences::array_1D;
-     
-    private:
+    
+  private:
     
     field up,rfp;
     field B,R,tmp;
     
-    public:
+  public:
     
     scalar ra;
     field u,rf;
@@ -59,40 +59,29 @@ namespace lars {
     void resize(size_t N);
   };
   
-  
-  class finite_difference_1D{
+  class finite_difference_acF{
   public:
-    using real = finite_differences::real;
+    
+    using scalar = finite_differences::complex;
     using complex = finite_differences::complex;
-    using array_1D = finite_differences::array_1D;
+    using field = finite_differences::array_2D;
     
   private:
-    array_1D Ax,Bx,Dx,C,tmp;
-    complex rx;
-    bool ready;
-    unsigned s;
-    array_1D field;
-    real dx;
-
+    
+    field up,rfp;
+    
   public:
     
-    bool constant_F = false;
-    real xmin,xmax;
-    real dz,z;
-    complex A;
+    scalar ra,rc;
+    field u,rf;
     
-    std::function<complex(real,real)> F;
-    std::function<complex(real,real)> u_boundary;
+    void step_1();
+    void step_2();
+    void update();
     
-    const array_1D & get_field()const{ return field; }
-    template <typename F> void set_field(F &f){ ready = false; field = f; }
-    void resize(unsigned nx){ field.resize(nx); }
-    
-    finite_difference_1D();
-    void init();
-    
-    void step();
+    void resize(size_t nx,size_t ny);
   };
+  
   
   class finite_difference_2D{
   public:
