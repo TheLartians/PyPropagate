@@ -39,8 +39,6 @@ class FiniteDifferencesPropagator1D(Propagator):
     
     def _set_field(self,field):
         self._solver.u.as_numpy()[:] = field
-
-
     
 class FiniteDifferencesPropagator2D(Propagator):
 

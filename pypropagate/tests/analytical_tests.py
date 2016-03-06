@@ -264,7 +264,7 @@ class TestGaussian(TestCase):
         s = settings.symbols
 
         # Make Wikipedia definition compatible
-        k = -1j/(2*settings.paraxial_equation.A)
+        k = -1j/(2*settings.partial_differential_equation.A)
         wavelength = 2*pc.pi/k
 
         g = settings.create_category('gaussian',info='Parameters of the gaussian beam')
@@ -301,3 +301,51 @@ class TestGaussian(TestCase):
         fieldfd = propagator.run_slice()[:,s.fy]
 
         self.assertLess(abs(fieldan - fieldfd).max(),0.01)
+
+
+    def test_angled_gaussian_3D(self):
+        settings = presets.create_paraxial_wave_equation_settings()
+        s = settings.symbols
+
+        # Make Wikipedia definition compatible
+        k = -1j/(2*settings.partial_differential_equation.A)
+        wavelength = 2*pc.pi/k
+
+        g = settings.create_category('gaussian',info='Parameters of the gaussian beam')
+        g.create_symbol('w_0',info = 'Waist size')
+        g.create_symbol('z_r',pc.pi*g.w_0**2/wavelength,info='rayleigh range')
+        g.create_function('w_z',(s.r,s.z),g.w_0*(1+(s.z/g.z_r)**2)**0.5,info='beam width')
+        g.create_function('R_z',(s.r,s.z),s.z*(1+(g.z_r/s.z)**2),info='radius of curvature')
+        g.create_function('C_z',(s.r,s.z),pc.atan(s.z/g.z_r),info='gouy phase')
+        g.create_function('psi',(s.r,s.z),g.w_0/g.w_z * pc.exp(1j*g.C_z  - 1j*k*s.z - 1*s.r**2/g.w_z**2 - 1j*k*s.r**2 * pc.piecewise((1/(2*g.R_z) ,pc.unequal(s.z,0)),(0,True) ) ),info='general gaussian beam')
+
+        g.create_symbol('x_0',0,info = 'Focal point coordinate')
+        g.create_symbol('y_0',0,info = 'Focal point coordinate')
+        g.create_symbol('z_0',0,info = 'Focal point coordinate')
+
+        g.create_symbol('phi',0,info = 'incident angle')
+        g.create_function('Psi',(s.x,s.y,s.z),g.psi.subs((s.x,s.x*pc.cos(g.phi)-s.z*pc.sin(g.phi)),(s.z,s.x*pc.sin(g.phi)+s.z*pc.cos(g.phi))),'rotated gaussian beam')
+
+        g.create_function('u',(s.x,s.y,s.z),g.Psi.function(s.x-g.x_0,s.y-g.y_0,s.z-g.z_0) * pc.exp(1j*k*s.z),'paraxial gaussian beam')
+
+        g.w_0 = 0.4*units.um
+        g.z_0 = s.sz/2
+        g.x_0 = s.xmax
+
+        g.phi = 0.01*units.degrees
+
+        s.n = 1
+        s.u0 = g.u
+        s.u_boundary = g.u
+
+        settings.wave_equation.set_energy(12*units.keV)
+        settings.simulation_box.set((2*units.um,1*units.um,20*units.mm),(500,100,1000))
+
+        fieldan = expression_to_field(g.u.subs(s.y,s.fy),settings)
+
+        propagator = propagators.FiniteDifferencesPropagator2D(settings)
+        fieldfd = propagator.run_slice()[:,s.fy]
+
+        self.assertLess(abs(fieldan - fieldfd).max(),0.01)
+
+
