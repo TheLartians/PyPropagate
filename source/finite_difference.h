@@ -83,46 +83,6 @@ namespace lars {
   };
   
   
-  class finite_difference_2D{
-  public:
-    using real = finite_differences::real;
-    using complex = finite_differences::complex;
-    using array_1D = finite_differences::array_1D;
-    using field = finite_differences::array_2D;
-    
-  private:
-    field CField1,CField2;
-    field field1,field2;
-    array_1D Ax,Ay,&Cx,&Cy;
-    complex rx,ry;
-    bool ready;
-    unsigned sx,sy;
-    real dx,dy;
-    
-    void update();
-    
-    complex C(int xi,int yi ,int zi);
-    complex &u(int xi,int yi,int zi);
-    
-  public:
-    
-    bool constant_F = false;
-    real xmin,xmax,ymin,ymax,dz,z;
-    complex A;
-    
-    std::function<complex(real,real,real)> F;
-    std::function<complex(real,real,real)> u_boundary;
-    
-    finite_difference_2D();
-    
-    void init();
-    void step();
-    
-    field & get_field();
-    
-    void set_field(const field &field);
-  };
-  
 }
 
 

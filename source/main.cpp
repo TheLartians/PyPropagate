@@ -20,7 +20,7 @@ void test_1D(){
   
   propagator.ra = finite_differences::complex(0,2);
   
-  for(auto i UNUSED:range(1)){
+  for(auto i UNUSED:range(10)){
     propagator.update();
     propagator.step();
     ndarray<double, 1> intensity(propagator.u.size());
@@ -35,7 +35,7 @@ void test_2D(){
 
   finite_difference_acF propagator;
   
-  propagator.resize(5,10);
+  propagator.resize(50,10);
   propagator.u.fill(1);
   propagator.rf.fill(finite_differences::complex(0,0));
   
@@ -46,11 +46,11 @@ void test_2D(){
   propagator.ra = finite_differences::complex(0,1);
   propagator.rc = finite_differences::complex(0,1);
   
-  for(auto i UNUSED:range(1)){
+  for(auto i UNUSED:range(10)){
     propagator.update();
     propagator.step_1();
-    //propagator.update();
-    //propagator.step_2();
+    propagator.update();
+    propagator.step_2();
     
     using real_array = ndarray<double, propagator.u.ndim()>;
     real_array intensity(propagator.u.shape());

@@ -95,7 +95,7 @@ public:
   const Shape & shape()const{ return _shape; }
   const Stride &stride()const{ return _stride; }
   
-  template <typename Index> size_t get_data_index(Index idx){
+  template <typename Index> size_t get_data_index(Index idx)const{
 #ifndef NDEBUG
     check_index check(shape());
     idx.apply_template(check);
@@ -106,6 +106,10 @@ public:
   }
   
   template <typename ... Args> T & operator()(Args ... args){
+    return data()[get_data_index(index_type(args...))];
+  }
+  
+  template <typename ... Args> const T & operator()(Args ... args)const{
     return data()[get_data_index(index_type(args...))];
   }
   
