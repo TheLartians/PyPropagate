@@ -21,23 +21,26 @@ class FresnelPropagator2D(Propagator):
         pe = settings.partial_differential_equation
 
         import expresso.pycas as pc
-        R,D = self._get_evaluators([pc.exp(pe.F*sb.dz),pc.exp(-pe.A*sb.dz*(sb.x**2+sb.y**2))],settings,return_type=pc.Types.Complex,parallel=True)
+        R, = self._get_evaluators([pc.exp(pe.F*sb.dz)],settings,return_type=pc.Types.Complex,parallel=not self._F_is_constant_in_z)
 
-        self.__R = R
         if self._F_is_constant_in_z:
-            self.__R_step = self.__R(*self._get_coordinates())
+            self.__R_step = R(*self._get_coordinates())
+        else:
+            self.__R = R
+
+        D = pc.numpyfy( settings.get_optimized( pc.exp(-pe.A*sb.dz*(pc.Symbol('kx')**2+pc.Symbol('ky')**2)) ) )
 
         import numpy as np
 
-        fx = 2*np.pi/self._nx
-        fy = 2*np.pi/self._ny
+        fx = 2*np.pi/(self._nx*settings.get_as(sb.dx,float))
+        fy = 2*np.pi/(self._ny*settings.get_as(sb.dy,float))
 
         kx,ky = np.meshgrid(
-            fy*( self._ny/2.-np.abs(np.arange(self._ny,dtype = np.float64)-self._ny/2.) ),
-            fx*( self._nx/2.-np.abs(np.arange(self._nx,dtype = np.float64)-self._nx/2.) )
+            fy*( self._ny/2.-np.abs(np.arange(self._ny)-self._ny/2.) ),
+            fx*( self._nx/2.-np.abs(np.arange(self._nx)-self._nx/2.) )
         )
 
-        self.__D_step = D(kx,ky,0)
+        self.__D_step = D(kx=kx,ky=ky)
 
     def _step(self):
         try:
@@ -50,6 +53,11 @@ class FresnelPropagator2D(Propagator):
         if self._F_is_zero:
             freq = self.__initial_fft * self.__D_step**self._i
             self.__data = ifft2(freq,**kwargs)
+        elif self._F_is_constant_in_z:
+            freq = fft2(self.__data,**kwargs)
+            freq *= self.__D_step
+            self.__data = ifft2(freq,**kwargs)
+            self.__data *= self.__R_step
         else:
             freq = fft2(self.__data,**kwargs)
             freq *= self.__D_step
@@ -82,15 +90,16 @@ class FresnelPropagator1D(Propagator):
 
         R, = self._get_evaluators([pc.exp(pe.F*sb.dz)],settings,return_type=pc.Types.Complex)
 
+        D = pc.numpyfy( settings.get_optimized( pc.exp(-pe.A*sb.dz*(pc.Symbol('kx')**2)) ) )
+
         if self._F_is_constant_in_z:
-            self.__R_step = self.__R(*self._get_coordinates())
+            self.__R_step = R(*self._get_coordinates())
         else:
             self.__R = R
 
         import numpy as np
         fx = 2*np.pi/(self._nx*settings.get_as(sb.dx,float))
-        kx = fx*( self._nx/2.-np.abs(np.arange(self._nx)- self._nx/2.)
-        D = pc.numpyfy( settings.get_optimized( pc.exp(-pe.A*sb.dz*(pc.Symbol('kx')**2)) ) )
+        kx = fx*( self._nx/2.-np.abs(np.arange(self._nx)- self._nx/2.) )
         self.__D_step = D(kx=kx)
 
     def _step(self):

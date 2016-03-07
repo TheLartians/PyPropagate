@@ -98,17 +98,6 @@ def add_simulation_box_symbols(settings):
         sb.lock('xmax','defined by xmin and sx')
         sb.lock('zmax','defined by zmin and sz')
 
-        from units import get_unit
-        defined = set()
-
-        for s in settings.get_numeric((sx,sz)):
-            unit = get_unit(s,cache = settings.get_cache())
-            if unit is None:
-                continue
-            unit_name = str(unit)
-            if not settings.unitless.has_name(unit_name):
-                settings.unitless.create_key(unit_name,unit,1)
-
     def set_physical_size(sx,sy,sz):
         'Sets the physical box size of the simulation in x, y and z direction'
         sb.unlock('xmin')
@@ -131,16 +120,6 @@ def add_simulation_box_symbols(settings):
         sb.lock('xmax','defined by xmin and sx')
         sb.lock('ymax','defined by ymin and sy')
         sb.lock('zmax','defined by zmin and sz')
-
-        from units import get_unit
-
-        for s in settings.get_numeric((sx,sy,sz)):
-            unit = get_unit(s,cache = settings.get_cache())
-            if unit is None:
-                continue
-            unit_name = str(unit)
-            if not settings.unitless.has_name(unit_name):
-                settings.unitless.create_key(unit_name,unit,1)
 
     def set_voxel_size(Nx,Ny,Nz):
         'Sets the voxe size of the simulation in x, y and z direction'
@@ -212,6 +191,12 @@ def add_wave_equation_symbols(settings):
 
     we._set_attribute('set_energy',set_energy)
 
+    def make_unitless(settings):
+        if not settings.unitless.has_name('m'):
+            settings.unitless.create_key('m',units.m)
+        settings.unitless.m = settings.get_numeric(settings.wave_equation.k*units.m)
+
+    settings.initializers['make_unitless'] = make_unitless
 
 def create_paraxial_wave_equation_settings():
 

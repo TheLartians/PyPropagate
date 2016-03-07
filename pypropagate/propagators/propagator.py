@@ -8,11 +8,14 @@ class Propagator(Solver):
 
         sb = settings.simulation_box
 
-        self._x,self._y,self._t = sb.x,sb.y,sb.z
+        self._x = sb.x
+        if self.ndim > 1: self._y = sb.y
+        self._t = sb.z
 
-        self._nx,self._ny,self._nt = settings.get_as((sb.Nx,sb.Ny,sb.Nz),int)
+        self._nx,self._nt = settings.get_as((sb.Nx,sb.Nz),int)
+        if self.ndim > 1: self._ny = settings.get_as(sb.Ny,int)
         self._xmin,self._xmax = settings.get_numeric((sb.xmin,sb.xmax))
-        self._ymin,self._ymax = settings.get_numeric((sb.ymin,sb.ymax))
+        if self.ndim > 1: self._ymin,self._ymax = settings.get_numeric((sb.ymin,sb.ymax))
         self._tmin,self._tmax = settings.get_numeric((sb.zmin,sb.zmax))
 
         import expresso.pycas as pc
