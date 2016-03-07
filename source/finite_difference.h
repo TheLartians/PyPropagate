@@ -17,84 +17,71 @@ namespace lars {
   namespace finite_differences{
     using real = double;
     using complex = algebra::complex<real>;
-    using vector  = algebra::vector<complex>;
-    using array_1D   = algebra::array<complex,algebra::dynamic_size,1>;
-    using array_2D   = algebra::array<complex,algebra::dynamic_size,algebra::dynamic_size>;
+
+    using array_1D   = ndarray<complex, 1>;
+    using array_2D   = ndarray<complex, 2>;
+    
+    class pseudo_field{
+      private:
+      complex _value;
+      public:
+      pseudo_field(const complex & value):_value(value){}
+      const complex &operator[](size_t i)const{ return _value; }
+    };
+    
+    struct tridiagonal_data{
+      array_1D A,B,C,R,U,tmp;
+      tridiagonal_data(unsigned s):A(s),B(s),C(s),R(s),U(s),tmp(s){}
+    };
+    
   }
   
-  class finite_difference_1D{
+  class finite_difference_aF{
   public:
-    using real = finite_differences::real;
+    
+    using scalar = finite_differences::complex;
     using complex = finite_differences::complex;
-    using vector = finite_differences::vector;
+    using field = finite_differences::array_1D;
     
   private:
-    vector Ax,Bx,Dx,C,tmp;
-    complex rx;
-    bool ready;
-    unsigned s;
-    vector field;
-    real dx;
-
+    
+    field up,rfp;
+    field B,R,tmp;
+    
   public:
     
-    bool constant_F = false;
-    real xmin,xmax;
-    real dz,z;
-    complex A;
-    
-    std::function<complex(real,real)> F;
-    std::function<complex(real,real)> u_boundary;
-    
-    const vector & get_field()const{ return field; }
-    void set_field(const vector::Base &f){ ready = false; field = f; }
-    void resize(unsigned nx){ field.resize(nx); }
-    
-    finite_difference_1D();
-    void init();
+    scalar ra;
+    field u,rf;
     
     void step();
+    void update();
+    
+    void resize(size_t N);
   };
   
-  class finite_difference_2D{
+  class finite_difference_acF{
   public:
-    using real = finite_differences::real;
+    
+    using scalar = finite_differences::complex;
     using complex = finite_differences::complex;
-    using vector = finite_differences::vector;
     using field = finite_differences::array_2D;
     
   private:
-    field CField1,CField2;
-    field field1,field2;
-    vector Ax,Ay,&Cx,&Cy;
-    complex rx,ry;
-    bool ready;
-    unsigned sx,sy;
-    real dx,dy;
     
-    void update();
-    
-    complex C(int xi,int yi ,int zi);
-    complex &u(int xi,int yi,int zi);
+    field up,rfp;
     
   public:
     
-    bool constant_F = false;
-    real xmin,xmax,ymin,ymax,dz,z;
-    complex A;
+    scalar ra,rc;
+    field u,rf;
     
-    std::function<complex(real,real,real)> F;
-    std::function<complex(real,real,real)> u_boundary;
+    void step_1();
+    void step_2();
+    void update();
     
-    finite_difference_2D();
-    
-    void init();
-    void step();
-    
-    field & get_field();
-    
-    void set_field(const field &field);
+    void resize(size_t nx,size_t ny);
   };
+  
   
 }
 

@@ -158,11 +158,13 @@ class Solver(object):
         self._reset()
         self._i = 0
     
-    def step(self):
+    def step(self,callback=None):
         self._i += 1
         for updater in self._updaters.values():
             updater(self._i,self._get_field())
         self._step()
+	if callback is not None:
+	    callback(self)
 
     #def run(self,*args,**kwargs):
     #    """Simulate for _nt steps and return the resulting CoordinateNDArray."""
@@ -191,11 +193,9 @@ class Solver(object):
 
     def run(self,callback = None):
         for i in range(self._get_box_size(0)):
-            self.step()
-            if callback:
-                callback(self.get_field())
+            self.step(callback=callback)
 
-    def _run_slice(self, sliced , display_progress=True, autohide_progress=False):
+    def _run_slice(self, sliced , display_progress=True, autohide_progress=False, callback = None):
         """Simulate for _nt steps and return the resulting CoordinateNDArray."""
         
         import numpy as np
@@ -230,7 +230,7 @@ class Solver(object):
         start,stop,step = sliced_indices[0]
 
         for i in range(start):
-            self.step()
+            self.step(callback=callback)
 
         field[0] = get_field()
 
@@ -240,12 +240,12 @@ class Solver(object):
 
         for j in run_steps:
             for k in range(step):
-                self.step()
+                self.step(callback=callback)
                 i += 1
             field[j] = get_field()
 
         for i in range(i+1,self._nt+1):
-            self.step()
+            self.step(callback=callback)
 
         return field.transpose([len(field.shape)-1] + range(len(field.shape)-1))
         #res = CoordinateNDArray(field, bounds, axis, self._get_transform())

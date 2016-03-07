@@ -18,7 +18,7 @@ class FresnelPropagator2D(Propagator):
         self._thread_count = thread_count
 
         sb = settings.simulation_box
-        pe = settings.paraxial_equation
+        pe = settings.partial_differential_equation
 
         import expresso.pycas as pc
         R,D = self._get_evaluators([pc.exp(pe.F*sb.dz),pc.exp(-pe.A*sb.dz*(sb.x**2+sb.y**2))],settings,return_type=pc.Types.Complex)
@@ -77,7 +77,7 @@ class FresnelPropagator1D(Propagator):
         self._set_initial_field(settings)
 
         sb = settings.simulation_box
-        pe = settings.paraxial_equation
+        pe = settings.partial_differential_equation
 
         import expresso.pycas as pc
         R,D = self._get_evaluators([pc.exp(pe.F*sb.dz),pc.exp(-pe.A*sb.dz*(sb.x**2))],settings,return_type=pc.Types.Complex)

@@ -160,27 +160,31 @@ def add_simulation_box_symbols(settings):
 
     sb._set_attribute('set', set_simulation_box)
 
-def add_paraxial_equation_symbols(settings):
-    from expresso.pycas import Symbol,Function,Types
+def add_partial_differential_equation_symbols(settings):
+    import expresso.pycas as pc
+    sb = settings.simulation_box
+    pde = settings.create_category('partial_differential_equation',info="parameters of the partial differential equation")
 
-    pe = settings.create_category("paraxial_equation",info="parameters of the paraxial differential equation")
-    s = settings.simulation_box
+    pde.create_key('A',pc.Function('A_PDE')(sb.x,sb.y,sb.z))
+    pde.create_key('C',pc.Function('C_PDE')(sb.x,sb.y,sb.z),pde.A)
+    pde.create_key('F',pc.Function('F_PDE')(sb.x,sb.y,sb.z))
 
-    pe.create_key("F",Function("F")(s.x,s.y,s.z),info="F(x,y,z) Parameter of the differential equation")
-    pe.create_key("A",Symbol("A",type=Types.Complex),info="A Parameter of the differential equation")
+    pde.create_key('ra',pc.Function('r_A_PDE')(sb.x,sb.y,sb.z),pde.A*sb.dz/sb.dx**2,info="finite difference paramter")
+    pde.create_key('rc',pc.Function('r_C_PDE')(sb.x,sb.y,sb.z),pde.A*sb.dz/sb.dy**2,info="finite difference paramter")
+    pde.create_key('rf',pc.Function('r_F_PDE')(sb.x,sb.y,sb.z),pde.F*sb.dz/2,info="finite difference paramter")
 
-    pe.create_key("u0",Function("u_0")(s.x,s.y,s.z),info="field initial condition")
-    pe.create_key("u_boundary",Function("u_boundary")(s.x,s.y,s.z),info="field boundary condition")
+    pde.create_key('u0',pc.Function('u_0_PDE')(sb.x,sb.y,sb.z),info="field initial condition")
+    pde.create_key('u_boundary',pc.Function('u_boundary_PDE')(sb.x,sb.y,sb.z),info="field boundary condition");
 
-    pe.lock()
+    pde.lock()
 
 def create_paraxial_settings():
     from .settings import Settings
     settings = Settings('settings for solving the paraxial differential equation')
     add_simulation_box_symbols(settings)
     settings.simulation_box.export(settings.symbols)
-    add_paraxial_equation_symbols(settings)
-    settings.paraxial_equation.export(settings.symbols)
+    add_partial_differential_equation_symbols(settings)
+    settings.partial_differential_equation.export(settings.symbols)
     return settings
 
 def add_wave_equation_symbols(settings):
@@ -222,12 +226,12 @@ def create_paraxial_wave_equation_settings():
     add_wave_equation_symbols(settings)
     settings.wave_equation.export(settings.symbols)
 
-    add_paraxial_equation_symbols(settings)
-    settings.paraxial_equation.export(settings.symbols)
+    add_partial_differential_equation_symbols(settings)
+    settings.partial_differential_equation.export(settings.symbols)
 
     from expresso.pycas import I
 
-    pe = settings.paraxial_equation
+    pe = settings.partial_differential_equation
     s = settings.symbols
     pe.F = I*s.k/2*(s.n**2-1)
     pe.A = I/(2*s.k)
@@ -245,7 +249,7 @@ def set_plane_wave_initial_conditions(settings):
     from expresso.pycas import exp
 
     s = settings.simulation_box
-    pe = settings.paraxial_equation
+    pe = settings.partial_differential_equation
 
     pe.u0 = 1
     pe.u_boundary = pe.u0.subs(s.z,0) * exp(pe.F.subs(s.z,0)*s.z)
@@ -292,9 +296,9 @@ def set_initial(settings,initial_array):
     sb = settings.simulation_box
 
     if tuple(initial_array.axis) == (sb.x,):
-        settings.paraxial_equation.u0 = initial(sb.xi)
+        settings.partial_differential_equation.u0 = initial(sb.xi)
     elif tuple(initial_array.axis) == (sb.x,sb.y):
-        settings.paraxial_equation.u0 = initial(sb.yi,sb.xi)
+        settings.partial_differential_equation.u0 = initial(sb.yi,sb.xi)
         sb.Ny = initial_array.shape[1]
         if isinstance(initial_array,CoordinateNDArray):
             sb.unlock('ymin')

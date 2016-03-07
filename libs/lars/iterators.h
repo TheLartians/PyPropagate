@@ -1,15 +1,8 @@
-///////////////////////////////////////////////////////////
-//
-//    Created in 2014 by Lars Melchior
-//
-//    This file is distributed under the GNU
-//    General Public License (GPL).
-//    See LICENSE.TXT for details.
-//
 
 #pragma once
 
 #include <iterator>
+#include <type_traits>
 #include <vector>
 #include <assert.h>
 #include <cmath>
@@ -23,8 +16,6 @@ namespace lars {
 #else
 #  define UNUSED
 #endif
-  
-
   
   
   template<class T> class range_wrapper {
@@ -96,11 +87,26 @@ namespace lars {
     const_reverse_iterator rend()const{ return obj.end(); }
   };
   
-  template<class T> reverse_wrapper<T> reverse(T & obj){
+  template<typename T, typename = void> struct is_iterator{
+    static constexpr bool value = false;
+  };
+  
+  template<typename T> struct is_iterator<T, typename std::enable_if<!std::is_same<typename std::iterator_traits<T>::value_type, void>::value>::type> {
+    static constexpr bool value = true;
+  };
+  
+  template <typename T> struct is_iterable{
+    template<typename U,size_t (U::*)() const> struct SFINAE { constexpr static bool value=true; };
+    template<typename U> static char Test(SFINAE<U, &U::begin>*);
+    template<typename U> static int Test(...);
+    static constexpr bool value = sizeof(Test<T>(0)) == sizeof(char);
+  };
+
+  template<class T> typename std::enable_if<is_iterable<T>::value,reverse_wrapper<T>>::type reverse(T & obj){
     return reverse_wrapper<T>(obj);
   }
   
-  template<class T> const_reverse_wrapper<T> reverse(const T & obj){
+  template<class T> typename std::enable_if<is_iterable<T>::value,const_reverse_wrapper<T>>::type reverse(const T & obj){
     return const_reverse_wrapper<T>(obj);
   }
 
