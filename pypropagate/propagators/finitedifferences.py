@@ -62,8 +62,8 @@ class FiniteDifferencesPropagator2D(Propagator):
         ra = settings.get_as(pde.ra/2,complex)
         rc = settings.get_as(pde.rc/2,complex)
 
-        self.__rf, = self._get_evaluators([ pde.rf/2 ],settings,return_type=pc.Types.Complex,compile_to_c = True ,parallel=True)
-        self.__u_boundary, =  self._get_evaluators([ pde.u_boundary ],settings,return_type=pc.Types.Complex,compile_to_c = True ,parallel=False)
+        self.__rf, = self._get_evaluators([ pde.rf/2 ],settings,return_type=pc.Types.Complex,compile_to_c = not self._F_is_constant_in_z ,parallel=True)
+        self.__u_boundary, =  self._get_evaluators([ pde.u_boundary ],settings,return_type=pc.Types.Complex,compile_to_c = not self._F_is_constant_in_z ,parallel=False)
 
         self._solver = finite_difference_acF()
         self._solver.resize(self._nx,self._ny)
@@ -84,10 +84,10 @@ class FiniteDifferencesPropagator2D(Propagator):
         self._reset()
         
     def _reset(self):
+        self.__rf(*self._get_coordinates(),res=self._solver.rf.as_numpy())
+        self._solver.update()
         super(FiniteDifferencesPropagator2D,self)._reset()
-        self._update(True)
-        super(FiniteDifferencesPropagator2D,self)._reset()
-        self._update(True)
+        self.__rf(*self._get_coordinates(),res=self._solver.rf.as_numpy())
 
     def _update_boundary(self):
         self.__boundary_values[2].fill(self._i)
@@ -98,10 +98,10 @@ class FiniteDifferencesPropagator2D(Propagator):
         self._solver.u.as_numpy()[0,:] = boundary[2*self._nx:2*self._nx+self._ny]
         self._solver.u.as_numpy()[-1,:] = boundary[2*self._nx+self._ny:]
         
-    def _update(self,force_update_F = False):
+    def _update(self):
         self._solver.update()
         self._update_boundary()
-        if (not self._F_is_constant_in_z) or force_update_F:
+        if (not self._F_is_constant_in_z):
             self.__rf(*self._get_coordinates(),res=self._solver.rf.as_numpy())
         
     def _step(self):

@@ -135,6 +135,24 @@ def add_simulation_box_symbols(settings):
             set_2D_physical_size(*physical_size)
             set_2D_voxel_size(*voxel_size)
 
+    def make_unitless(settings):
+        sb = settings.simulation_box
+
+        from units import get_unit
+        defined = {sb.sy}
+
+        for s in settings.get_numeric((sb.sx,sb.sy,sb.sz)):
+            unit = get_unit(s,cache = settings.get_cache())
+            if unit is None or unit in defined:
+                continue
+            defined.add(unit)
+            unit_name = str(unit)
+            if not settings.unitless.has_name(unit_name):
+                settings.unitless.create_key(unit_name,unit)
+            setattr(settings.unitless,unit_name,(2*unit/s).evaluate(cache=settings.get_cache()))
+
+    settings.initializers['make_unitless'] = make_unitless
+
     sb._set_attribute('set', set_simulation_box)
 
 def add_partial_differential_equation_symbols(settings):
@@ -190,13 +208,6 @@ def add_wave_equation_symbols(settings):
         we.E = value
 
     we._set_attribute('set_energy',set_energy)
-
-    def make_unitless(settings):
-        if not settings.unitless.has_name('m'):
-            settings.unitless.create_key('m',units.m)
-        settings.unitless.m = settings.get_numeric(settings.wave_equation.k*units.m)
-
-    settings.initializers['make_unitless'] = make_unitless
 
 def create_paraxial_wave_equation_settings():
 

@@ -37,6 +37,14 @@ namespace lars {
     
   }
   
+  /*
+   
+   ra = A dz/dx^2
+   rc = C dz/dy^2
+   rf = F dz/2
+   
+  */
+  
   class finite_difference_aF{
   public:
     
