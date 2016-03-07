@@ -15,7 +15,7 @@ setup(
     install_requires={
         'matplotlib',
         'numpy',
-        'expresso[pycas]'
+        'expresso[pycas] >= 0.1.1'
     },
 
     zip_safe=False,
