@@ -18,6 +18,7 @@ addons:
     - clang
     - libboost-python1.55-dev
     - python-scipy
+    - liblapack-dev
     - libfftw3-dev
 
 before_install:
