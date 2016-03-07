@@ -24,13 +24,13 @@ class FresnelPropagator2D(Propagator):
         R,D = self._get_evaluators([pc.exp(pe.F*sb.dz),pc.exp(-pe.A*sb.dz*(sb.x**2+sb.y**2))],settings,return_type=pc.Types.Complex,parallel=True)
 
         self.__R = R
-        if self._F_is_constant:
+        if self._F_is_constant_in_z:
             self.__R_step = self.__R(*self._get_coordinates())
 
         import numpy as np
 
-        fx = 2*np.pi/(self._nx*self._ndx)
-        fy = 2*np.pi/(self._ny*self._ndx)
+        fx = 2*np.pi/self._nx
+        fy = 2*np.pi/self._ny
 
         kx,ky = np.meshgrid(
             fy*( self._ny/2.-np.abs(np.arange(self._ny,dtype = np.float64)-self._ny/2.) ),
@@ -72,6 +72,7 @@ class FresnelPropagator1D(Propagator):
     dtype = np.complex128
 
     def __init__(self,settings):
+        import expresso.pycas as pc
 
         super(FresnelPropagator1D,self).__init__(settings)
         self._set_initial_field(settings)
@@ -79,25 +80,29 @@ class FresnelPropagator1D(Propagator):
         sb = settings.simulation_box
         pe = settings.partial_differential_equation
 
-        import expresso.pycas as pc
-        R,D = self._get_evaluators([pc.exp(pe.F*sb.dz),pc.exp(-pe.A*sb.dz*(sb.x**2))],settings,return_type=pc.Types.Complex)
+        R, = self._get_evaluators([pc.exp(pe.F*sb.dz)],settings,return_type=pc.Types.Complex)
 
-        settings.get_unitless(pc.equal(pe.F,0))
-
-        self.__R = R
-        if self._F_is_constant:
+        if self._F_is_constant_in_z:
             self.__R_step = self.__R(*self._get_coordinates())
+        else:
+            self.__R = R
 
         import numpy as np
-        fx = 2*np.pi/(self._nx*self._ndx)
-        kx = fx*( self._nx/2.-np.abs(np.arange(self._nx,dtype = np.float64)-self._nx/2.) )
-        self.__D_step = D(kx,0)
+        fx = 2*np.pi/(self._nx*settings.get_as(sb.dx,float))
+        kx = fx*( self._nx/2.-np.abs(np.arange(self._nx)- self._nx/2.)
+        D = pc.numpyfy( settings.get_optimized( pc.exp(-pe.A*sb.dz*(pc.Symbol('kx')**2)) ) )
+        self.__D_step = D(kx=kx)
 
     def _step(self):
         from numpy.fft import fft,ifft
         if self._F_is_zero:
             freq = self.__initial_fft * self.__D_step**self._i
             self.__data = ifft(freq)
+        elif self._F_is_constant_in_z:
+            freq = fft(self.__data)
+            freq *= self.__D_step
+            self.__data = ifft(freq)
+            self.__data *= self.__R_step
         else:
             freq = fft(self.__data)
             freq *= self.__D_step

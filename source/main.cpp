@@ -10,7 +10,7 @@ void test_1D(){
   
   finite_difference_aF propagator;
   
-  propagator.resize(10);
+  propagator.resize(50);
   propagator.u.fill(1);
   propagator.rf.fill(finite_differences::complex(0,0));
   
@@ -35,7 +35,7 @@ void test_2D(){
 
   finite_difference_acF propagator;
   
-  propagator.resize(50,10);
+  propagator.resize(10,50);
   propagator.u.fill(1);
   propagator.rf.fill(finite_differences::complex(0,0));
   

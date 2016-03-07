@@ -56,9 +56,10 @@ PYTHON_ADD_MODULE(_pypropagate ${PROJECT_SOURCE_DIR}/python.cpp ${pythons})
 TARGET_LINK_LIBRARIES(_pypropagate FD)
 
 # ---- install ----
-install(TARGETS _pypropagate DESTINATION .)
+
+#install(TARGETS _pypropagate DESTINATION .)
 # install(FILES ${pythons} DESTINATION pyfinitedifferences_3_2)
-install(DIRECTORY ${PROJECT_PYSOURCE_DIR}/ DESTINATION pypropagate)
+#install(DIRECTORY ${PROJECT_PYSOURCE_DIR}/ DESTINATION pypropagate)
 
 find_program(PYTHON "python")
 

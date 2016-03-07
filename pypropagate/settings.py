@@ -189,6 +189,10 @@ class Settings(CategorizedDictionary):
     def get_unitless(self,expr,**kwargs):
         return self.get(expr,numeric=True,unitless=True,**kwargs)
 
+    def get_coordinates(self,vars):
+        if not isinstance(vars,(tuple,list)):
+            pass
+
     def get_optimized(self,expr,**kwargs):
         from expresso.pycas.evaluators.optimizers import optimize_for_compilation
         return optimize_for_compilation(self.get_unitless(expr,**kwargs),cache = self.get_cache())

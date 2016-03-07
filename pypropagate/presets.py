@@ -11,10 +11,6 @@ def add_simulation_box_symbols(settings):
     y = sb.create_key("y",Symbol("y",type = Types.Real),info="second coordinate for 2D simulations")
     z = sb.create_key("z",Symbol("z",type = Types.Real),info="propagation direction")
 
-    sb.x = x
-    sb.y = y
-    sb.z = z
-
     sb.create_key("nx", Symbol("n_x",type = Types.Integer,positive=True),info="voxels in x direction minus the boundary conditions")
     sb.create_key("ny", Symbol("n_y",type = Types.Integer,positive=True),info="voxels in y direction minus the boundary conditions")
     sb.create_key("nz", Symbol("n_z",type = Types.Integer,positive=True),info="voxels in z direction minus the boundary condition")
@@ -67,9 +63,16 @@ def add_simulation_box_symbols(settings):
     sb.fy = 0
 
     import expresso.pycas as pc
-    sb.create_key("xi",Function("x_i")(x),pc.round((sb.x-sb.xmin)/sb.dx),info="grid index for x value")
-    sb.create_key("yi",Function("y_i")(y),pc.round((sb.y-sb.ymin)/sb.dy),info="grid index for y value")
-    sb.create_key("zi",Function("z_i")(z),pc.round((sb.z-sb.zmin)/sb.dz),info="grid index for z value")
+    sb.create_key("xi",Symbol('x_i',type=pc.Types.Natural),info="grid index for x value")
+    sb.create_key("yi",Symbol('y_i',type=pc.Types.Natural),info="grid index for y value")
+    sb.create_key("zi",Symbol('z_i',type=pc.Types.Natural),info="grid index for z value")
+
+    settings.unitless.add_key('x',x)
+    settings.unitless.x = sb.xmin+sb.xi*sb.dx
+    settings.unitless.add_key('y',y)
+    settings.unitless.y = sb.ymin+sb.yi*sb.dy
+    settings.unitless.add_key('z',z)
+    settings.unitless.z = sb.zmin+sb.zi*sb.dz
 
     sb.lock()
 
@@ -100,13 +103,11 @@ def add_simulation_box_symbols(settings):
 
         for s in settings.get_numeric((sx,sz)):
             unit = get_unit(s,cache = settings.get_cache())
-            if unit is None or unit in defined:
+            if unit is None:
                 continue
-            defined.add(unit)
             unit_name = str(unit)
             if not settings.unitless.has_name(unit_name):
-                settings.unitless.create_key(unit_name,unit)
-            setattr(settings.unitless,unit_name,(2*unit/s).evaluate(cache=settings.get_cache()))
+                settings.unitless.create_key(unit_name,unit,1)
 
     def set_physical_size(sx,sy,sz):
         'Sets the physical box size of the simulation in x, y and z direction'
@@ -132,17 +133,14 @@ def add_simulation_box_symbols(settings):
         sb.lock('zmax','defined by zmin and sz')
 
         from units import get_unit
-        defined = set()
 
         for s in settings.get_numeric((sx,sy,sz)):
             unit = get_unit(s,cache = settings.get_cache())
-            if unit is None or unit in defined:
+            if unit is None:
                 continue
-            defined.add(unit)
             unit_name = str(unit)
             if not settings.unitless.has_name(unit_name):
-                settings.unitless.create_key(unit_name,unit)
-            setattr(settings.unitless,unit_name,(2*unit/s).evaluate(cache=settings.get_cache()))
+                settings.unitless.create_key(unit_name,unit,1)
 
     def set_voxel_size(Nx,Ny,Nz):
         'Sets the voxe size of the simulation in x, y and z direction'
