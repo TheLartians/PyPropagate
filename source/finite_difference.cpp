@@ -41,7 +41,6 @@ namespace lars {
         
     auto us = u.slice(static_index_tuple<1>(),make_dynamic_index_tuple(n));
     algebra::tridiagonal(A,B,A,R,us,tmp);
-
   }
   
   void finite_difference_aF::update(){

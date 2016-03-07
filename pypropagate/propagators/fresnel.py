@@ -21,7 +21,7 @@ class FresnelPropagator2D(Propagator):
         pe = settings.partial_differential_equation
 
         import expresso.pycas as pc
-        R,D = self._get_evaluators([pc.exp(pe.F*sb.dz),pc.exp(-pe.A*sb.dz*(sb.x**2+sb.y**2))],settings,return_type=pc.Types.Complex)
+        R,D = self._get_evaluators([pc.exp(pe.F*sb.dz),pc.exp(-pe.A*sb.dz*(sb.x**2+sb.y**2))],settings,return_type=pc.Types.Complex,parallel=True)
 
         self.__R = R
         if self._F_is_constant:

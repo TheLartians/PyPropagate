@@ -3,7 +3,6 @@ from .propagator import Propagator
 import expresso.pycas as pc
 import numpy as np
 
-
 class FiniteDifferencesPropagator1D(Propagator):
 
     ndim = 1
@@ -40,7 +39,6 @@ class FiniteDifferencesPropagator1D(Propagator):
         elif not self._F_is_constant:
             self.__rf(*self._get_coordinates(),res=self._solver.rf.as_numpy())
 
-
     def _step(self):
         self._update()
         self._solver.step()
@@ -64,7 +62,8 @@ class FiniteDifferencesPropagator2D(Propagator):
         ra = settings.get_as(pde.ra/2,complex)
         rc = settings.get_as(pde.rc/2,complex)
 
-        self.__u_boundary,self.__rf = self._get_evaluators([ pde.u_boundary, pde.rf/2 ],settings,return_type=pc.Types.Complex,compile_to_c = True ,parallel=False)
+        self.__rf, = self._get_evaluators([ pde.rf/2 ],settings,return_type=pc.Types.Complex,compile_to_c = True ,parallel=True)
+        self.__u_boundary, =  self._get_evaluators([ pde.u_boundary ],settings,return_type=pc.Types.Complex,compile_to_c = True ,parallel=False)
 
         self._solver = finite_difference_acF()
         self._solver.resize(self._nx,self._ny)
