@@ -20,6 +20,7 @@ addons:
     - python-scipy
     - liblapack-dev
     - libfftw3-dev
+    - gfortran
 
 before_install:
 #  - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
