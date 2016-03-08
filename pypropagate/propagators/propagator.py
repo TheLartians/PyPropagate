@@ -94,15 +94,36 @@ class Propagator(Solver):
         if 'return_type' not in kwargs:
             kwargs['return_type'] = pc.Types.Complex
 
-        definitions = [pc.FunctionDefinition('f%s' % i,args,expr,**kwargs)
-                       for i,expr in enumerate(expressions)]
+        def is_constant(expr):
+	    try:
+            	expr.N()
+		return True
+	    except:
+ 		return False   
 
-        if (self.ndim == 1 and compile_to_c != True) or compile_to_c == False:
+        definitions = [pc.FunctionDefinition('f%s' % i,args,expr,**kwargs)
+                       for i,expr in enumerate(expressions) if not is_constant(expr)]
+
+        if compile_to_c == None:
+ 	    compile_to_c = self.ndim > 1       
+ 
+        if not compile_to_c:
             lib = pc.ncompile(*definitions)
         else:
             lib = pc.ccompile(*definitions)
+        
+	def get_constant_expression(expr):
+	    c = float(expr.N(20))
+            import numpy as np
+	    def constant_expression(*args,**kwargs):
+                res = kwargs.pop('res',None)
+		if res is not None:
+		    res.fill(c)
+		    return res
+	        return np.full(args[0].shape,c)      
+            return constant_expression
 
-        res = [getattr(lib,'f%s' % i) for i in range(len(expressions))]
+        res = [ getattr(lib,'f%s' % i) if hasattr(lib,'f%s' % i) else get_constant_expression(expressions[i]) for i in range(len(expressions)) ]
 
         if return_single:
             return res[0]
