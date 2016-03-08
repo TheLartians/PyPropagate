@@ -69,7 +69,7 @@ class FiniteDifferencesPropagator2D(Propagator):
                                             (pde.rf/2).subs(sb.z,sb.z-sb.dz/2),
                                             pde.u_boundary,
                                             pde.u_boundary.subs(sb.z,sb.z-sb.dz/2) ],
-                                          settings,return_type=pc.Types.Complex,compile_to_c = not self._F_is_constant_in_z ,parallel=True)
+                                          settings,return_type=pc.Types.Complex,compile_to_c = True,parallel=True)
 
         self.__rf = evaluators[:2]
         self.__u_boundary = evaluators[2:]
