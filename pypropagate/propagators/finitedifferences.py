@@ -58,23 +58,33 @@ class FiniteDifferencesPropagator2D(Propagator):
         super(FiniteDifferencesPropagator2D,self).__init__(settings)
         from _pypropagate import finite_difference_acF
 
-        pde = settings.partial_differential_equation        
+        pde = settings.partial_differential_equation
+        sb= settings.simulation_box
+
         ra = settings.get_as(pde.ra/2,complex)
         rc = settings.get_as(pde.rc/2,complex)
 
-        self.__rf, = self._get_evaluators([ pde.rf/2 ],settings,return_type=pc.Types.Complex,compile_to_c = not self._F_is_constant_in_z ,parallel=True)
-        self.__u_boundary, =  self._get_evaluators([ pde.u_boundary ],settings,return_type=pc.Types.Complex,compile_to_c = not self._F_is_constant_in_z ,parallel=False)
+
+        evaluators = self._get_evaluators([ (pde.rf/2),
+                                            (pde.rf/2).subs(sb.z,sb.z-sb.dz/2),
+                                            pde.u_boundary,
+                                            pde.u_boundary.subs(sb.z,sb.z-sb.dz/2) ],
+                                          settings,return_type=pc.Types.Complex,compile_to_c = not self._F_is_constant_in_z ,parallel=True)
+
+        self.__rf = evaluators[:2]
+        self.__u_boundary = evaluators[2:]
 
         self._solver = finite_difference_acF()
         self._solver.resize(self._nx,self._ny)
+
         self._solver.ra = ra
         self._solver.rc = rc
         
         d,u,l,r = [(self._get_x_coordinates(),np.zeros(self._nx,dtype = np.uint)),
-                   (self._get_x_coordinates(),np.ones(self._nx,dtype = np.uint)*self._ny),
+                   (self._get_x_coordinates(),np.ones(self._nx,dtype = np.uint)*(self._ny-1)),
                    (np.zeros(self._ny,dtype = np.uint),
                     self._get_y_coordinates()),
-                   (np.ones(self._ny,dtype = np.uint)*self._nx,self._get_y_coordinates())]
+                   (np.ones(self._ny,dtype = np.uint)*(self._nx-1),self._get_y_coordinates())]
 
         self.__boundary_values = [np.concatenate([v[0] for v in d,u,l,r]),
                                   np.concatenate([v[1] for v in d,u,l,r]),
@@ -84,30 +94,32 @@ class FiniteDifferencesPropagator2D(Propagator):
         self._reset()
         
     def _reset(self):
-        self.__rf(*self._get_coordinates(),res=self._solver.rf.as_numpy())
+        self.__rf[1](*self._get_coordinates(),res=self._solver.rf.as_numpy())
+        self._solver.u.as_numpy().fill(0)
         self._solver.update()
+        self.__rf[0](*self._get_coordinates(),res=self._solver.rf.as_numpy())
         super(FiniteDifferencesPropagator2D,self)._reset()
-        self.__rf(*self._get_coordinates(),res=self._solver.rf.as_numpy())
 
-    def _update_boundary(self):
+    def _update_boundary(self,half_step):
         self.__boundary_values[2].fill(self._i)
-        boundary = self.__u_boundary(*self.__boundary_values)
+        boundary = self.__u_boundary[half_step](*self.__boundary_values)
+        u  = self._solver.u.as_numpy()
 
-        self._solver.u.as_numpy()[:,0] = boundary[0:self._nx]
-        self._solver.u.as_numpy()[:,-1] = boundary[self._nx:2*self._nx]
-        self._solver.u.as_numpy()[0,:] = boundary[2*self._nx:2*self._nx+self._ny]
-        self._solver.u.as_numpy()[-1,:] = boundary[2*self._nx+self._ny:]
+        u[:,0] = boundary[0:self._nx]
+        u[:,-1] = boundary[self._nx:2*self._nx]
+        u[0,:] = boundary[2*self._nx:2*self._nx+self._ny]
+        u[-1,:] = boundary[2*self._nx+self._ny:]
         
-    def _update(self):
+    def _update(self,half_step):
         self._solver.update()
-        self._update_boundary()
+        self._update_boundary(half_step)
         if (not self._F_is_constant_in_z):
-            self.__rf(*self._get_coordinates(),res=self._solver.rf.as_numpy())
+            self.__rf[half_step](*self._get_coordinates(),res=self._solver.rf.as_numpy())
         
     def _step(self):
-        self._update()
+        self._update(True)
         self._solver.step_1()
-        self._update()
+        self._update(False)
         self._solver.step_2()
 
     def _get_field(self):
