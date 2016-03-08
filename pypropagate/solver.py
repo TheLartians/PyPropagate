@@ -247,7 +247,7 @@ class Solver(object):
         for i in range(i+1,self._nt+1):
             self.step(callback=callback)
 
-        return field.transpose([len(field.shape)-1] + range(len(field.shape)-1))
+        return field.transpose(range(1,len(field.shape)) + [0])
         #res = CoordinateNDArray(field, bounds, axis, self._get_transform())
         #return res.transpose(res.axis[1:] + [res.axis[0]])
     

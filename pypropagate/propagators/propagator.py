@@ -9,34 +9,20 @@ class Propagator(Solver):
         sb = settings.simulation_box
 
         self._x = sb.x
-        self._y = sb.y
+        if self.ndim > 1: self._y = sb.y
         self._t = sb.z
-        self._nx = settings.get_as(sb.Nx,int)
+
+        self._nx,self._nt = settings.get_as((sb.Nx,sb.Nz),int)
         if self.ndim > 1: self._ny = settings.get_as(sb.Ny,int)
-        self._nt = settings.get_as(sb.Nz,int)
-        self._xmin = settings.get_numeric(sb.xmin)
-        self._xmax = settings.get_numeric(sb.xmax)
-        if self.ndim > 1: self._ymin = settings.get_numeric(sb.ymin)
-        if self.ndim > 1: self._ymax = settings.get_numeric(sb.ymax)
-        self._tmin = settings.get_numeric(sb.zmin)
-        self._tmax = settings.get_numeric(sb.zmax)
-
-        self._nxmin = settings.get_as(sb.xmin,float)
-        self._nxmax = settings.get_as(sb.xmax,float)
-        if self.ndim > 1: self._nymin = settings.get_as(sb.ymin,float)
-        if self.ndim > 1: self._nymax = settings.get_as(sb.ymax,float)
-        self._nzmin = settings.get_as(sb.zmin,float)
-        self._nzmax = settings.get_as(sb.zmax,float)
-
-        self._ndx = settings.get_as(sb.dx,float)
-        if self.ndim > 1: self._ndy = settings.get_as(sb.dy,float)
-        self._ndz = settings.get_as(sb.dz,float)
+        self._xmin,self._xmax = settings.get_numeric((sb.xmin,sb.xmax))
+        if self.ndim > 1: self._ymin,self._ymax = settings.get_numeric((sb.ymin,sb.ymax))
+        self._tmin,self._tmax = settings.get_numeric((sb.zmin,sb.zmax))
 
         import expresso.pycas as pc
         pe = settings.partial_differential_equation
 
         self._F_is_zero = settings.get_unitless( pe.F ) == pc.Zero
-        self._F_is_constant = settings.get_unitless( pc.derivative(pe.F,sb.z) ) == pc.Zero
+        self._F_is_constant_in_z = settings.get_unitless(pc.derivative(pe.F, sb.zi)) == pc.Zero
 
     def _set_initial_field(self,settings):
         sb = settings.simulation_box
@@ -45,32 +31,12 @@ class Propagator(Solver):
         self.__initial = initial
         self.set_field(initial)
 
-    @property
-    def _z(self):
-        return self._t
-
-    @property
-    def _zmin(self):
-        return self._tmin
-
-    @property
-    def _zmax(self):
-        return self._tmax
-
-    @property
-    def _current_nz(self):
-        return self._nzmin + self._i * self._ndz
-
-    def _set_z(self,z):
-        pass
-
     def _reset(self):
-        self._set_z(self._nzmin)
         self.set_field(self.__initial)
 
     def __get_x_coordinates(self):
         import numpy as np
-        return np.linspace(self._nxmin,self._nxmax,self._nx)
+        return np.arange(self._nx,dtype=np.uint)
 
     def _get_x_coordinates(self):
         try:
@@ -81,7 +47,7 @@ class Propagator(Solver):
 
     def __get_y_coordinates(self):
         import numpy as np
-        return np.linspace(self._nymin,self._nymax,self._ny)
+        return np.arange(self._ny,dtype=np.uint)
 
     def _get_y_coordinates(self):
         try:
@@ -92,17 +58,17 @@ class Propagator(Solver):
 
     def __get_xy_coordinates(self):
         import numpy as np
-        npy,npx = np.meshgrid(np.linspace(self._nymin,self._nymax,self._ny,dtype=float),np.linspace(self._nxmin,self._nxmax,self._nx,dtype=float))
+        npy,npx = np.meshgrid(self.__get_y_coordinates(),self.__get_x_coordinates())
         return npx,npy
 
     def _get_coordinates(self):
         try:
-            self.__z_coordinates.fill(self._current_nz)
+            self.__z_coordinates.fill(self._i)
             return self.__coordinates + [self.__z_coordinates]
         except AttributeError:
             import numpy as np
             self.__coordinates = [self.__get_x_coordinates()] if self.ndim == 1 else list(self.__get_xy_coordinates())
-            self.__z_coordinates = np.zeros(self.__coordinates[0].shape)
+            self.__z_coordinates = np.zeros(self.__coordinates[0].shape,dtype=np.uint)
             return self._get_coordinates()
 
     def _get_initial(self):
@@ -117,13 +83,16 @@ class Propagator(Solver):
         else:
             return_single = False
 
-        args = (self._x,self._y,self._z) if self.ndim == 2 else (self._x,self._z)
         sb = settings.simulation_box
+        args = (sb.xi,sb.yi,sb.zi) if self.ndim == 2 else (sb.xi,sb.zi)
 
         if self.ndim == 1:
             expressions = [settings.get_optimized(expr.subs(sb.y,sb.fy)) for expr in expressions]
         else:
             expressions = [settings.get_optimized(expr) for expr in expressions]
+
+        if 'return_type' not in kwargs:
+            kwargs['return_type'] = pc.Types.Complex
 
         definitions = [pc.FunctionDefinition('f%s' % i,args,expr,**kwargs)
                        for i,expr in enumerate(expressions)]
