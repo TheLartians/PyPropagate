@@ -40,44 +40,38 @@ class FresnelPropagator2D(Propagator):
             fy*( self._ny/2.-np.abs(np.arange(self._ny)-self._ny/2.) ),
             fx*( self._nx/2.-np.abs(np.arange(self._nx)-self._nx/2.) )
         )
-
+	
         self.__D_step = D(kx=kx,ky=ky)
     
-    def get_fft(self,init=False):
+    def get_fft(self):
         try:
-            from pyfftw.interfaces.numpy_fft import fft2,ifft2
-            if init:
-                import pyfftw.interfaces
- 	        pyfftw.interfaces.cache.enable()
-                pyfftw.interfaces.cache.set_keepalive_time(30)
-            def make_fft_caller(fft):
-                def fft_caller(array,inplace=False):
-                    return fft(array,overwrite_input=inplace,threads=self._thread_count)
-                return fft_caller
-            return make_fft_caller(fft2),make_fft_caller(ifft2)
+	    import pyfftw
+	    if not hasattr(self,'__fftw_ffts'):
+	    	a = pyfftw.empty_aligned((self._nx, self._ny), dtype='complex128')
+	    	b = pyfftw.empty_aligned((self._nx, self._ny), dtype='complex128')
+	    	fft2 = pyfftw.FFTW(a, b, axes=(0,1), threads=self._thread_count, direction = 'FFTW_FORWARD')
+	    	ifft2 = pyfftw.FFTW(b, a, axes=(0,1), threads=self._thread_count, direction = 'FFTW_BACKWARD')
+		self.__fftw_ffts = fft2,ifft2
+	    return self.__fftw_ffts
         except ImportError:
             from numpy.fft import fft2,ifft2
-            def make_fft_caller(fft):
-                def fft_caller(array,inplace=False):
-                    return fft(array)
-	        return fft_caller
-            return make_fft_caller(fft2),make_fft_caller(ifft2)
+            return fft2,ifft2
 
     def _step(self):
         fft2,ifft2 = self.get_fft()        
 
-        if self._F_is_zero:
-            freq = self.__initial_fft * self.__D_step**self._i
-            self.__data = ifft2(freq,inplace=True)
+        if self._F_is_constant:
+            self.__freq_data *= self.__D_step * self.__R_step
+            self.__data = ifft2(self.__freq_data)
         elif self._F_is_constant_in_z:
-            freq = fft2(self.__data)
-            freq *= self.__D_step
-            self.__data = ifft2(freq,inplace=True)
+            self.__freq_data = fft2(self.__data)
+            self.__freq_data *= self.__D_step
+            self.__data = ifft2(self.__freq_data)
             self.__data *= self.__R_step
         else:
-            freq = fft2(self.__data)
-            freq *= self.__D_step
-            self.__data = ifft2(freq,inplace=True)
+            self.__freq_data = fft2(self.__data)
+            self.__freq_data *= self.__D_step
+            self.__data = ifft2(self.__freq_data)
             self.__data *= self.__R(*self._get_coordinates())
 
     def _get_field(self):
@@ -85,20 +79,22 @@ class FresnelPropagator2D(Propagator):
     
     def _set_field(self,field):
         import numpy as np
-        fft2,ifft2 = self.get_fft(init=True)        
+        fft2,ifft2 = self.get_fft()        
         self.__data = field.astype(np.complex128)
-        self.__initial_fft = fft2(self.__data)
+	self.__freq_data = fft2(self.__data)
 
-    
+
 class FresnelPropagator1D(Propagator):
 
     ndim = 1
     dtype = np.complex128
 
-    def __init__(self,settings):
+    def __init__(self,settings,thread_count=1):
         import expresso.pycas as pc
 
         super(FresnelPropagator1D,self).__init__(settings)
+	self._thread_count = thread_count
+
         self._set_initial_field(settings)
 
         sb = settings.simulation_box
@@ -118,40 +114,35 @@ class FresnelPropagator1D(Propagator):
         kx = fx*( self._nx/2.-np.abs(np.arange(self._nx)- self._nx/2.) )
         self.__D_step = D(kx=kx)
 
-    def get_fft(self,init=False):
+    def get_fft(self):
         try:
-            from pyfftw.interfaces.numpy_fft import fft,ifft
-            if init:
-                import pyfftw.interfaces
- 	        pyfftw.interfaces.cache.enable()
-                pyfftw.interfaces.cache.set_keepalive_time(30)
-            def make_fft_caller(fft):
-                def fft_caller(array,inplace=False):
-                    return fft(array,overwrite_input=inplace)
-                return fft_caller
-            return make_fft_caller(fft),make_fft_caller(ifft)
+	    import pyfftw
+	    if not hasattr(self,'__fftw_ffts'):
+	    	a = pyfftw.empty_aligned(self._nx, dtype='complex128')
+	    	b = pyfftw.empty_aligned(self._nx, dtype='complex128')
+	    	fft = pyfftw.FFTW(a, b, axes=(0,),  threads=self._thread_count, direction = 'FFTW_FORWARD')
+	    	ifft = pyfftw.FFTW(b, a, axes=(0,), threads=self._thread_count, direction = 'FFTW_BACKWARD')
+		self.__fftw_ffts = fft,ifft
+	    return self.__fftw_ffts
         except ImportError:
             from numpy.fft import fft,ifft
-            def make_fft_caller(fft):
-                def fft_caller(array,inplace=False):
-                    return fft(array)
-                return fft_caller
-            return make_fft_caller(fft),make_fft_caller(ifft)
+            return fft,ifft
 
     def _step(self):
-        fft,ifft = self.get_fft()
-        if self._F_is_zero:
-            freq = self.__initial_fft * self.__D_step**self._i
-            self.__data = ifft(freq,inplace=True)
+        fft,ifft = self.get_fft()        
+
+        if self._F_is_constant:
+            self.__freq_data *= self.__D_step * self.__R_step
+            self.__data = ifft(self.__freq_data)
         elif self._F_is_constant_in_z:
-            freq = fft(self.__data)
-            freq *= self.__D_step
-            self.__data = ifft(freq,inplace=True)
+            self.__freq_data = fft(self.__data)
+            self.__freq_data *= self.__D_step
+            self.__data = ifft(self.__freq_data)
             self.__data *= self.__R_step
         else:
-            freq = fft(self.__data)
-            freq *= self.__D_step
-            self.__data = ifft(freq,inplace=True)
+            self.__freq_data = fft(self.__data)
+            self.__freq_data *= self.__D_step
+            self.__data = ifft(self.__freq_data)
             self.__data *= self.__R(*self._get_coordinates())
 
     def _get_field(self):
@@ -161,5 +152,5 @@ class FresnelPropagator1D(Propagator):
         fft,ifft = self.get_fft()
         import numpy as np
         self.__data = field.astype(np.complex128)
-        self.__initial_fft = fft(self.__data)
+        self.__freq_data = fft(self.__data)
 
