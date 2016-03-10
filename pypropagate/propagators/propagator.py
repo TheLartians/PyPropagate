@@ -1,6 +1,8 @@
 
 from ..solver import Solver
 
+cached_evaluators = {}
+
 class Propagator(Solver):
     
     def __init__(self,settings):
@@ -112,7 +114,14 @@ class Propagator(Solver):
         if not compile_to_c:
             lib = pc.ncompile(*definitions)
         else:
-            lib = pc.ccompile(*definitions)
+	    key = tuple(expressions)
+            if key in cached_evaluators:
+		lib = cached_evaluators[key]
+            else:
+		lib = pc.ccompile(*definitions)
+		if len(cached_evaluators) > 100:
+		    cached_evaluators.clear()
+		cached_evaluators[key] = lib
         
 	def get_constant_expression(expr):
 	    try:
