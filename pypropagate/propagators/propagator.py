@@ -22,7 +22,9 @@ class Propagator(Solver):
         pe = settings.partial_differential_equation
 
         self._F_is_zero = settings.get_unitless( pe.F ) == pc.Zero
-        self._F_is_constant_in_z = settings.get_unitless(pc.derivative(pe.F, sb.zi)) == pc.Zero
+        self._F_is_constant_in_z = settings.get_numeric(pc.derivative(pe.F, sb.z)) == pc.Zero
+        self._F_is_constant = self._F_is_constant_in_z and settings.get_numeric(pc.derivative(pe.F, sb.x)) == pc.Zero
+	if self.ndim > 1: self._F_is_constant &= settings.get_numeric(pc.derivative(pe.F, sb.y)) == pc.Zero
 
     def _set_initial_field(self,settings):
         sb = settings.simulation_box
@@ -113,7 +115,10 @@ class Propagator(Solver):
             lib = pc.ccompile(*definitions)
         
 	def get_constant_expression(expr):
-	    c = float(expr.N(20))
+	    try:
+	        c = float(expr.N(20))
+            except:
+                c = complex(expr.N(20))
             import numpy as np
 	    def constant_expression(*args,**kwargs):
                 res = kwargs.pop('res',None)
