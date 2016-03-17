@@ -28,10 +28,12 @@ class Settings(CategorizedDictionary):
             self.create_category("symbols",info="symbol aliases to frequently used symbols")
 
     def create_category(self,cat_name,*args,**kwargs):
+        short_name = kwargs.pop('short_name',cat_name)
+
         import expresso.pycas as pc
 
-        def add_symbol_creation_to_category(cat,cat_name,cat_path=[]):
-            cat_path = cat_path + [cat_name]
+        def add_symbol_creation_to_category(cat,short_name,cat_path=[]):
+            cat_path = cat_path + [short_name]
             def create_symbol(name,value=None,info=None,**kwargs):
                 prefix = '_'.join(cat_path)
                 return cat.create_key(name,pc.Symbol("%s_%s" % (name,prefix),**kwargs),value,info)
@@ -40,8 +42,9 @@ class Settings(CategorizedDictionary):
                 return cat.create_key(name,pc.Function("%s_%s" % (name,prefix),**kwargs)(*args),value,info)
             old_create_category = cat.create_category
             def create_category(cat_name,*args,**kwargs):
+                short_name = kwargs.pop('short_name',cat_name)
                 inner_cat = old_create_category(cat_name,*args,**kwargs)
-                add_symbol_creation_to_category(inner_cat,cat_name,cat_path)
+                add_symbol_creation_to_category(inner_cat,short_name,cat_path)
                 return inner_cat
 
             cat._set_attribute('create_symbol',create_symbol)
@@ -49,7 +52,7 @@ class Settings(CategorizedDictionary):
             cat._set_attribute('create_category',create_category)
 
         cat = super(Settings, self).create_category(cat_name,*args,**kwargs)
-        add_symbol_creation_to_category(cat,cat_name)
+        add_symbol_creation_to_category(cat,short_name)
 
         return cat
 

@@ -67,6 +67,9 @@ def add_simulation_box_symbols(settings):
     sb.create_key("yi",Symbol('y_i',type=pc.Types.Natural),info="grid index for y value")
     sb.create_key("zi",Symbol('z_i',type=pc.Types.Natural),info="grid index for z value")
 
+    sb.create_key("coordinates",(x,y,z))
+    sb.lock('coordinates')
+
     settings.unitless.add_key('x',x)
     settings.unitless.x = sb.xmin+sb.xi*sb.dx
     settings.unitless.add_key('y',y)
@@ -155,21 +158,27 @@ def add_simulation_box_symbols(settings):
 
     sb._set_attribute('set', set_simulation_box)
 
+
 def add_partial_differential_equation_symbols(settings):
     import expresso.pycas as pc
     sb = settings.simulation_box
-    pde = settings.create_category('partial_differential_equation',info="parameters of the partial differential equation")
+    pde = settings.create_category('partial_differential_equation',short_name='PDE',info="parameters of the partial differential equation")
 
-    pde.create_key('A',pc.Function('A_PDE')(sb.x,sb.y,sb.z))
-    pde.create_key('C',pc.Function('C_PDE')(sb.x,sb.y,sb.z),pde.A)
-    pde.create_key('F',pc.Function('F_PDE')(sb.x,sb.y,sb.z))
+    pde.create_function('A',sb.coordinates)
+    pde.create_function('C',sb.coordinates,pde.A)
+    pde.create_function('F',sb.coordinates)
 
-    pde.create_key('ra',pc.Function('r_A_PDE')(sb.x,sb.y,sb.z),pde.A*sb.dz/sb.dx**2,info="finite difference paramter")
-    pde.create_key('rc',pc.Function('r_C_PDE')(sb.x,sb.y,sb.z),pde.A*sb.dz/sb.dy**2,info="finite difference paramter")
-    pde.create_key('rf',pc.Function('r_F_PDE')(sb.x,sb.y,sb.z),pde.F*sb.dz/2,info="finite difference paramter")
+    pde.create_function('ra',sb.coordinates,pde.A*sb.dz/sb.dx**2,info="finite difference paramter")
+    pde.create_function('rc',sb.coordinates,pde.A*sb.dz/sb.dy**2,info="finite difference paramter")
+    pde.create_function('rf',sb.coordinates,pde.F*sb.dz/2,info="finite difference paramter")
 
-    pde.create_key('u0',pc.Function('u_0_PDE')(sb.x,sb.y,sb.z),info="field initial condition")
-    pde.create_key('u_boundary',pc.Function('u_boundary_PDE')(sb.x,sb.y,sb.z),info="field boundary condition");
+    pde.create_function('u',sb.coordinates,info='solution to the PDE')
+    pde.lock('u')
+
+    pde._set_attribute('equation',pc.equal(pc.derivative(pde.u,sb.z), pde.A * pc.derivative(pc.derivative(pde.u,sb.x),sb.x) +  pde.C * pc.derivative(pc.derivative(pde.u,sb.y),sb.y)  + pde.F * pde.u ))
+
+    pde.create_key('u0',pc.Function('u_0_PDE')(*sb.coordinates),info="field initial condition")
+    pde.create_function('u_boundary',sb.coordinates,info="field boundary condition");
 
     pde.lock()
 
