@@ -166,11 +166,6 @@ class Solver(object):
 	if callback is not None:
 	    callback(self)
 
-    #def run(self,*args,**kwargs):
-    #    """Simulate for _nt steps and return the resulting CoordinateNDArray."""
-    #    return self._run_slice(self._get_nd_axis_symbols(self.ndim)[1:], *args, **kwargs)
-
-
     def run_slice(self,**kwargs):
 
         class RunSliceAgent:
@@ -191,9 +186,15 @@ class Solver(object):
         slice_agent = CoordinateNDArray(RunSliceAgent(self,agent_shape,kwargs),agent_bounds,agent_axis,self._get_transform())
         return slice_agent
 
-    def run(self,callback = None):
-        for i in range(self._get_box_size(0)):
+    def run(self,callback = None,display_progress=True, autohide_progress=False):
+
+        run_steps = range(1,self._get_box_size(0))
+        if display_progress == True:
+            run_steps = ProgressBar(run_steps, title='Simulation running. Step',autohide=autohide_progress)
+
+        for i in run_steps:
             self.step(callback=callback)
+
 
     def _run_slice(self, sliced , display_progress=True, autohide_progress=False, callback = None):
         """Simulate for _nt steps and return the resulting CoordinateNDArray."""

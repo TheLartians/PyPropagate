@@ -135,7 +135,7 @@ def expression_to_field(expression,settings):
         xmin,xmax,nx,ymin,ymax,ny = settings.get_numeric( keys )
         nx,ny = settings.get_as( (nx,ny) , int )
         npy,npx = np.meshgrid(np.arange(ny),np.arange(nx))
-        data =  expresso.pycas.numpyfy(expr)(**{xi.name:npx,yi.name:npy})
+        data =  expresso.pycas.numpyfy(expr,parallel=True)(**{xi.name:npx,yi.name:npy})
         res =  CoordinateNDArray(data,[(xmin,xmax),(ymin,ymax)],(x,y),settings.get_numeric_transform())
     else:
         raise ValueError('cannot create field: three dimensional field creation not implemented')

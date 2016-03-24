@@ -1,0 +1,126 @@
+
+
+\subsection{Installation}
+
+\subsubsection{Dependencies}
+
+PyPropagate has the following dependencies that are not installable by \lstinline{pip}:
+
+\begin{itemize}
+    \item A modern C++ compiler such as gcc \textgreater= 4.9
+    \item \lstinline{python 2.7} + \lstinline{pip}
+    \item \lstinline{boost-python} \textgreater= 1.5
+    \item \lstinline{numpy} and \lstinline{matplotlib} dependencies
+    \item \lstinline{FFTW3} (optional)
+\end{itemize}
+
+It is recommended (and required for the supplemental material) to run \lstinline{pypropagate} in \lstinline{jupyter notebook}. Therefore \lstinline{ipython} and \lstinline{jupyter} are additional dependencies. For running all supplemental materials, the python library \lstinline{scipy} is an additional dependency.
+
+\subsubsection{Downloading PyPropagate}
+
+To download the current version of PyPropagate via git use the command
+
+\begin{lstlisting}
+> git clone https://github.com/TheLartians/PyPropagate.git
+\end{lstlisting}
+
+or download the zip using any webbrowser from \url{https://github.com/TheLartians/PyPropagate}.
+
+\subsubsection{Installation using the python package manager pip}
+
+Download the PyPropagate package and navigate to the root directory. To install PyPropagate and its python dependencies simply run:
+
+\begin{lstlisting}
+> pip install .
+\end{lstlisting}
+
+\subsubsection{Manual installation}
+
+To install PyPropagate without \lstinline{pip} be sure to install all the required dependencies defined in \lstinline{setup.py} and run
+
+\begin{lstlisting}
+> python setup.py install
+\end{lstlisting}
+
+\subsection{Configuring a simulation}
+
+\subsubsection{Creating Settings}
+
+By default PyPropagate is written to solve general partial differential equations in the form of equation \eqref{eq:paraxial_wave_equation} with a 3-dimensional function $F(x,y,z)$ and constant $A$. The values of the differential equation as well as numeric parameters are stored in a \lstinline{Settings} object. The parameters are defined as an Expresso symbol and a substitution rule for that symbol. Initially a new \lstinline{Settings} instance does not contain any simulation symbols, however preset methods exist which initialize the settings for most common cases. The following list contains an overview of common methods for creating \lstinline{Settings}:
+
+\begin{itemize}
+    \item \lstinline{Settings()}: \\ 
+    Create an empty \lstinline{Settings} instance
+    \item \lstinline{presets.create_paraxial_settings()}: \\
+    Create \lstinline{Settings} containing the \lstinline{paraxial_equation} category with symbols $F(x,y,z)$ and $A$ from equation \eqref{eq:paraxial_wave_equation} as well as the boundary conditions $u_0$ and $u_\text{boundary}$. Additionally the numerical parameters defined in section \ref{sec:discretization} are defined in a category \lstinline{simulation_box}. These are the minimal settings for initializing a propagator.
+    \item \lstinline{presets.create_paraxial_wave_equation_settings()}: \\
+    Create a \lstinline{Settings} object where the paraxial equation symbols are predefined as in section \ref{sec:paraxial_equation} and symbols for $n(x,y,z)$ and $k$ are defined in an additional \lstinline{wave_equation} category.
+\end{itemize}
+
+\subsubsection{Defining symbolic substitutions}
+
+Simulation parameters are stored as substitution rules in the \lstinline{Settings} object. To define a new substitution use the assignment operator on a \lstinline{Settings} parameter with an expresso expression as the right side. Some parameters are expresso functions themselves, in which case the arguments can be changed by substitution using the \lstinline{expression.subs(symbol,substitution)} member function.
+
+\subsubsection{Defining the simulation box}
+
+To quickly set the simulation box we can use the function \lstinline{Settings.simulation_box.set(physical_size,voxel_size)} member function. Where \lstinline{physical_size} is a tuple of either $(s_x,s_z)$ or $(s_x,s_y,s_z)$ where $s_x = x_\text{max} - x_\text{min}$ (analogous for $s_y$ and $s_z$) and \lstinline{voxel_size} is either $(N_x,N_z)$ or $(N_x,N_y,N_z)$. By default the simulation box will be centered around the $z$ axis and $z_\text{min} = 0$.
+
+\subsubsection{Setting the initial field and boundary conditions}
+
+To get a well posed boundary value problem the initial field value $u_0(x,y,z = z_0)$ needs to be defined. In case of a plane wave traveling in $z$ direction $u_0 = 1$ is sufficient. In some cases the initial value is given as a numeric data array e.g. from experimental data or from a previous simulation. The preset function \lstinline{presets.set_initial(settings,initial_array)} eases this while also fitting the simulation box to the given array. For the finite difference propagators an additional boundary condition $u_\text{boundary}$ at the simulation box edges is necessary.
+
+\subsubsection{Units}
+
+The \lstinline{units} module contains many SI units that can be used for defining simulation parameters.
+
+\subsubsection{Reviewing parameters}
+
+To get the definition of a parameter we can use the \lstinline{Settings.get_definition(parameter)} member function. To get the of an expression containing all non-numeric substitutions use the \lstinline{Settings.get(expression)} method. To view the expression with all substitutions use the  \lstinline{Settings.get_numeric(expression)} member. Finally, we can view the internal, optimized expression with the \lstinline{Settings.get_optimized(expression)} member.
+
+
+\subsection{Running a simulation}
+
+\subsubsection{Creating a Propagator}
+
+First a suitable propagator for the problem must be chosen. By default, four propagators are included:
+
+\begin{itemize}
+    \item \lstinline{propagators.FresnelPropagator2D}: An implementation of the Fresnel propagator.
+    \item \lstinline{propagators.FresnelPropagator1D}: Another implementation of the Fresnel propagator where the field is considered constant in $y$ direction.
+    \item \lstinline{propagators.FiniteDifferencesPropagator2D}: An implementation of the Finite Differences propagator.
+    \item \lstinline{propagators.FiniteDifferencesPropagator1D}: An implementation of the Finite Differences propagator  where the field is considered constant in $y$ direction.
+
+\end{itemize}
+
+The propagator is initialized with the settings of the simulation.
+
+\subsubsection{Running a simulation step}
+
+Initially the propagator contains the discretized complex envelope $u_{ij}^k$ at $k = 0$. Calling the \lstinline{propagator.step()} method propagates the field from $k$ to $k+1$. 
+
+\subsubsection{Retrieving the complex envelope}
+
+To retrieve the current complex envelope field of a propagator use the \lstinline{propagator.get_field()} method. This returns the field in a \lstinline{CoordinateNDArray}, which is a wrapped numpy array which implements slicing using physical coordinates as opposed to array indices. The original numpy array may be accessed through the \lstinline{CoordinateNDArray.data} member.
+
+\subsubsection{Running a full simulation}
+
+To run a simulation from $k=1$ to $k=N_z-1$ use the \lstinline{propagator.run(callback=None)} member function. This method will call the \lstinline{propagator.step()} method $N_z-1$ times and call the callback method with the propagator as an argument after every step (if provided). Use the callback method to store the data you need. 
+
+\subsubsection{Automatic data collection}
+
+In many cases it is sufficient to store a slice of the complex envelope. This is implemented through the the \lstinline{propagator.run_slice()[slice]} method. To prevent accidental allocation of too much memory it is required to explicitly specify the slice size in $x$ and $y$ directions.  
+
+\subsection{Plotting}
+
+To create a quick plot of a \lstinline{CoordinateNDArray} you can use the built-in \lstinline{plot} method. If the array data is complex this method will plot the squared norm of the data (which is proportional to the field intensity).
+
+
+
+
+
+
+
+
+
+
+

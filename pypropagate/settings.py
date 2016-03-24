@@ -208,7 +208,8 @@ class Settings(CategorizedDictionary):
         return type(res)
 
     def get_numeric_transform(self):
-        return lambda x: self.get_numeric(x)
+        copy = self.copy()
+        return lambda x: copy.get_numeric(x)
 
 
 

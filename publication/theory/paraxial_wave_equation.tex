@@ -1,0 +1,88 @@
+
+
+\subsection{The Paraxial Wave Equation}
+
+\subsubsection{Complex Amplitude} \label{sec:phasors}
+
+A plane wave $\phi$ traveling in $z$ direction with amplitude $A$, phase speed $v$ and frequency $\omega$ can be mathematically expressed as
+
+\begin{align} \label{eq:plane_wave}
+\phi = A \sin(\omega \cdot (z/v - t) ).
+\end{align}
+
+Electromagnetic waves in vacuum have the phase speed $v = c$, where $c$ is the speed of light. In a medium these waves are slowed down by a factor $n$, which is the refractive index of the medium $v = c/n$. Additionally, the wave Amplitude falls exponentially from an initial Value $A_0$ with the penetration depth $z$ and linear attenuation coefficient $\mu$ of the medium $A = A_0 \cdot \exp(- \mu z)$. Using Euler's formula $\exp(ix) = \cos(x) + i \sin(x)$ the refractive index and the linear attenuation coefficient can be combined into the \emph{complex refractive index} $\underline n = n + i \mu  / k$ with the wave number $k = \omega/c$. Using this we can rewrite equation~\eqref{eq:plane_wave} as
+
+\begin{align*}
+\phi = \Im \mathopen{} \left( A_0 \cdot e^{ i (\underline n k z - \omega t) } \right) \mathclose{},
+\end{align*}
+
+where $\Im$ denotes the imaginary part. We will refer to the argument of $\Im$ as the \emph{phasor} representation of $\phi$. If $\phi$ describes the amplitude of a monochromatic and linear polarized electromagnetic wave, we call the argument of $\Im$ the \emph{complex amplitude} $\psi$ of the wave. The complex amplitude is connected to the local intensity $I$ of the wave through the relationship~\cite{wiki:intensity}
+
+\begin{align*}
+I = \frac{c n \epsilon_0}{2} |\psi|^2,
+\end{align*}
+
+where $\epsilon_0 \approx 8.854 \cdot 10^{-12} F/m$ is the vacuum permittivity.
+
+
+\subsubsection{Propagation of electromagnetic waves in matter}
+
+The dynamics of electromagnetic waves are governed by Maxwell's Equations~\cite{PriciplesOfOptics}. For a monochromatic wave in a homogeneous, linear, and isotropic dielectric medium without free charges they take the form
+
+\begin{eqnarray*}
+\vec \nabla \vec E = 0 && \vec \nabla \times \vec E = - \frac{ \partial \vec B }{ \partial t }  \\
+\vec \nabla \vec B = 0 && \vec \nabla \times \vec B = \frac{n^2}{c^2} \frac{ \partial \vec E }{ \partial t },
+\end{eqnarray*}
+
+where $\vec B$ is the magnetic field vector, $\vec E$ is the electric field vector, $c$ is the speed of light in vacuum and $n$ is the refractive index of the medium. Note that $n$ is usually dependent on the frequency $\omega$ of the wave. We can include the effects of absorption at any point by using the phasor representation for the fields and replacing $n$ with the complex refractive index $\underline n$. Using the curl of the curl identity $\vec \nabla \times \vec \nabla \times \vec E = \vec \nabla (\vec \nabla  \vec E ) - \Delta  \vec E$ we obtain a wave equation for the electric field
+
+\begin{align} \label{eq:wave_equation} 
+\frac{n^2}{c^2} \frac{ \partial^2 \vec E }{ \partial t^2 } & = \Delta \vec E.
+\end{align}
+
+Analogously we find the same wave equation for the magnetic field. Since the divergence of $\vec E$ and $\vec B$ is zero, only transverse waves are possible as longitudinal waves would describe wells and sinks in the field. Since the time derivative of the dot product of $\vec E$ and $\vec B$ disappears, we can see that the electric field oscillates orthogonally to the magnetic field. We apply above equations on a medium with piecewise constant $n$ by requiring continuity of the fields. Since the wave equation \eqref{eq:wave_equation} is linear, solutions can be written as superpositions of linear polarized waves $\vec E = \vec{e}_i \, \psi $, where $\vec{e}_i$ is the unit vector in direction of polarization and $\psi$ is the amplitude.
+
+\subsubsection{Stationary solutions}
+
+We now regard stationary solutions to the wave equation where the intensity remains unchanged in time. Mathematically, $\psi$ separates into the product of a spatially and a temporally dependant part $\psi = \psi_t(t) \cdot \psi_{\vec x}(\vec x)$. After substituting this into equation \eqref{eq:wave_equation} and reordering terms we get
+
+\begin{align}  \label{eq:stationary_1}
+\frac{1}{\psi_t} \frac{ \partial^2 \psi_t }{ \partial t^2 } & = \frac{c^2}{n^2 \psi_{\vec x}} \Delta \psi_{\vec x}.
+\end{align}
+
+The left side of the equation does not contain any terms that depend on location and the right side does not contain any that depend on time. Therefore neither side can be dependent of time or location and is equal to a constant value. The ansatz $\psi_t = \sin(\omega t)$ gives us
+
+\begin{align*} 
+\frac{1}{\psi_t} \frac{ \partial^2 \psi_t }{ \partial t^2 } = -\omega^2. 
+\end{align*}
+
+Substituting this into equation \eqref{eq:stationary_1} and reordering terms yields
+
+\begin{align} \label{eq:helmholtz}
+\Delta \psi_{\vec{x}} + n^2 k^2 \psi_{\vec{x}} & = 0,
+\end{align}
+
+where $k = \omega / c$ is the wave number. This is the Helmholtz Equation \cite{PriciplesOfOptics}.
+
+
+\subsubsection{Paraxial Approximation} \label{sec:paraxial_equation}
+
+We now look for solutions of the Helmholtz Equation which represent waves traveling in $z$ direction or at a small angle to the $\vec{e}_z$ axis. We can write these solutions as $\psi_{\vec{x}} = u(x,y,z) \cdot \exp(i k z)$ with a complex envelope $u(x,y,z)$ that changes slowly in $z$ direction. Particularly,
+
+\begin{align*}
+\left| \frac{\partial^2 u}{\partial z^2} \right| \ll \left|  k \frac{\partial u}{\partial z}  \right|.
+\end{align*}
+
+Inserting this into equation \eqref{eq:helmholtz} and neglecting very small terms gives us:
+
+\begin{align*}
+2 i k \frac{\partial u}{\partial z} + \frac{\partial^2 u}{\partial x^2} + \frac{\partial^2 u}{\partial y^2} + k^2 (n^2 - 1) u = 0.
+\end{align*}
+
+For convenience we define $A := \frac{i}{2k}$ and $F := \frac{ik}{2} (n^2 - 1) $ which let us write the partial differential equation more concisely as
+
+\begin{align} \label{eq:paraxial_wave_equation}
+\frac{\partial u}{\partial z} = A \left( \frac{\partial^2 u}{\partial x^2} + \frac{\partial^2 u}{\partial y^2} \right) + F  u,
+\end{align}
+
+which is known as the paraxial wave equation.

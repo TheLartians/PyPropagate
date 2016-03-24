@@ -1,0 +1,29 @@
+
+\subsection{Fresnel Diffraction Integral}
+
+For constant $F$ we find an elementary solution to the paraxial wave equation
+
+\begin{align*}
+\mathcal{U}(x,y,z) = \frac{1}{4 \pi A z} \, \exp \! \left(F z-\frac{1}{4 A z} \; (x^2+y^2)\right),
+\end{align*}
+
+which can be verified by insertion. We show that $\lim_{z \rightarrow 0} \mathcal{U}(x,y,z) = \delta(x)\delta(y)$ where $\delta(x)$ is the Dirac delta distribution. First we define $g_z(x) := \exp(-x^2/4 A z) /$ $\sqrt{4 \pi A z}$. Then, for any bounded contiguous function $f$,
+
+\begin{align*}
+    \lim_{z \rightarrow 0} \int_\mathbb{R} f(x) \, g_z(x)  \; \text{d}x & = 
+    \lim_{z \rightarrow 0} \frac{1}{\sqrt{\pi}} \int_\mathbb{R} f(\sqrt{4 A z} \, u) \, \exp(-u^2)  \; \text{d}x \\
+    & =  \frac{1}{\sqrt{\pi}} \int_\mathbb{R} f(0) \, \exp(-u^2)  \; \text{d}x \\
+    & = f(0) = \int_\mathbb{R} f(x) \, \delta(x)  \; \text{d}x,
+\end{align*}
+
+where we used the monotone convergence theorem in third third step. This result implies weak convergence $g_z \! \xrightarrow[]{w} \! \delta$. The claim follows analogously for $\lim_{z \rightarrow 0} $ $ \mathcal{U}(x,y,z) = \lim_{z \rightarrow 0} \exp(Fz) g_z(x) g_z(y)$. Since equation \eqref{eq:paraxial_wave_equation} is linear and translation invariant, we can use this property to obtain a solution for any boundary condition $u(x,y,0)$ at $z = 0$
+
+\begin{align*}
+u(x,y,z) = \iint_{-\infty}^{+\infty} u(x,y,0) \cdot \, \mathcal{U}(x-x',y-y', z) \; \mathrm d x' \mathrm d y'.
+\end{align*}
+
+This can be more compactly expressed through a 2D convolution:
+
+\begin{align} \label{eq:fresnel_convolution}
+u(x,y,z) =  u(x,y,0) * \mathcal{U}(x,y,z).
+\end{align}
