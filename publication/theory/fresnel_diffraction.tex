@@ -11,8 +11,8 @@ which can be verified by insertion. We show that $\lim_{z \rightarrow 0} \mathca
 
 \begin{align*}
     \lim_{z \rightarrow 0} \int_\mathbb{R} f(x) \, g_z(x)  \; \text{d}x & = 
-    \lim_{z \rightarrow 0} \sqrt{A / \pi} \int_\mathbb{R} f(\sqrt{4 z} \, u) \, \exp(-u^2/A)  \; \text{d}u \\
-    & =  \sqrt{A / \pi} \int_\mathbb{R} f(0) \, \exp(-u^2/A)  \; \text{d}u \\
+    \lim_{z \rightarrow 0} \frac{1}{\sqrt{A \pi}} \int_\mathbb{R} f(\sqrt{4 z} \, u) \, \exp(-u^2/A)  \; \text{d}u \\
+    & =  \frac{1}{\sqrt{A \pi}} \int_\mathbb{R} f(0) \, \exp(-u^2/A)  \; \text{d}u \\
     & = f(0) = \int_\mathbb{R} f(x) \, \delta(x)  \; \text{d}x,
 \end{align*}
 
