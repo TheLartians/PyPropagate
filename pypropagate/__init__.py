@@ -19,3 +19,6 @@ from .settings import Settings
 
 import coordinate_ndarray
 np = coordinate_ndarray.WrappedNumpy()
+from coordinate_ndarray import CoordinateNDArray
+
+

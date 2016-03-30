@@ -182,7 +182,11 @@ def plot(arg, *args, **kwargs):
             return
 
     elif not isinstance(arg,CoordinateNDArray):
-        raise ValueError('cannot plot non CoordinateNDArray object. For plotting regular arrays please use the matplotlib.pyplot module.')
+        if isinstance(arg,np.ndarray):
+            pc = expresso.pycas
+            arg = CoordinateNDArray(arg,[(pc.S(0),pc.S(n)) for n in arg.shape],[pc.Symbol('x_%i' % i) for i in range(len(arg.shape))])
+        else:
+            raise ValueError('cannot plot non CoordinateNDArray object. For plotting regular arrays please use the matplotlib.pyplot module.')
 
     if not np.can_cast(arg.data.dtype, np.float128):
         if np.all(arg.data.imag == 0): arg = arg.real
