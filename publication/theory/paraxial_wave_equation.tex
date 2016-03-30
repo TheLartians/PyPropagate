@@ -11,19 +11,19 @@ The dynamics of electromagnetic waves are governed by Maxwell's Equations~\cite{
 \vec \nabla \vec B = 0 && \vec \nabla \times \vec B = \frac{n^2}{c^2} \frac{ \partial \vec E }{ \partial t },
 \end{eqnarray*}
 
-where $\vec B$ and $\vec E$ are the complex magnetic and electric field vectors, $c$ is the speed of light in vacuum and $n$ is frequency dependant complex refractive index of the medium \cite{attwood2007soft}. The actual fields can be obtained by taking the real or imaginary part of the complex fields. Using the curl of the curl identity $\vec \nabla \times \vec \nabla \times \vec E = \vec \nabla (\vec \nabla  \vec E ) - \Delta  \vec E$ we obtain the wave equation for the electric field
+where $\vec B$ and $\vec E$ are the complex magnetic and electric field vectors, $c$ is the speed of light in vacuum and $n$ is the (frequency dependent) complex refractive index of the medium \cite{attwood2007soft}. The actual fields can be obtained by taking the real or imaginary part of the complex fields. Using the curl of the curl identity $\vec \nabla \times \vec \nabla \times \vec E = \vec \nabla (\vec \nabla  \vec E ) - \Delta  \vec E$ we obtain the wave equation for the electric field
 
 \begin{align} \label{eq:wave_equation} 
 \frac{n^2}{c^2} \frac{ \partial^2 \vec E }{ \partial t^2 } & = \Delta \vec E.
 \end{align}
 
-Since this equation is only valid for a monochromatic field with angular frequency $\omega$, the second time derivatives reduce to $\partial_t^2 \vec E = - \omega^2 \vec E$. The wave equation is therefore
+Since this equation is only valid for a monochromatic field with angular frequency $\omega$, the second time derivatives reduce to $\partial_t^2 \vec E = -  \omega^2 \vec E$. The wave equation is therefore
 
 \begin{align*}
     n^2 k^2 \vec{ E }(\omega) & + \Delta  \vec{ E } = 0 ,
 \end{align*}
 
-with the wave number $k = \omega/c$. From the linearity of the equation it is apparent that it also applies to all components of the electric field. Particularly for a linearly polarized electric field $\vec{E} = \vec{e} \psi $, where $\vec{e}$ is the direction of polarization and $\psi$ is the complex amplitude of the wave, we find the relation
+with the wave number $k = \omega/c$. From the linearity of the equation it is apparent that it also applies to all components of the electric field. Particularly for a linearly polarized electric field $\vec{E} = \vec{e} \, \psi $, where $\vec{e}$ is the direction of polarization and $\psi$ is the complex amplitude of the wave, we find the relation
 
 \begin{align} \label{eq:helmholtz}
     n^2 k^2 \psi & + \Delta \psi = 0,
@@ -34,7 +34,7 @@ which is known as the Helmholtz equation \cite{PriciplesOfOptics}.
 
 \subsubsection{Paraxial Approximation} \label{sec:paraxial_equation}
 
-We now look for solutions of the Helmholtz equation for linearly polarized waves whose direction of propagation is parallel or at a small angle to the $z$ axis. These solutions will be of the form $\psi_{\vec{x}} = u(x,y,z) \cdot \exp(i k z)$ with a complex envelope $u(x,y,z)$ that changes slowly in $z$ direction. We will therefore assume that
+We now look for solutions of the Helmholtz equation for linearly polarized waves whose direction of propagation is parallel or at a small angle to the $z$ axis. These solutions will be of the form $\psi = u(x,y,z) \cdot \exp(i k z)$ with a complex envelope $u(x,y,z)$ that changes slowly in $z$ direction. We will therefore assume that
 
 \begin{align*}
 \left| \frac{\partial^2 u}{\partial z^2} \right| \ll \left|  k \frac{\partial u}{\partial z}  \right|.
