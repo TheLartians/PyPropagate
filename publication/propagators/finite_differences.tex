@@ -96,7 +96,7 @@ where
 \partial_y^2 u_{i,j}^{k} := u_{i,j-1}^{k} - 2 u_{i,j}^{k} + u_{i,j+1}^{k},
 \end{align*}
 
-$F_{i,j}^{k} := F(x_i,y_j,z_k)$ and $z_{k+\frac{1}{2}} = \frac{z_{k} + z_{k+1}}{2}$. Similar as in the 1D case, reordering terms and introducing the auxiliary variables $r_x = \frac{A}{2} \frac{\Delta z}{ \Delta x^2}$, $\, r_y = \frac{A}{2} \frac{\Delta z}{ \Delta y^2}$ and $C_{i,j}^{k} = \frac{\Delta z}{4} F(x_i,y_j,z_{k})$ transforms step $\RN{1}.$ to
+$F_{i,j}^{k} := F(x_i,y_j,z_k)$ and $z_{k+\frac{1}{2}} = \frac{z_{k} + z_{k+1}}{2}$. Similar as in the 2D case, reordering terms and introducing the auxiliary variables $r_x = \frac{A}{2} \frac{\Delta z}{ \Delta x^2}$, $\, r_y = \frac{A}{2} \frac{\Delta z}{ \Delta y^2}$ and $C_{i,j}^{k} = \frac{\Delta z}{4} F(x_i,y_j,z_{k})$ transforms step $\RN{1}.$ to
 
 \begin{align} \label{eq:3D_finite_difference_equation}
 ( 1 - r_x \partial_x^2 - C_{i,j}^{k+\frac{1}{2}} ) u_{i}^{k+\frac{1}{2}} 
