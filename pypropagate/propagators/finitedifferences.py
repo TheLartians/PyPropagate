@@ -59,16 +59,18 @@ class FiniteDifferencesPropagator2D(Propagator):
         from _pypropagate import finite_difference_acF
 
         pde = settings.partial_differential_equation
-        sb= settings.simulation_box
+        sb = settings.simulation_box
 
-        ra = settings.get_as(pde.ra/2,complex)
-        rc = settings.get_as(pde.rc/2,complex)
+        self._2step = settings.get_numeric( pc.equal(pde.C, 0)  ) == pc.S(True)
+        sf = 0.5 if self._2step else 1
 
+        ra = settings.get_as(pde.ra*sf,complex)
+        rc = settings.get_as(pde.rc*sf,complex)
 
-        evaluators = self._get_evaluators([ (pde.rf/2),
-                                            (pde.rf/2).subs(sb.z,sb.z-sb.dz/2),
+        evaluators = self._get_evaluators([ (pde.rf*sf),
+                                            (pde.rf*sf).subs(sb.z,sb.z-sb.dz*sf),
                                             pde.u_boundary,
-                                            pde.u_boundary.subs(sb.z,sb.z-sb.dz/2) ],
+                                            pde.u_boundary.subs(sb.z,sb.z-sb.dz*sf) ],
                                           settings,return_type=pc.Types.Complex,compile_to_c = True,parallel=True)
 
         self.__rf = evaluators[:2]
@@ -117,8 +119,9 @@ class FiniteDifferencesPropagator2D(Propagator):
             self.__rf[half_step](*self._get_coordinates(),res=self._solver.rf.as_numpy())
         
     def _step(self):
-        self._update(True)
-        self._solver.step_1()
+        if self._2step:
+            self._update(True)
+            self._solver.step_1()
         self._update(False)
         self._solver.step_2()
 

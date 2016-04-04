@@ -137,7 +137,7 @@ def add_partial_differential_equation_symbols(settings):
     pde.create_function('F',sb.coordinates)
 
     pde.create_function('ra',sb.coordinates,pde.A*sb.dz/sb.dx**2,info="finite difference paramter")
-    pde.create_function('rc',sb.coordinates,pde.A*sb.dz/sb.dy**2,info="finite difference paramter")
+    pde.create_function('rc',sb.coordinates,pde.C*sb.dz/sb.dy**2,info="finite difference paramter")
     pde.create_function('rf',sb.coordinates,pde.F*sb.dz/2,info="finite difference paramter")
 
     pde.create_function('u',sb.coordinates,info='solution to the PDE')
@@ -337,8 +337,12 @@ def create_material(name):
 
 def create_frequency_settings(settings):
     import expresso.pycas as pc
+    import units
+    from .plot import expression_to_field
+    from .coordinate_ndarray import CoordinateNDArray
+    import numpy as np
 
-    freq_settings = presets.create_paraxial_settings()
+    freq_settings = create_paraxial_settings()
 
     sb = settings.simulation_box
     we = settings.wave_equation
@@ -381,13 +385,13 @@ def create_frequency_settings(settings):
 
     freq_settings.unitless.create_key('s',units.s,settings.get_as( 2/(omegamax - omegamin)/units.s , float ) )
 
-    u0 = expression_to_field(settings.wave_equation.u0.subs([(s.y,0),(s.z,s.zmin)]), settings )
+    u0 = expression_to_field(settings.wave_equation.u0.subs([(sb.y,0),(sb.z,sb.zmin)]), settings )
 
     u0hat = CoordinateNDArray( np.fft.fftshift( np.fft.fft(u0.data,axis=1) , axes=(1,) ) ,
                                [(xmin,xmax),( omegamin, omegamax )] ,
-                               [s.x,s.omega])
+                               [sb.x,omega])
 
-    presets.set_initial(freq_settings,u0hat)
+    set_initial(freq_settings,u0hat)
     freq_settings.partial_differential_equation.u_boundary = 0
 
     return freq_settings
