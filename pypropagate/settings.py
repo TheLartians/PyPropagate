@@ -182,6 +182,7 @@ class Settings(CategorizedDictionary):
         evaluator = self._get_evaluator(numeric, unitless)
 
         res = evaluator(expr,cache = self._eval_cache)
+
         if evaluate == True:
             res = res.evaluate(cache = self.get_cache())
         return res

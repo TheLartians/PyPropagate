@@ -28,8 +28,6 @@ class Solver(object):
                                 Voxel counts
     _xmin,_xmax,_tmin,_tmax:    Symbols
                                 Simulation Boundaries
-    _downscale:                 int [optional, defaults to 1]
-                                How much the result should be downscaled
     _transform:                 callable object [optional, defaults to lambda x:x]
                                 Function that converts symbolic expression to numeric values
     dtype:                      numpy dtype
@@ -74,13 +72,7 @@ class Solver(object):
             return self._transform
         except AttributeError:
             return lambda x:x
-        
-    def _get_downscale(self):
-        try:
-            return self._downscale
-        except AttributeError:
-            return 1
-        
+
     def _get_boundary(self,axis):
         if axis == 0:
             return (self._tmin,self._tmax)
@@ -103,7 +95,7 @@ class Solver(object):
             return self._z
         raise IndexError('axis out of range, define custom _get_axis_symbol')
         
-    def _get_box_size(self,axis,downscaled=True):
+    def _get_box_size(self,axis):
         if axis == 0:
             return self._nt
         if axis == 1:
@@ -140,8 +132,6 @@ class Solver(object):
     
     def get_field(self):
         res = self._get_field()
-        #if self._get_downscale() != 1:
-        #    res = rebin(res,self._get_nd_box_size()[1:])
         return CoordinateNDArray(res,self._get_nd_boundary()[1:],self._get_nd_axis_symbols()[1:],self._get_transform())
 
     def set_field(self,field):
@@ -149,7 +139,7 @@ class Solver(object):
         if isinstance(field,CoordinateNDArray):
             field = field.data
         
-        for x,xi,xj in zip(self._get_nd_axis_symbols()[1:],self._get_nd_box_size(downscaled=False)[1:],field.shape):
+        for x,xi,xj in zip(self._get_nd_axis_symbols()[1:],self._get_nd_box_size()[1:],field.shape):
             if xi != xj:
                 raise ValueError('Field size in %s direction (%s) doesn\'t match size defined in settings: %s' % (x,xj,xi))
         self._set_field(field)
@@ -217,7 +207,7 @@ class Solver(object):
 
         sliced_indices = [(s.indices(b) if isinstance(s,slice) else (s,s+1,1)) for b,s in zip(box_size,sliced)]
 
-        box_size = [ (s[1] - s[0])/s[2]+1 if s[2]!=1 else s[1] - s[0] for s in sliced_indices]
+        box_size = [ (s[1] - s[0])/s[2] if s[2]!=1 else s[1] - s[0] for s in sliced_indices]
         box_size = [b for b in box_size if b != 1]
 
         field = np.zeros(box_size[::-1] , dtype = self.dtype).transpose()

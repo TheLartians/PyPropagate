@@ -179,9 +179,8 @@ class Category(object):
             if key == comp:
                 self.remove_name(name) 
                 return
-        import warnings
-        warnings.warn("attempting to remove undefined key %s" % name, UserWarning)
-    
+        raise ValueError("attempting to remove undefined key %s" % key)
+
     def remove_name(self,name):
         """Removes a name from the category. The associated key still remains valid."""
         
@@ -238,14 +237,14 @@ class Category(object):
             keys = self.keys()
         return self._parent.dictionary(keys)
     
-    def export(self,dictionary):
+    def export(self,dictionary,**kwargs):
         """Copies name/key pairs into a target dictionary. Can be used to load variables into the local namespace by passing the globals() dictionary. Note that exisiting variables will be overwritten."""
         if isinstance(dictionary,Category):
             for name in self.names():
                 info = self.info(name)
-                dictionary.add_key(name,self.get_key(name),info=info)
+                dictionary.add_key(name,self.get_key(name),info=info,**kwargs)
         else:
-            dictionary.update(self._keys)
+            dictionary.update(self._keys,**kwargs)
 
 
 class CategorizedDictionary(Category):

@@ -78,7 +78,7 @@ class Propagator(Solver):
     def _get_initial(self):
         return self.__initial
 
-    def _get_evaluators(self,expressions,settings,compile_to_c = None,**kwargs):
+    def _get_evaluators(self,expressions,settings,compile_to_c = None,args = None,**kwargs):
         import expresso.pycas as pc
 
         if not isinstance(expressions,(list,tuple)):
@@ -88,10 +88,12 @@ class Propagator(Solver):
             return_single = False
 
         sb = settings.simulation_box
-        args = (sb.xi,sb.yi,sb.zi) if self.ndim == 2 else (sb.xi,sb.zi)
+
+        if args is None:
+            args = (sb.xi,sb.yi,sb.zi) if self.ndim == 2 else (sb.xi,sb.zi)
 
         if self.ndim == 1:
-            expressions = [settings.get_optimized(expr.subs(sb.y,sb.fy)) for expr in expressions]
+            expressions = [settings.get_optimized(expr.subs(sb.y,0)) for expr in expressions]
         else:
             expressions = [settings.get_optimized(expr) for expr in expressions]
 

@@ -106,13 +106,18 @@ def expression_to_field(expression,settings):
     import numpy as np
 
     s = settings.simulation_box
+
     expr = settings.get_optimized(expression)
     sym = expresso.pycas.get_symbols_in(expr)
 
     from .coordinate_ndarray import CoordinateNDArray
 
-    if sym - {s.xi,s.yi,s.zi} != set():
-        raise ValueError('cannot create field: contains non coordinate symbols %s' % ','.join([str(a) for a in sym - {s.x,s.y,s.z}]))
+    namedict = {key:name for name,key in zip(s.names(),s.keys())}
+    def get_axis_name(symbol):
+        return namedict[symbol][:-1]
+
+    #if sym - {s.xi,s.yi,s.zi} != set():
+    #    raise ValueError('cannot create field: contains non coordinate symbols %s' % ','.join([str(a) for a in sym - {s.x,s.y,s.z}]))
     if len(sym) == 0:
         c = complex(expr)
         if c.imag == 0:
@@ -121,8 +126,9 @@ def expression_to_field(expression,settings):
         #raise ValueError('cannot create field: expression contains no symbols')
     elif len(sym) == 1:
         xi = sym.pop()
+        xname = get_axis_name(xi)
         x = getattr(s,xi.name[0])
-        keys = tuple([getattr(s,p % x.name) for p in ['%smin','%smax','N%s']])
+        keys = tuple([getattr(s,p % xname) for p in ['%smin','%smax','N%s']])
         xmin,xmax,nx = settings.get_numeric( keys )
         nx = settings.get_as( nx , int )
         npx = np.arange(nx)
@@ -130,8 +136,16 @@ def expression_to_field(expression,settings):
         res =  CoordinateNDArray(data,[(xmin,xmax)],(x,),settings.get_numeric_transform())
     elif len(sym) == 2:
         yi,xi = sorted([sym.pop(),sym.pop()],key = lambda x:x.name)[::-1]
-        y,x = getattr(s,yi.name[0]),getattr(s,xi.name[0])
-        keys = tuple([getattr(s,p % i) for i in (x,y) for p in ['%smin','%smax','N%s']])
+
+        xname = get_axis_name(xi)
+        yname = get_axis_name(yi)
+
+        if xname == 't':
+            xi,xname,yi,yname = yi,yname,xi,xname
+
+        y,x = getattr(s,yname),getattr(s,xname)
+
+        keys = tuple([getattr(s,p % i) for i in (xname,yname) for p in ['%smin','%smax','N%s']])
         xmin,xmax,nx,ymin,ymax,ny = settings.get_numeric( keys )
         nx,ny = settings.get_as( (nx,ny) , int )
         npy,npx = np.meshgrid(np.arange(ny),np.arange(nx))
