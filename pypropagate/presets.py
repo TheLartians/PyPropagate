@@ -325,9 +325,19 @@ def get_refraction_indices(material,min_energy,max_energy,steps):
 
     res = br.submit().read()
 
+    def is_number(s):
+        try:
+            float(s)
+            return True
+        except ValueError:
+            return False
+
+    def get_numbers(line):
+        return [float(v) for v in line.split(' ') if is_number(v)]
+
     try:
-        betadelta = [line.split('  ')[2:] for line in res.split('\n')[2:-1]]
-        values = [1-float(v[0])+1j*float(v[1]) for v in betadelta]
+        betadelta = [get_numbers(line) for line in res.split('\n') if len(get_numbers(line)) == 3]
+        values = [1-float(v[1])+1j*float(v[2]) for v in betadelta]
     except:
         betadelta = []
 
@@ -340,11 +350,11 @@ def create_material(name,settings):
 
     import expresso.pycas as pc
 
+    nname = 'n_%s' % name
+
     if not settings.has_category('refractive_indices'):
         settings.create_category('refractive_indices')
     r = settings.refractive_indices
-
-    nname = 'n_%s' % name
 
     omega = settings.wave_equation.omega
 
@@ -354,22 +364,29 @@ def create_material(name,settings):
         import numpy as np
 
         sb = settings.simulation_box
+        r = settings.refractive_indices
+        omega = settings.wave_equation.omega
 
-        if hasattr(sb,'Nt'):
+        if hasattr(sb,'t'):
             N = settings.get_as(sb.Nt,int)
+            omega_0 = settings.get_numeric(omega)
+
+            omegamin = -2*pc.pi*N/sb.st + omega_0
+            omegamax =  2*pc.pi*N/sb.st + omega_0
+            domega  = (omegamax - omegamin)/(N-1)
+            omega_i = (omega - omegamin )/domega
+
+            EminExpr = abs(omegamin * units.hbar / units.eV)
+            EmaxExpr = abs(omegamax * units.hbar / units.eV)
         else:
             N = 3
-
-        omega_0 = settings.get_numeric(omega)
-
-        omegamin = -2*pc.pi*sb.Nt/sb.st + omega_0
-        omegamax =  2*pc.pi*sb.Nt/sb.st + omega_0
-        domega  = (omegamax - omegamin)/(N-1)
-        omega_i = (omega - omegamin )/domega
-
+            E = units.hbar * omega / units.eV
+            EmaxExpr = E + 1
+            EminExpr = E - 1
+            omega_i = 1
         try:
-            Emin = settings.get_as(abs(omegamin * units.hbar / units.eV),float)
-            Emax = settings.get_as(abs(omegamax * units.hbar / units.eV),float)
+            Emin = settings.get_as(EminExpr,float)
+            Emax = settings.get_as(EmaxExpr,float)
         except:
             return
 
@@ -388,7 +405,7 @@ def create_material(name,settings):
         setattr(r,nname,narr(omega_i))
 
 
-    settings.initializers[nname] = init_material
+    settings.initializers["init_" + nname] = init_material
 
     if r.has_name(nname):
         return getattr(r,nname)
@@ -400,8 +417,6 @@ def create_2D_frequency_settings(settings):
     from .plot import expression_to_field
     from .coordinate_ndarray import CoordinateNDArray
     import numpy as np
-
-    # TODO: Do not substitute omega -> omega0!
 
     freq_settings = create_paraxial_settings()
 
@@ -447,7 +462,7 @@ def create_2D_frequency_settings(settings):
     freq_settings.simulation_box.Nx = settings.get_as(sb.Nx,int)
 
     omegamin = settings.get_numeric(-2*pc.pi*sb.Nt/sb.st)
-    omegamax = settings.get_numeric(2*pc.pi*sb.Nt/sb.st)
+    omegamax = settings.get_numeric( 2*pc.pi*sb.Nt/sb.st)
 
     freq_settings.simulation_box.ymin = omegamin
     freq_settings.simulation_box.ymax = omegamax

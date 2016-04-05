@@ -61,7 +61,7 @@ class FiniteDifferencesPropagator2D(Propagator):
         pde = settings.partial_differential_equation
         sb = settings.simulation_box
 
-        self._2step = settings.get_numeric( pc.equal(pde.C, 0)  ) == pc.S(True)
+        self._2step = settings.get_numeric( pc.equal(pde.C, 0)  ) != pc.S(True)
         sf = 0.5 if self._2step else 1
 
         ra = settings.get_as(pde.ra*sf,complex)

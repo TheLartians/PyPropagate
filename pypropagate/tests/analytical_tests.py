@@ -206,7 +206,7 @@ class TestWaveguide(TestCase):
         wg.n_1 = 1
 
         wg.create_symbol('n_2')
-        wg.n_2 = 1-6.006E-06+6.32E-07j
+        wg.n_2 = presets.create_material('Ge',settings)
 
         wg.create_symbol('r')
         wg.r = 24*units.nm
@@ -295,10 +295,10 @@ class TestGaussian(TestCase):
         settings.wave_equation.set_energy(12*units.keV)
         settings.simulation_box.set((3*units.um,1.5*units.um,20*units.mm),(500,500,500))
 
-        fieldan = expression_to_field(g.u.subs(s.y,s.fy),settings)
+        fieldan = expression_to_field(g.u.subs(s.y,0),settings)
 
         propagator = propagators.FiniteDifferencesPropagator2D(settings)
-        fieldfd = propagator.run_slice()[:,s.fy]
+        fieldfd = propagator.run_slice()[:,0]
 
         self.assertLess(abs(fieldan - fieldfd).max(),0.01)
 
@@ -341,10 +341,10 @@ class TestGaussian(TestCase):
         settings.wave_equation.set_energy(12*units.keV)
         settings.simulation_box.set((2*units.um,1*units.um,20*units.mm),(500,100,1000))
 
-        fieldan = expression_to_field(g.u.subs(s.y,s.fy),settings)
+        fieldan = expression_to_field(g.u.subs(s.y,0),settings)
 
         propagator = propagators.FiniteDifferencesPropagator2D(settings)
-        fieldfd = propagator.run_slice()[:,s.fy]
+        fieldfd = propagator.run_slice()[:,0]
 
         self.assertLess(abs(fieldan - fieldfd).max(),0.01)
 
