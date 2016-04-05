@@ -303,10 +303,15 @@ def set_initial(settings,initial_array):
 def get_refraction_indices(material,min_energy,max_energy,steps):
     from mechanize import Browser
 
-    br = Browser()
+    max_steps = 499
 
-    br.set_handle_robots( False )
-    br.addheaders = [('User-agent', 'Firefox')]
+    if steps > max_steps:
+        dn = (max_energy - min_energy)/(steps - 1)
+        max = min_energy + max_steps * dn
+        return get_refraction_indices(material,min_energy,max,max_steps) + \
+               get_refraction_indices(material,min_energy+dn,max_energy,steps-max_steps)
+
+    br = Browser()
 
     br.open( "http://henke.lbl.gov/optical_constants/getdb.html" )
 
@@ -318,29 +323,85 @@ def get_refraction_indices(material,min_energy,max_energy,steps):
     br.form[ 'Npts' ] = str(steps-1)
     br.form[ 'Output' ] = ['Text File']
 
-    # Get the search results
     res = br.submit().read()
 
-    betadelta = [line.split('  ')[2:] for line in res.split('\n')[2:-1]]
-    values = [float(v[0])+1j*float(v[1]) for v in betadelta]
+    try:
+        betadelta = [line.split('  ')[2:] for line in res.split('\n')[2:-1]]
+        values = [1-float(v[0])+1j*float(v[1]) for v in betadelta]
+    except:
+        betadelta = []
+
+    if len(betadelta) != steps:
+        raise RuntimeError('error retrieving refractive index for %s\nserver response: %s' % (material,res))
 
     return values
 
+def create_material(name,settings):
 
-def create_material(name):
+    import expresso.pycas as pc
+
     if not settings.has_category('refractive_indices'):
         settings.create_category('refractive_indices')
-    omega = settings.time.omega
     r = settings.refractive_indices
-    n = r.create_function('n_%s' % name,(omega))
+
+    nname = 'n_%s' % name
+
+    omega = settings.wave_equation.omega
+
+    def init_material(settings):
+
+        import units
+        import numpy as np
+
+        sb = settings.simulation_box
+
+        if hasattr(sb,'Nt'):
+            N = settings.get_as(sb.Nt,int)
+        else:
+            N = 3
+
+        omega_0 = settings.get_numeric(omega)
+
+        omegamin = -2*pc.pi*sb.Nt/sb.st + omega_0
+        omegamax =  2*pc.pi*sb.Nt/sb.st + omega_0
+        domega  = (omegamax - omegamin)/(N-1)
+        omega_i = (omega - omegamin )/domega
+
+        try:
+            Emin = settings.get_as(abs(omegamin * units.hbar / units.eV),float)
+            Emax = settings.get_as(abs(omegamax * units.hbar / units.eV),float)
+        except:
+            return
+
+        if Emax < Emin:
+            Emax,Emin = Emin,Emax
+
+        key = (N,Emin,Emax)
+        if not hasattr(r,'_cache'):
+            r._set_attribute('_cache',{})
+        else:
+            if nname in r._cache and r._cache[nname] == key:
+                return
+        r._cache[nname] = key
+
+        narr = pc.array(nname,np.array(get_refraction_indices(name,Emax,Emin,N)))
+        setattr(r,nname,narr(omega_i))
 
 
-def create_frequency_settings(settings):
+    settings.initializers[nname] = init_material
+
+    if r.has_name(nname):
+        return getattr(r,nname)
+    return r.create_key(nname,pc.Function(nname)(omega,))
+
+def create_2D_frequency_settings(settings):
     import expresso.pycas as pc
     import units
     from .plot import expression_to_field
     from .coordinate_ndarray import CoordinateNDArray
     import numpy as np
+
+    # TODO: Do not substitute omega -> omega0!
 
     freq_settings = create_paraxial_settings()
 
@@ -350,6 +411,7 @@ def create_frequency_settings(settings):
     pde = freq_settings.partial_differential_equation
 
     omega0 = settings.get_numeric(we.omega)
+    k0 = settings.get_numeric(we.k)
 
     freq_settings.simulation_box.unlock()
     freq_settings.simulation_box.remove_name('y')
@@ -358,12 +420,24 @@ def create_frequency_settings(settings):
     fsb = freq_settings.simulation_box
     freq_settings.simulation_box.y = fsb.ymin + fsb.yi * fsb.dy
 
-    n = settings.get_numeric(we.n.subs(sb.y,0))
-    k0 = settings.get_numeric(we.k)
+    omega_def = settings.get_definition(we.omega)
+    reason = False
+    if we.omega in settings.locked_keys:
+        reason = settings.locked_keys[we.omega]
+        we.unlock('omega')
+    we.omega = None
+
+    n = settings.get_numeric(we.n.subs(sb.y,0)).subs(omega,abs(omega - omega0))
+    parameter = freq_settings.create_category('paramter')
+    parameter.create_function('n',(omega,),n)
+
+    we.omega = omega_def
+    if reason is not False:
+        we.lock('omega',reason)
 
     pde.A = 1j/(2*k0)
     pde.C = 0
-    pde.F = 1j/(2*k0) * ((n.subs(omega,omega - omega0))**2*(omega - omega0)**2/units.c**2 - k0**2)
+    pde.F = 1j/(2*k0) * (n**2*(omega - omega0)**2/units.c**2 - k0**2)
 
     xmin = settings.get_numeric(sb.xmin)
     xmax = settings.get_numeric(sb.xmax)
