@@ -4,6 +4,8 @@ def get_metric_prefix(numbers):
                   
     if not isinstance(numbers,list):
         numbers = list(numbers)
+    if len(numbers) >= 2:
+        numbers = [numbers[1] - numbers[0]]
         
     def get_exponent(number):
         return int(np.log10(np.abs(number))) if number != 0 else 0
@@ -14,6 +16,7 @@ def get_metric_prefix(numbers):
     largest = max(exponents,key=lambda x:abs(x))
     
     closest = min(metric_prefixes, key=lambda x:abs(x[1]+1-largest))
+
     return (closest[2],10**closest[1])
 
 def get_unitless_bounds(array):

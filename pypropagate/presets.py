@@ -174,9 +174,9 @@ def add_wave_equation_symbols(settings):
     n = we.create_key("n",Function("n")(*s.coordinates))
 
     omega = we.create_key('omega',Symbol('omega'),info='angular wave frequency')
-    wavelength = we.create_key('wavelength',Function("lambda")(omega),settings.numerics.c/(2*pi*omega),info='vacuum wavelength')
-    k = we.create_key("k",Function("k")(omega),omega/settings.numerics.c,info='wave number')
-    E = we.create_key("E",Function("E")(omega),omega * settings.numerics.hbar,info='photon energy')
+    wavelength = we.create_key('wavelength',Symbol("lambda"),settings.numerics.c*2*pi/omega,info='vacuum wavelength')
+    k = we.create_key("k",Symbol("k"),omega/settings.numerics.c,info='wave number')
+    E = we.create_key("E",Symbol("E"),omega * settings.numerics.hbar,info='photon energy')
 
     we.lock('k','defined by omega')
     we.lock('E','defined by omega')
