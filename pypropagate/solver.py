@@ -177,6 +177,7 @@ class Solver(object):
         return slice_agent
 
     def run(self,callback = None,display_progress=True, autohide_progress=False):
+        from .progressbar import ProgressBar
 
         run_steps = range(1,self._get_box_size(0))
         if display_progress == True:

@@ -227,7 +227,7 @@ def set_plane_wave_initial_conditions(settings):
     pe = settings.partial_differential_equation
 
     pe.u0 = 1
-    pe.u_boundary = pe.u0.subs(s.z,0) * exp(pe.F.subs(s.z,0)*s.z)
+    pe.u_boundary = pe.u0.subs(s.z,s.zmin) * exp(pe.F.subs(s.z,s.zmin)*s.z)
 
 def create_next_settings(old_settings):
     settings = old_settings.copy(copy_initializers = False,copy_updaters = False)
@@ -404,12 +404,13 @@ def create_material(name,settings):
         narr = pc.array(nname,np.array(get_refraction_indices(name,Emax,Emin,N)))
         setattr(r,nname,narr(omega_i))
 
-
     settings.initializers["init_" + nname] = init_material
 
     if r.has_name(nname):
         return getattr(r,nname)
-    return r.create_key(nname,pc.Function(nname)(omega,))
+    n = r.create_key(nname,pc.Symbol(nname))
+    settings.unitless.add_key(nname,n)
+    return n
 
 def create_2D_frequency_settings(settings):
     import expresso.pycas as pc
@@ -485,3 +486,16 @@ def create_2D_frequency_settings(settings):
 
     return freq_settings
 
+def inverse_fourier_transform(field):
+    import numpy as np
+    import expresso.pycas as pc
+    from .coordinate_ndarray import CoordinateNDArray
+
+    udata = np.fft.ifftshift( np.fft.ifft(field.data,axis=1) , axes=(1,))
+
+    tbounds = field.bounds
+    tbounds[1] = (0,1/tbounds[1][1] * 2*pc.pi*udata.shape[1])
+    taxis = field.axis
+    taxis[1] = pc.Symbol('t')
+
+    return CoordinateNDArray(udata,tbounds,taxis,field.evaluate)

@@ -152,7 +152,7 @@ def expression_to_field(expression,settings):
         data =  expresso.pycas.numpyfy(expr,parallel=True)(**{xi.name:npx,yi.name:npy})
         res =  CoordinateNDArray(data,[(xmin,xmax),(ymin,ymax)],(x,y),settings.get_numeric_transform())
     else:
-        raise ValueError('cannot create field: three dimensional field creation not implemented')
+        raise ValueError('cannot create field: expression may only contain one or two free symbols')
 
     return res
 
