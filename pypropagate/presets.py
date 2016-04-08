@@ -28,6 +28,9 @@ def add_time_symbols(settings):
     sb.tmin = 0
     sb.export(settings.symbols,warn=False)
 
+    import units
+    settings.unitless.create_key(None,units.s,10**10)
+
     if settings.has_category('wave_equation'):
         settings.wave_equation.create_function('u0',(sb.x,sb.y,sb.z,sb.t))
         settings.partial_differential_equation.u0 = settings.wave_equation.u0.subs(sb.t,0)
@@ -317,9 +320,10 @@ def get_refraction_indices(material,min_energy,max_energy,steps):
 
     if steps > max_steps:
         dn = (max_energy - min_energy)/(steps - 1)
-        max = min_energy + max_steps * dn
-        return get_refraction_indices(material,min_energy,max,max_steps) + \
-               get_refraction_indices(material,min_energy+dn,max_energy,steps-max_steps)
+        current_max = min_energy + max_steps * dn
+        missing = max(steps-max_steps,3)
+        return get_refraction_indices(material,min_energy,current_max ,max_steps) + \
+               get_refraction_indices(material,current_max + dn,current_max + dn * missing,missing)
 
     br = Browser()
 
@@ -352,7 +356,8 @@ def get_refraction_indices(material,min_energy,max_energy,steps):
         betadelta = []
 
     if len(betadelta) != steps:
-        raise RuntimeError('error retrieving refractive index for %s\nserver response: %s' % (material,res))
+        raise RuntimeError('error retrieving refractive index for %s (E from %s to %s in %s steps)\nserver response: %s' % (
+            material,min_energy,max_energy,steps,res))
 
     return values
 
@@ -365,8 +370,6 @@ def create_material(name,settings):
     if not settings.has_category('refractive_indices'):
         settings.create_category('refractive_indices')
     r = settings.refractive_indices
-
-    omega = settings.wave_equation.omega
 
     def init_material(settings):
 
@@ -416,10 +419,11 @@ def create_material(name,settings):
         else:
             if nname in r._cache and r._cache[nname] == key:
                 return
-        r._cache[nname] = key
 
         narr = pc.array(nname,np.array(get_refraction_indices(name,Emax,Emin,N)))
         setattr(r,nname,narr(omega_i))
+
+        r._cache[nname] = key
 
     settings.initializers["init_" + nname] = init_material
 
@@ -429,21 +433,24 @@ def create_material(name,settings):
     settings.numerics.add_key(nname,n)
     return n
 
-def create_2D_frequency_settings(settings):
+def create_2D_frequency_settings_from(settings):
     import expresso.pycas as pc
     import units
     from .plot import expression_to_field
     from .coordinate_ndarray import CoordinateNDArray
     import numpy as np
 
-    freq_settings = create_paraxial_settings()
+    settings.initialize()
+    settings = settings.copy()
 
     sb = settings.simulation_box
     we = settings.wave_equation
-
-    pde = freq_settings.partial_differential_equation
-
     omega0 = settings.get_numeric(we.omega)
+    we.unlock('omega')
+    we.omega = None
+
+    freq_settings = create_paraxial_settings()
+    pde = freq_settings.partial_differential_equation
 
     freq_settings.simulation_box.unlock()
     freq_settings.simulation_box.remove_name('y')
@@ -452,22 +459,12 @@ def create_2D_frequency_settings(settings):
     fsb = freq_settings.simulation_box
     freq_settings.simulation_box.y = fsb.ymin + fsb.yi * fsb.dy
 
-    omega_def = settings.get_definition(we.omega)
-    reason = False
-    if we.omega in settings.locked_keys:
-        reason = settings.locked_keys[we.omega]
-        we.unlock('omega')
-    we.omega = None
-
     n = settings.get_numeric(we.n.subs(sb.y,0)).subs(omega,abs(omega - omega0))
-    p = freq_settings.create_category('paramters')
-    p.create_function('n',(omega,),n)
+
+    p = freq_settings.create_category('paramters',short_name="p")
+    p.create_function('n',(sb.x,sb.y,sb.z,omega),n)
     p.create_symbol('k',(omega - omega0)/units.c)
     p.create_symbol('k_0',omega0/units.c)
-
-    we.omega = omega_def
-    if reason is not False:
-        we.lock('omega',reason)
 
     pde.A = 1j/(2*p.k_0)
     pde.C = 0
@@ -511,9 +508,9 @@ def inverse_fourier_transform(field):
 
     udata = np.fft.ifftshift( np.fft.ifft(field.data,axis=1) , axes=(1,))
 
-    tbounds = field.bounds
-    tbounds[1] = (0,1/tbounds[1][1] * 2*pc.pi*udata.shape[1])
-    taxis = field.axis
+    tbounds = [[b1,b2] for b1,b2 in field.bounds]
+    tbounds[1] = (0,(1/tbounds[1][1] * 2*pc.pi*udata.shape[1]).evaluate())
+    taxis = [a for a in field.axis]
     taxis[1] = pc.Symbol('t')
 
     return CoordinateNDArray(udata,tbounds,taxis,field.evaluate)

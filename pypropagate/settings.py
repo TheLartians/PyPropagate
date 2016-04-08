@@ -139,7 +139,6 @@ class Settings(CategorizedDictionary):
         except:
             pass
 
-
         from expresso.pycas import Expression,RewriteEvaluator,ReplaceEvaluator,MultiEvaluator,Wildcard,S,Tuple
 
         replacement_evaluator = ReplaceEvaluator(recursive=True)
@@ -202,6 +201,7 @@ class Settings(CategorizedDictionary):
         return optimize_for_compilation(self.get_unitless(expr,**kwargs),cache = self.get_cache())
 
     def get_definition(self,expr):
+        self.initialize()
         return self.data[expr]
 
     def get_as(self,expr,type):
