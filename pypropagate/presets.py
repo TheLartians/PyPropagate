@@ -221,7 +221,7 @@ def create_paraxial_wave_equation_settings():
 
     return settings
 
-def set_1D_boundary_conditions(settings):
+def set_1D_boundary_condition(settings):
     from expresso.pycas import exp
 
     s = settings.simulation_box
@@ -238,7 +238,7 @@ def set_plane_wave_initial_conditions(settings):
     pe = settings.partial_differential_equation
 
     pe.u0 = 1
-    set_1D_boundary_conditions(settings)
+    set_1D_boundary_condition(settings)
 
 
 
