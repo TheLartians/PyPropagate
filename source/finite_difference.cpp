@@ -9,7 +9,7 @@
 
 #include "finite_difference.h"
 #include <lars/parallel.h>
-
+#include <iostream>
 namespace lars {
   
   //
@@ -61,6 +61,12 @@ namespace lars {
   
   using namespace finite_differences;
   
+  
+  struct trig_parallel_data{
+    finite_differences::array_1D B,R,tmp;
+    trig_parallel_data(unsigned s):B(s),R(s),tmp(s){ }
+  };
+  
   template<typename field> void acF_step(const complex &ra, const complex &rc, const field &rf, const field &rfp, field &u, const field &up){
     
     unsigned nx = u.size()-2;
@@ -68,13 +74,7 @@ namespace lars {
     
     finite_differences::pseudo_field A(-rc);
     
-    struct parallel_data{
-      finite_differences::array_1D B,R,tmp;
-      parallel_data(unsigned s):B(s),R(s),tmp(s){}
-    };
-    
-    unique_parallel_for(1, nx+1, [&](unsigned i,parallel_data &d){
-      
+    unique_parallel_for(1, nx+1, [&](unsigned i,trig_parallel_data &d){
       for (unsigned j=1; j<=ny; ++j) {
         d.B[j-1] = 1.+rc*2.-rf(i,j);
         d.R[j-1] = (up(1.+i,j)+up(i-1.,j))*ra+up(i,j)*(1.+rfp(i,j)-ra*2.);
@@ -85,7 +85,7 @@ namespace lars {
       
       auto us = u[i].slice(static_index_tuple<1>(), make_dynamic_index_tuple(ny));
       algebra::tridiagonal(A,d.B,A,d.R,us,d.tmp);
-    },parallel_data(ny));
+    },trig_parallel_data(ny));
 
   }
   
@@ -102,7 +102,41 @@ namespace lars {
     auto u_transposed = u.transpose();
     acF_step(rc,ra,rf.transpose(),rfp.transpose(),u_transposed,up.transpose());
   }
+  
+  void finite_difference_a0F::resize(size_t Nx,size_t Ny){
+    rf.resize(Nx,Ny);
+    rfp.resize(Nx,Ny);
+    u.resize(Nx,Ny);
+    up.resize(Nx,Ny);
+  }
+  
+  void finite_difference_a0F::update(){
+    std::swap(rf, rfp);
+    std::swap(u, up);
+  }
+
+  void finite_difference_a0F::step(){
+    unsigned nx = u.size()-2;
+    unsigned ny = u[0].size()-2;
     
+    finite_differences::pseudo_field A(-ra/2.);
+    
+    unique_parallel_for(1, ny+1, [&](unsigned j,trig_parallel_data &d){
+      for (unsigned i=1; i<=nx; ++i) {
+        d.B[i-1] = 1.+ra-rf(i,j);
+        d.R[i-1] = (up(1+i,j)+up(i-1,j))*ra/2.+up(i,j)*(1.+rfp(i,j)-ra);
+      }
+    
+      d.R[0]    += u(0,j)    * ra/2.;
+      d.R[nx-1] += u(nx+1,j) * ra/2.;
+      
+      auto us = u.transpose()[j].slice(static_index_tuple<1>(),make_dynamic_index_tuple(nx));
+      algebra::tridiagonal(A,d.B,A,d.R,us,d.tmp);
+    },trig_parallel_data(nx));
+
+  }
+
+  
 }
 
 

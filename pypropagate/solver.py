@@ -211,11 +211,14 @@ class Solver(object):
         box_size = [ (s[1] - s[0])/s[2] if s[2]!=1 else s[1] - s[0] for s in sliced_indices]
         box_size = [b for b in box_size if b != 1]
 
-        field = np.zeros(box_size[::-1] , dtype = self.dtype).transpose()
-
         sliced = tuple([slice(*s) if s[0]+1 != s[1] else s[0] for s in sliced_indices[1:]])
         def get_field():
             return self._get_field().__getitem__(sliced)
+
+
+        test = get_field()
+        for i in range(len(test.shape)):
+            box_size[i+1] = get_field().shape[i]
 
         i = 0
 
@@ -223,6 +226,8 @@ class Solver(object):
 
         for i in range(start):
             self.step(callback=callback)
+
+        field = np.zeros(box_size[::-1] , dtype = self.dtype).transpose()
 
         field[0] = get_field()
 

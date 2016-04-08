@@ -56,7 +56,7 @@ class FiniteDifferencesPropagator2D(Propagator):
     
     def __init__(self,settings):        
         super(FiniteDifferencesPropagator2D,self).__init__(settings)
-        from _pypropagate import finite_difference_acF
+        from _pypropagate import finite_difference_acF,finite_difference_a0F
 
         pde = settings.partial_differential_equation
         sb = settings.simulation_box
@@ -76,7 +76,7 @@ class FiniteDifferencesPropagator2D(Propagator):
         self.__rf = evaluators[:2]
         self.__u_boundary = evaluators[2:]
 
-        self._solver = finite_difference_acF()
+        self._solver = finite_difference_acF() if self._2step else finite_difference_a0F()
         self._solver.resize(self._nx,self._ny)
 
         self._solver.ra = ra
@@ -122,8 +122,11 @@ class FiniteDifferencesPropagator2D(Propagator):
         if self._2step:
             self._update(True)
             self._solver.step_1()
-        self._update(False)
-        self._solver.step_2()
+            self._update(False)
+            self._solver.step_2()
+        else:
+            self._update(False)
+            self._solver.step()
 
     def _get_field(self):
         return self._solver.u.as_numpy()

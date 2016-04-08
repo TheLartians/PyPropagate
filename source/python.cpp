@@ -72,5 +72,14 @@ BOOST_PYTHON_MODULE(_pypropagate){
   .def("update", &finite_difference_acF::update)
   .def("resize", &finite_difference_acF::resize)
   ;
+  
+  class_<finite_difference_a0F>("finite_difference_a0F")
+  .def_readwrite("ra",&finite_difference_a0F::ra)
+  .def_readwrite("rf",&finite_difference_a0F::rf)
+  .def_readwrite("u",&finite_difference_a0F::u)
+  .def("step", &finite_difference_a0F::step)
+  .def("update", &finite_difference_a0F::update)
+  .def("resize", &finite_difference_a0F::resize)
+  ;
 
 }

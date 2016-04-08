@@ -329,7 +329,10 @@ class CategorizedDictionary(Category):
             if self.data[key] == None:
                 res.add(key)
         return res
-    
+
+    def is_defined(self,key):
+        return self.data[key] != None
+
     def defined_keys(self):
         """Get all keys with value not equal to None"""
         return set(self.get_all_keys()) - self.get_undefined_keys()

@@ -218,16 +218,26 @@ def create_paraxial_wave_equation_settings():
 
     return settings
 
-def set_plane_wave_initial_conditions(settings):
-    """Sets the intial conditions to a plane wave with intensity 1.
-    The boundary are set to the index of refraction at z=0."""
+def set_1D_boundary_conditions(settings):
     from expresso.pycas import exp
 
     s = settings.simulation_box
     pe = settings.partial_differential_equation
 
-    pe.u0 = 1
     pe.u_boundary = pe.u0.subs(s.z,s.zmin) * exp(pe.F.subs(s.z,s.zmin)*s.z)
+
+
+def set_plane_wave_initial_conditions(settings):
+    """Sets the boundary conditions to a plane wave with intensity 1.
+    The boundary are set to the index of refraction at z=0."""
+
+    s = settings.simulation_box
+    pe = settings.partial_differential_equation
+
+    pe.u0 = 1
+    set_1D_boundary_conditions(settings)
+
+
 
 def create_next_settings(old_settings):
     settings = old_settings.copy(copy_initializers = False,copy_updaters = False)
@@ -367,7 +377,14 @@ def create_material(name,settings):
         r = settings.refractive_indices
         omega = settings.wave_equation.omega
 
-        if hasattr(sb,'t'):
+        def can_cast_to_int(expr):
+            try:
+                settings.get_as(expr,int)
+                return True
+            except:
+                return False
+
+        if hasattr(sb,'t') and can_cast_to_int(sb.Nt):
             N = settings.get_as(sb.Nt,int)
             omega_0 = settings.get_numeric(omega)
 
@@ -409,7 +426,7 @@ def create_material(name,settings):
     if r.has_name(nname):
         return getattr(r,nname)
     n = r.create_key(nname,pc.Symbol(nname))
-    settings.unitless.add_key(nname,n)
+    settings.numerics.add_key(nname,n)
     return n
 
 def create_2D_frequency_settings(settings):
@@ -427,7 +444,6 @@ def create_2D_frequency_settings(settings):
     pde = freq_settings.partial_differential_equation
 
     omega0 = settings.get_numeric(we.omega)
-    k0 = settings.get_numeric(we.k)
 
     freq_settings.simulation_box.unlock()
     freq_settings.simulation_box.remove_name('y')
@@ -444,16 +460,18 @@ def create_2D_frequency_settings(settings):
     we.omega = None
 
     n = settings.get_numeric(we.n.subs(sb.y,0)).subs(omega,abs(omega - omega0))
-    parameter = freq_settings.create_category('paramter')
-    parameter.create_function('n',(omega,),n)
+    p = freq_settings.create_category('paramters')
+    p.create_function('n',(omega,),n)
+    p.create_symbol('k',(omega - omega0)/units.c)
+    p.create_symbol('k_0',omega0/units.c)
 
     we.omega = omega_def
     if reason is not False:
         we.lock('omega',reason)
 
-    pde.A = 1j/(2*k0)
+    pde.A = 1j/(2*p.k_0)
     pde.C = 0
-    pde.F = 1j/(2*k0) * (n**2*(omega - omega0)**2/units.c**2 - k0**2)
+    pde.F = 1j/(2*p.k_0) * (p.n**2 * p.k**2 - p.k_0**2)
 
     xmin = settings.get_numeric(sb.xmin)
     xmax = settings.get_numeric(sb.xmax)
@@ -475,7 +493,7 @@ def create_2D_frequency_settings(settings):
 
     freq_settings.unitless.create_key('s',units.s,settings.get_as( 2/(omegamax - omegamin)/units.s , float ) )
 
-    u0 = expression_to_field(settings.wave_equation.u0.subs([(sb.y,0),(sb.z,sb.zmin)]), settings )
+    u0 = expression_to_field(settings.wave_equation.u0.subs([(sb.y,0),(sb.z,sb.zmin)]), settings, axes=(sb.x,sb.t) )
 
     u0hat = CoordinateNDArray( np.fft.fftshift( np.fft.fft(u0.data,axis=1) , axes=(1,) ) ,
                                [(xmin,xmax),( omegamin, omegamax )] ,

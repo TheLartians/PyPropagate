@@ -90,6 +90,28 @@ namespace lars {
   };
   
   
+  class finite_difference_a0F{
+  public:
+    
+    using scalar = finite_differences::complex;
+    using field = finite_differences::array_2D;
+    
+  private:
+    
+    field up,rfp;
+    
+  public:
+    
+    scalar ra;
+    field u,rf;
+    
+    void step();
+    void update();
+    
+    void resize(size_t nx,size_t ny);
+  };
+  
+  
 }
 
 

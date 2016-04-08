@@ -104,23 +104,33 @@ def line_plot(carr,ax = None,ylabel = None,figsize = None,title = None,**kwargs)
 
     return lines[0]
 
-def expression_to_field(expression,settings):
+def expression_to_field(expression,settings,axes = None):
     import expresso.pycas
     import numpy as np
 
     s = settings.simulation_box
 
     expr = settings.get_optimized(expression)
-    sym = expresso.pycas.get_symbols_in(expr)
+
+
+    if axes == None:
+        sym = expresso.pycas.get_symbols_in(expr)
+    else:
+        sym = set()
+        for a in axes:
+            sym.add(expresso.pycas.Symbol(a.name + "_i"))
+
+    if isinstance(sym,set):
+        sym = set(sym)
 
     from .coordinate_ndarray import CoordinateNDArray
 
     namedict = {key:name for name,key in zip(s.names(),s.keys())}
     def get_axis_name(symbol):
-        return namedict[symbol][:-1]
+        name = namedict[symbol]
+        return name[:-1]
 
-    #if sym - {s.xi,s.yi,s.zi} != set():
-    #    raise ValueError('cannot create field: contains non coordinate symbols %s' % ','.join([str(a) for a in sym - {s.x,s.y,s.z}]))
+
     if len(sym) == 0:
         c = complex(expr)
         if c.imag == 0:
