@@ -35,24 +35,39 @@ def add_time_symbols(settings):
         settings.wave_equation.create_function('u0',(sb.x,sb.y,sb.z,sb.t))
         settings.partial_differential_equation.u0 = settings.wave_equation.u0.subs(sb.t,0)
 
-def add_simulation_box_symbols(settings):
-    from expresso.pycas import Symbol,symbols,Function,pi,I,Types,sqrt
+def add_simulation_box_symbols(settings,perpendicular_directions = ['x','y'],propagation_direction = 'z'):
     import expresso.pycas as pc
     import types
 
     sb = settings.create_category("simulation_box",info="parameters and dimensions of the simulation box")
 
-    for c in 'x,y,z'.split(','):
+    zn = propagation_direction
+    xns = perpendicular_directions if isinstance(perpendicular_directions,list) else list(perpendicular_directions)
+    allc = xns + [zn]
+
+    for c in allc:
         add_coordinate(settings,sb,c)
 
-    sb.create_key("nx", Symbol("n_x",type = Types.Integer,positive=True),sb.Nx - 2,info="voxels in x direction minus the boundary conditions")
-    sb.create_key("ny", Symbol("n_y",type = Types.Integer,positive=True),sb.Ny - 2,info="voxels in y direction minus the boundary conditions")
-    sb.create_key("nz", Symbol("n_z",type = Types.Integer,positive=True),sb.Nz - 1,info="voxels in z direction minus the boundary condition")
+    for c in xns:
+        sb.create_key("n" + c, pc.Symbol("n_" + c,type = pc.Types.Integer,positive=True),getattr(sb,'N'+c) - 2,info="voxels in %s direction minus the boundary conditions" % c)
 
-    sb.create_key('r',Function('r')(sb.x,sb.y),sqrt(sb.x**2+sb.y**2),info='distance from origin')
+    sb.create_key("n" + zn, pc.Symbol("n_" + zn,type = pc.Types.Integer,positive=True),getattr(sb,'N'+zn) - 1,info="voxels in %s direction minus the boundary conditions" % zn)
 
-    sb.create_key("coordinates",(sb.x,sb.y,sb.z))
-    sb.lock('coordinates')
+    class CoordinateAttrs:
+        def __init__(self,sb,name):
+            self.name = name
+            self.symbol = getattr(sb,name)
+            self.min = getattr(sb,name+'min')
+            self.max = getattr(sb,name+'max')
+            self.step = getattr(sb,'d'+name)
+            self.steps = getattr(sb,'N'+name)
+            self.size = getattr(sb,'s'+name)
+        def __repr__(self):
+            return "<Attributes for %s>" % self.name
+
+    sb._set_attribute("coordinates",tuple(CoordinateAttrs(sb,c) for c in allc))
+
+    sb.create_key('r',pc.Function('r')(*(c.symbol for c in sb.coordinates[:-1])),pc.sqrt( pc.addition(*(c.symbol**2 for c in sb.coordinates[:-1])) ), info='distance from propagation axis')
 
     sb.lock()
 
@@ -74,28 +89,12 @@ def add_simulation_box_symbols(settings):
         setattr(self,"N%s" % axis_name,size)
 
     def set_physical_size(self,*sizes):
-        'Sets the physical box size of the simulation in x, y and z direction'
-        if len(sizes) == 2:
-            self.set_size('x',sizes[0])
-            self.set_size('z',sizes[1])
-        elif len(sizes) == 3:
-            self.set_size('x',sizes[0])
-            self.set_size('y',sizes[1])
-            self.set_size('z',sizes[2])
-        else:
-            raise ValueError('set_physical_size takes 2 or 3 arguments')
+        for c,s in zip(xns[:len(xns)-1] + [zn],sizes):
+            self.set_size(c,s)
 
     def set_voxel_size(self,*sizes):
-        'Sets the voxe size of the simulation in x, y and z direction'
-        if len(sizes) == 2:
-            self.set_vsize('x',sizes[0])
-            self.set_vsize('z',sizes[1])
-        elif len(sizes) == 3:
-            self.set_vsize('x',sizes[0])
-            self.set_vsize('y',sizes[1])
-            self.set_vsize('z',sizes[2])
-        else:
-            raise ValueError('set_voxel_size takes 2 or 3 arguments')
+        for c,s in zip(xns[:len(xns)-1] + [zn],sizes):
+            self.set_vsize(c,s)
 
     def set_method(self,physical_size,voxel_size):
         """Sets the simulation box size using the physical_size and voxel_size arguments which are 3-tupels containing the simulation box dimensions in x, y, and z directions."""
@@ -115,7 +114,7 @@ def add_simulation_box_symbols(settings):
         from units import get_unit
         defined = set()
 
-        for s in settings.get_numeric((sb.sx,sb.sy,sb.sz)):
+        for s in settings.get_numeric(tuple(getattr(sb,'s'+c) for c in allc)):
             unit = get_unit(s,cache = settings.get_cache())
 
             if unit is None or unit in defined or unit.is_function:
@@ -135,21 +134,26 @@ def add_partial_differential_equation_symbols(settings):
     sb = settings.simulation_box
     pde = settings.create_category('partial_differential_equation',short_name='PDE',info="parameters of the partial differential equation")
 
-    pde.create_function('A',sb.coordinates)
-    pde.create_function('C',sb.coordinates,pde.A)
-    pde.create_function('F',sb.coordinates)
+    arg_attrs = [x for x in list(sb.coordinates[:2]) + [sb.coordinates[-1]]]
+    x,y,z = [s.symbol for s in arg_attrs]
+    dx,dy,dz = [s.step for s in arg_attrs]
+    args = (x,y,z)
 
-    pde.create_function('ra',sb.coordinates,pde.A*sb.dz/sb.dx**2,info="finite difference paramter")
-    pde.create_function('rc',sb.coordinates,pde.C*sb.dz/sb.dy**2,info="finite difference paramter")
-    pde.create_function('rf',sb.coordinates,pde.F*sb.dz/2,info="finite difference paramter")
+    pde.create_function('A',args )
+    pde.create_function('C',args ,pde.A)
+    pde.create_function('F',args )
 
-    pde.create_function('u',sb.coordinates,info='solution to the PDE')
+    pde.create_function('ra',args ,pde.A*dz/dx**2,info="finite difference paramter")
+    pde.create_function('rc',args ,pde.C*dz/dy**2,info="finite difference paramter")
+    pde.create_function('rf',args ,pde.F*dz/2,info="finite difference paramter")
+
+    pde.create_function('u',args ,info='solution to the PDE')
     pde.lock('u')
 
-    pde._set_attribute('equation',pc.equal(pc.derivative(pde.u,sb.z), pde.A * pc.derivative(pc.derivative(pde.u,sb.x),sb.x) +  pde.C * pc.derivative(pc.derivative(pde.u,sb.y),sb.y)  + pde.F * pde.u ))
+    pde._set_attribute('equation',pc.equal(pc.derivative(pde.u,z), pde.A * pc.derivative(pc.derivative(pde.u,x),x) +  pde.C * pc.derivative(pc.derivative(pde.u,y),y)  + pde.F * pde.u ))
 
-    pde.create_key('u0',pc.Function('u_0_PDE')(*sb.coordinates),info="field initial condition")
-    pde.create_function('u_boundary',sb.coordinates,info="field boundary condition");
+    pde.create_key('u0',pc.Function('u_0_PDE')(*args ),info="field initial condition")
+    pde.create_function('u_boundary',args ,info="field boundary condition");
 
     pde.lock()
 

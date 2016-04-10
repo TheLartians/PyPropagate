@@ -105,13 +105,13 @@ class Propagator(Solver):
             	expr.N()
 		return True
 	    except:
- 		return False   
+ 		return False
 
         definitions = [pc.FunctionDefinition('f%s' % i,args,expr,**kwargs)
                        for i,expr in enumerate(expressions) if not is_constant(expr)]
 
         if compile_to_c == None:
- 	    compile_to_c = self.ndim > 1       
+ 	    compile_to_c = self.ndim > 1
  
         if not compile_to_c:
             lib = pc.ncompile(*definitions)
@@ -136,7 +136,7 @@ class Propagator(Solver):
 		if res is not None:
 		    res.fill(c)
 		    return res
-	        return np.full(args[0].shape,c)      
+	        return np.full(args[0].shape,c)
             return constant_expression
 
         res = [ getattr(lib,'f%s' % i) if hasattr(lib,'f%s' % i) else get_constant_expression(expressions[i]) for i in range(len(expressions)) ]
