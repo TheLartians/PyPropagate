@@ -35,23 +35,14 @@ def add_time_symbols(settings):
         settings.wave_equation.create_function('u0',(sb.x,sb.y,sb.z,sb.t))
         settings.partial_differential_equation.u0 = settings.wave_equation.u0.subs(sb.t,0)
 
-def add_simulation_box_symbols(settings,perpendicular_directions = ['x','y'],propagation_direction = 'z'):
+def add_simulation_box_category(settings,coords = ['x','y','z']):
     import expresso.pycas as pc
     import types
 
     sb = settings.create_category("simulation_box",info="parameters and dimensions of the simulation box")
 
-    zn = propagation_direction
-    xns = perpendicular_directions if isinstance(perpendicular_directions,list) else list(perpendicular_directions)
-    allc = xns + [zn]
-
-    for c in allc:
+    for c in coords:
         add_coordinate(settings,sb,c)
-
-    for c in xns:
-        sb.create_key("n" + c, pc.Symbol("n_" + c,type = pc.Types.Integer,positive=True),getattr(sb,'N'+c) - 2,info="voxels in %s direction minus the boundary conditions" % c)
-
-    sb.create_key("n" + zn, pc.Symbol("n_" + zn,type = pc.Types.Integer,positive=True),getattr(sb,'N'+zn) - 1,info="voxels in %s direction minus the boundary conditions" % zn)
 
     class CoordinateAttrs:
         def __init__(self,sb,name):
@@ -62,12 +53,12 @@ def add_simulation_box_symbols(settings,perpendicular_directions = ['x','y'],pro
             self.step = getattr(sb,'d'+name)
             self.steps = getattr(sb,'N'+name)
             self.size = getattr(sb,'s'+name)
+            self.index = getattr(sb,name+'i')
         def __repr__(self):
-            return "<Attributes for %s>" % self.name
+            return "<%s Attrs>" % self.name
 
-    sb._set_attribute("coordinates",tuple(CoordinateAttrs(sb,c) for c in allc))
-
-    sb.create_key('r',pc.Function('r')(*(c.symbol for c in sb.coordinates[:-1])),pc.sqrt( pc.addition(*(c.symbol**2 for c in sb.coordinates[:-1])) ), info='distance from propagation axis')
+    sb._set_attribute("coordinates",tuple(CoordinateAttrs(sb,c) for c in coords))
+    sb._set_attribute("coordinate_dict",{getattr(sb,c):d for c,d in zip(coords,sb.coordinates)})
 
     sb.lock()
 
@@ -89,11 +80,11 @@ def add_simulation_box_symbols(settings,perpendicular_directions = ['x','y'],pro
         setattr(self,"N%s" % axis_name,size)
 
     def set_physical_size(self,*sizes):
-        for c,s in zip(xns[:len(xns)-1] + [zn],sizes):
+        for c,s in zip(coords,sizes):
             self.set_size(c,s)
 
     def set_voxel_size(self,*sizes):
-        for c,s in zip(xns[:len(xns)-1] + [zn],sizes):
+        for c,s in zip(coords,sizes):
             self.set_vsize(c,s)
 
     def set_method(self,physical_size,voxel_size):
@@ -114,7 +105,7 @@ def add_simulation_box_symbols(settings,perpendicular_directions = ['x','y'],pro
         from units import get_unit
         defined = set()
 
-        for s in settings.get_numeric(tuple(getattr(sb,'s'+c) for c in allc)):
+        for s in settings.get_numeric(tuple(getattr(sb,'s'+c) for c in coords)):
             unit = get_unit(s,cache = settings.get_cache())
 
             if unit is None or unit in defined or unit.is_function:
@@ -124,18 +115,22 @@ def add_simulation_box_symbols(settings,perpendicular_directions = ['x','y'],pro
             unit_name = str(unit)
             if not settings.unitless.has_name(unit_name):
                 settings.unitless.create_key(unit_name,unit)
-            setattr(settings.unitless,unit_name,(2*unit/s).evaluate(cache=settings.get_cache()))
+            setattr(settings.unitless,unit_name,(unit/s).evaluate(cache=settings.get_cache()))
 
     settings.initializers['make_unitless'] = make_unitless
 
+    return sb
 
-def add_partial_differential_equation_symbols(settings):
+def add_partial_differential_equation_category(settings,coordinates = None):
     import expresso.pycas as pc
     sb = settings.simulation_box
     pde = settings.create_category('partial_differential_equation',short_name='PDE',info="parameters of the partial differential equation")
 
-    arg_attrs = [x for x in list(sb.coordinates[:2]) + [sb.coordinates[-1]]]
-    x,y,z = [s.symbol for s in arg_attrs]
+    arg_attrs = [sb.coordinate_dict[x] for x in coordinates] if coordinates is not None else sb.coordinates
+    pde._set_attribute('coordinates',arg_attrs)
+
+    x,y,z = [a.symbol for a in arg_attrs]
+
     dx,dy,dz = [s.step for s in arg_attrs]
     args = (x,y,z)
 
@@ -157,6 +152,8 @@ def add_partial_differential_equation_symbols(settings):
 
     pde.lock()
 
+    return pde
+
 def create_paraxial_settings():
     from .settings import Settings
     settings = Settings('settings for solving the paraxial differential equation')
@@ -166,7 +163,7 @@ def create_paraxial_settings():
     settings.partial_differential_equation.export(settings.symbols)
     return settings
 
-def add_wave_equation_symbols(settings):
+def add_wave_equation_category(settings):
     import units
     from expresso.pycas import Function,Symbol,Types,pi
 
@@ -178,9 +175,9 @@ def add_wave_equation_symbols(settings):
 
     we = settings.create_category("wave_equation",info="parameters for solving the wave equation",short_name="WE")
 
-    n = we.create_key("n",Function("n")(*s.coordinates))
+    n = we.create_key("n",Function("n")(*[c.symbol for c in s.coordinates]))
 
-    omega = we.create_key('omega',Symbol('omega'),info='angular wave frequency')
+    omega = we.create_key('omega',Symbol('omega'),info='angular wave frequency') if not hasattr(s,'omega') else we.add_key('omega',s.omega)
     wavelength = we.create_key('wavelength',Symbol("lambda"),settings.numerics.c*2*pi/omega,info='vacuum wavelength')
     k = we.create_key("k",Symbol("k"),omega/settings.numerics.c,info='wave number')
     E = we.create_key("E",Symbol("E"),omega * settings.numerics.hbar,info='photon energy')
@@ -196,6 +193,8 @@ def add_wave_equation_symbols(settings):
 
     import types
     we._set_attribute('set_energy',types.MethodType( set_energy, settings ) )
+
+    return we
 
 def create_paraxial_wave_equation_settings():
 

@@ -9,28 +9,30 @@ class Propagator(Solver):
         super(Propagator,self).__init__(settings)
 
         sb = settings.simulation_box
+        coordinates = settings.partial_differential_equation.coordinates
 
-        self._x = sb.x
-        if self.ndim > 1: self._y = sb.y
-        self._t = sb.z
+        self._x = coordinates[0].symbol
+        if self.ndim > 1: self._y = coordinates[1].symbol
+        self._t = self._y = coordinates[2].symbol
 
-        self._nx,self._nt = settings.get_as((sb.Nx,sb.Nz),int)
-        if self.ndim > 1: self._ny = settings.get_as(sb.Ny,int)
-        self._xmin,self._xmax = settings.get_numeric((sb.xmin,sb.xmax))
-        if self.ndim > 1: self._ymin,self._ymax = settings.get_numeric((sb.ymin,sb.ymax))
-        self._tmin,self._tmax = settings.get_numeric((sb.zmin,sb.zmax))
+        self._nx,self._nt = settings.get_as((coordinates[0].steps,coordinates[2].steps),int)
+        if self.ndim > 1: self._ny = settings.get_as(coordinates[1].steps,int)
+
+        self._xmin,self._xmax,self._tmin,self._tmax = settings.get_numeric((coordinates[0].min,coordinates[0].max,coordinates[2].min,coordinates[2].max))
+        if self.ndim > 1: self._ymin,self._ymax = settings.get_numeric((coordinates[1].min,coordinates[1].max))
 
         import expresso.pycas as pc
         pe = settings.partial_differential_equation
 
         self._F_is_zero = settings.get_unitless( pe.F ) == pc.Zero
-        self._F_is_constant_in_z = settings.get_numeric(pc.derivative(pe.F, sb.z)) == pc.Zero
-        self._F_is_constant = self._F_is_constant_in_z and settings.get_numeric(pc.derivative(pe.F, sb.x)) == pc.Zero
-	if self.ndim > 1: self._F_is_constant &= settings.get_numeric(pc.derivative(pe.F, sb.y)) == pc.Zero
+        self._F_is_constant_in_z = settings.get_numeric(pc.derivative(pe.F, self._t )) == pc.Zero
+        self._F_is_constant = self._F_is_constant_in_z and settings.get_numeric(pc.derivative(pe.F, self._x)) == pc.Zero
+        if self.ndim > 1: self._F_is_constant &= settings.get_numeric(pc.derivative(pe.F, self._y )) == pc.Zero
 
     def _set_initial_field(self,settings):
         sb = settings.simulation_box
-        u0 = self._get_evaluators(settings.partial_differential_equation.u0.subs(sb.z,sb.zmin),settings)
+        z = sb.coordinates[0]
+        u0 = self._get_evaluators(settings.partial_differential_equation.u0.subs(z.symbol,z.min),settings)
         initial = u0(*self._get_coordinates())
         self.__initial = initial
         self.set_field(initial)

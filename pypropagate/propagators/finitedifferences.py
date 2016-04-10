@@ -67,10 +67,12 @@ class FiniteDifferencesPropagator2D(Propagator):
         ra = settings.get_as(pde.ra*sf,complex)
         rc = settings.get_as(pde.rc*sf,complex)
 
+        z,dz = sb.coordinates[2].symbol,sb.coordinates[2].step
+
         evaluators = self._get_evaluators([ (pde.rf*sf),
-                                            (pde.rf*sf).subs(sb.z,sb.z-sb.dz*sf),
+                                            (pde.rf*sf).subs(z,z-dz*sf),
                                             pde.u_boundary,
-                                            pde.u_boundary.subs(sb.z,sb.z-sb.dz*sf) ],
+                                            pde.u_boundary.subs(z,z-dz*sf) ],
                                           settings,return_type=pc.Types.Complex,compile_to_c = True,parallel=True)
 
         self.__rf = evaluators[:2]

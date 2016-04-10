@@ -167,6 +167,8 @@ class Category(object):
             self._key_doc[name] = info
         self._set_attribute(name,key)
 
+        return key
+
     def _set_attribute(self,attr,value):
         if attr in self.__dict__:
             import warnings

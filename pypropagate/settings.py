@@ -95,7 +95,7 @@ class Settings(CategorizedDictionary):
     def _is_numeric(self,value):
         "Tests if a value should be classified as numeric"
         if isinstance(value,(bool,int,long,float,complex)):
-            return True
+            return value not in [1,0,-1,1j,-1j]
 
         import expresso.pycas as pc
         if isinstance(value,pc.Expression):
@@ -214,12 +214,4 @@ class Settings(CategorizedDictionary):
     def get_numeric_transform(self):
         copy = self.copy()
         return lambda x: copy.get_numeric(x)
-
-
-
-
-
-
-
-
 
