@@ -102,7 +102,7 @@ namespace lars {
     
   public:
     
-    scalar ra;
+    finite_differences::array_1D ra;
     field u,rf;
     
     void step();

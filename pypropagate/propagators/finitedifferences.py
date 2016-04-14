@@ -13,7 +13,7 @@ class FiniteDifferencesPropagator1D(Propagator):
         from _pypropagate import finite_difference_aF
 
         pde = settings.partial_differential_equation        
-        ra = settings.get_as(pde.ra,complex)
+        ra = self._get_as(pde.ra,complex,settings)
         self.__u_boundary,self.__rf = self._get_evaluators([ pde.u_boundary, pde.rf ], settings, return_type=pc.Types.Complex, compile_to_c = not self._F_is_constant_in_z, parallel=False)
 
         self._solver = finite_difference_aF()
@@ -64,8 +64,11 @@ class FiniteDifferencesPropagator2D(Propagator):
         self._2step = settings.get_numeric( pc.equal(pde.C, 0)  ) != pc.S(True)
         sf = 0.5 if self._2step else 1
 
-        ra = settings.get_as(pde.ra*sf,complex)
-        rc = settings.get_as(pde.rc*sf,complex)
+        if self._2step:
+            ra = settings.get_as(pde.ra*sf,complex)
+            rc = settings.get_as(pde.rc*sf,complex)
+        else:
+            ra = pc.numpyfy(settings.get_unitless(pde.ra))(**{self._y.name + '_i':range(self._ny)})
 
         z,dz = sb.coordinates[2].symbol,sb.coordinates[2].step
 
@@ -81,8 +84,11 @@ class FiniteDifferencesPropagator2D(Propagator):
         self._solver = finite_difference_acF() if self._2step else finite_difference_a0F()
         self._solver.resize(self._nx,self._ny)
 
-        self._solver.ra = ra
-        self._solver.rc = rc
+        if self._2step:
+            self._solver.ra = ra
+            self._solver.rc = rc
+        else:
+            self._solver.ra.as_numpy()[:] = ra
         
         d,u,l,r = [(self._get_x_coordinates(),np.zeros(self._nx,dtype = np.uint)),
                    (self._get_x_coordinates(),np.ones(self._nx,dtype = np.uint)*(self._ny-1)),

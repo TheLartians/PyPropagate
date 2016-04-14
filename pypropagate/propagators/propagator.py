@@ -11,9 +11,8 @@ class Propagator(Solver):
         sb = settings.simulation_box
         coordinates = settings.partial_differential_equation.coordinates
 
-        self._x = coordinates[0].symbol
+        self._x,self._t = coordinates[0].symbol,coordinates[2].symbol
         if self.ndim > 1: self._y = coordinates[1].symbol
-        self._t = self._y = coordinates[2].symbol
 
         self._nx,self._nt = settings.get_as((coordinates[0].steps,coordinates[2].steps),int)
         if self.ndim > 1: self._ny = settings.get_as(coordinates[1].steps,int)
@@ -31,7 +30,7 @@ class Propagator(Solver):
 
     def _set_initial_field(self,settings):
         sb = settings.simulation_box
-        z = sb.coordinates[0]
+        z = sb.coordinates[2]
         u0 = self._get_evaluators(settings.partial_differential_equation.u0.subs(z.symbol,z.min),settings)
         initial = u0(*self._get_coordinates())
         self.__initial = initial
@@ -39,6 +38,14 @@ class Propagator(Solver):
 
     def _reset(self):
         self.set_field(self.__initial)
+
+    def _get_as(self,expr,type,settings):
+        y = settings.simulation_box.coordinates[1]
+        if self.ndim == 1:
+            y0 = getattr(settings.partial_differential_equation,y.name + '0')
+            return settings.get_as(settings.get_numeric(expr).subs(y.symbol,y0),type)
+        else:
+            return settings.get_as(expr,type)
 
     def __get_x_coordinates(self):
         import numpy as np
@@ -89,13 +96,14 @@ class Propagator(Solver):
         else:
             return_single = False
 
-        sb = settings.simulation_box
+        x,y,z = settings.simulation_box.coordinates
 
         if args is None:
-            args = (sb.xi,sb.yi,sb.zi) if self.ndim == 2 else (sb.xi,sb.zi)
+            args = (x.index,y.index,z.index) if self.ndim == 2 else (x.index,z.index)
 
         if self.ndim == 1:
-            expressions = [settings.get_optimized(expr.subs(sb.y,0)) for expr in expressions]
+            y0 = getattr(settings.partial_differential_equation,y.name + '0')
+            expressions = [settings.get_optimized(expr.subs(y.symbol,y0)) for expr in expressions]
         else:
             expressions = [settings.get_optimized(expr) for expr in expressions]
 

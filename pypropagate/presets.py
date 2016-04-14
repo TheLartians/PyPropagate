@@ -150,6 +150,8 @@ def add_partial_differential_equation_category(settings,coordinates = None):
     pde.create_key('u0',pc.Function('u_0_PDE')(*args ),info="field initial condition")
     pde.create_function('u_boundary',args ,info="field boundary condition");
 
+    pde.create_key(arg_attrs[1].name+'0',pc.Symbol(y.name+'_0_PDE'),(arg_attrs[1].min+arg_attrs[1].max)/2,info='Value to which the %s is set for 1D solvers' % y.name)
+
     pde.lock()
 
     return pde
@@ -157,9 +159,9 @@ def add_partial_differential_equation_category(settings,coordinates = None):
 def create_paraxial_settings():
     from .settings import Settings
     settings = Settings('settings for solving the paraxial differential equation')
-    add_simulation_box_symbols(settings)
+    add_simulation_box_category(settings)
     settings.simulation_box.export(settings.symbols)
-    add_partial_differential_equation_symbols(settings)
+    add_partial_differential_equation_category(settings)
     settings.partial_differential_equation.export(settings.symbols)
     return settings
 
@@ -201,13 +203,13 @@ def create_paraxial_wave_equation_settings():
     from .settings import Settings
     settings = Settings('settings for solving the paraxial differential equation')
 
-    add_simulation_box_symbols(settings)
+    add_simulation_box_category(settings)
     settings.simulation_box.export(settings.symbols)
 
-    add_wave_equation_symbols(settings)
+    add_wave_equation_category(settings)
     settings.wave_equation.export(settings.symbols)
 
-    add_partial_differential_equation_symbols(settings)
+    add_partial_differential_equation_category(settings)
     settings.partial_differential_equation.export(settings.symbols)
 
     from expresso.pycas import I
@@ -375,7 +377,6 @@ def create_material(name,settings):
     r = settings.refractive_indices
 
     def init_material(settings):
-
         import units
         import numpy as np
 
@@ -383,26 +384,16 @@ def create_material(name,settings):
         r = settings.refractive_indices
         omega = settings.wave_equation.omega
 
-        def can_cast_to_int(expr):
-            try:
-                settings.get_as(expr,int)
-                return True
-            except:
-                return False
+        try:
+            omega_dependent = True
 
-        if hasattr(sb,'t') and can_cast_to_int(sb.Nt):
-            N = settings.get_as(sb.Nt,int)
-            omega_0 = settings.get_numeric(omega)
-
-            omegamin = -2*pc.pi*N/sb.st + omega_0
-            omegamax =  2*pc.pi*N/sb.st + omega_0
-            domega  = (omegamax - omegamin)/(N-1)
-            omega_i = (omega - omegamin )/domega
+            N = settings.get_as(sb.Nomega,int)
+            omegamin,omegamax = (sb.omegamin,sb.omegamax)
 
             EminExpr = abs(omegamin * units.hbar / units.eV)
             EmaxExpr = abs(omegamax * units.hbar / units.eV)
-        else:
-            N = 3
+        except:
+            omega_dependent = False
             E = units.hbar * omega / units.eV
             EmaxExpr = E + 1
             EminExpr = E - 1
@@ -413,18 +404,17 @@ def create_material(name,settings):
         except:
             return
 
-        if Emax < Emin:
-            Emax,Emin = Emin,Emax
-
         key = (N,Emin,Emax)
         if not hasattr(r,'_cache'):
             r._set_attribute('_cache',{})
         else:
             if nname in r._cache and r._cache[nname] == key:
                 return
-
-        narr = pc.array(nname,np.array(get_refraction_indices(name,Emax,Emin,N)))
-        setattr(r,nname,narr(omega_i))
+        if omega_dependent:
+            narr = pc.array(nname,np.array(get_refraction_indices(name,Emax,Emin,N)))
+            setattr(r,nname,narr(sb.omegai))
+        else:
+            setattr(r,nname,get_refraction_indices(name,Emax,Emin,3)[1])
 
         r._cache[nname] = key
 
@@ -432,9 +422,27 @@ def create_material(name,settings):
 
     if r.has_name(nname):
         return getattr(r,nname)
-    n = r.create_key(nname,pc.Symbol(nname))
+    n = r.create_key(nname,pc.Function(nname)(settings.wave_equation.omega))
+
     settings.numerics.add_key(nname,n)
     return n
+
+def create_2D_frequency_settings():
+    from .settings import Settings
+
+    settings = Settings()
+    sb = add_simulation_box_category(settings,['x','omega','z'])
+    pde = add_partial_differential_equation_category(settings,(sb.x,sb.omega,sb.z))
+    we = add_wave_equation_category(settings)
+
+    sb.export(settings.symbols,warn=False)
+    we.export(settings.symbols,warn=False)
+
+    pde.A = 1j/(2*we.k)
+    pde.C = 0
+    pde.F = 1j*we.k/2*(we.n**2-1)
+
+    return settings
 
 def create_2D_frequency_settings_from(settings):
     import expresso.pycas as pc

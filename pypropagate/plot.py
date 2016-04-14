@@ -140,7 +140,7 @@ def expression_to_field(expression,settings,axes = None):
     elif len(sym) == 1:
         xi = sym.pop()
         xname = get_axis_name(xi)
-        x = getattr(s,xi.name[0])
+        x = getattr(s,xname)
         keys = tuple([getattr(s,p % xname) for p in ['%smin','%smax','N%s']])
         xmin,xmax,nx = settings.get_numeric( keys )
         nx = settings.get_as( nx , int )
