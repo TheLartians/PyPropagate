@@ -44,6 +44,9 @@ class CoordinateNDArray(object):
     def _get_index(self, value, axis):
         return int(self.evaluate((value - self.bounds[axis][0]) / self._dbounds[axis]) + 0.5)
 
+    def get_axis_index(self, axis):
+        return self.axis.index(axis)
+
     def __convert_slice(self,sliced,axis):
         if isinstance(sliced,slice):
             s = [sliced.start,sliced.stop,sliced.step]
@@ -53,7 +56,7 @@ class CoordinateNDArray(object):
             else: s[1] = min(self._get_index(s[1], axis), self.data.shape[axis] - 1)
             if s[2] is None: s[2] = 1
             else:
-                s[2] = int(self.evaluate(s[2] / self._dbounds[axis]))
+                s[2] = int(self.evaluate(s[2] / self._dbounds[axis]) + 0.5)
                 if s[2] == 0: s[2] = 1
             return slice(*s)
         else:
@@ -130,9 +133,7 @@ class CoordinateNDArray(object):
         args = [self.__convert_arg(arg) for arg in args]
         kwargs = {key:self.__convert_arg(kwargs[key]) for key in kwargs}
                 
-        if "axis" in kwargs:
-            if kwargs["axis"] not in self.axis:
-                raise ValueError("array does not contain axis: %s" % kwargs["axis"])
+        if "axis" in kwargs and kwargs["axis"] is not None:
             idx = self.axis.index(kwargs["axis"])
             kwargs["axis"] = idx
             

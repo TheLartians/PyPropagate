@@ -1,0 +1,41 @@
+
+\begin{tikzpicture}[x={(0.0cm,0.4cm)},y={(-0.17cm,0.14cm)},z={(0.4cm,0.0cm)},>=stealth]
+
+% box fill
+\def\sidelength{5}
+
+\fill[black!10] (xyz cs:x=0) -- (xyz cs:y=\sidelength) -- (xyz cs:x=\sidelength,y=\sidelength)  -- (xyz cs:x=\sidelength,y=\sidelength,z=\sidelength)  -- (xyz cs:x=\sidelength,z=\sidelength) -- (xyz cs:z=\sidelength);
+
+% box grid
+\foreach \coo in {1,2,...,\sidelength}{
+  \draw (xyz cs:x=\coo) -- (xyz cs:z=\sidelength,x=\coo);
+  \draw (xyz cs:x=\coo) -- (xyz cs:y=\sidelength,x=\coo);
+
+  \draw (xyz cs:y=\coo) -- (xyz cs:x=\sidelength,y=\coo);
+  \draw (xyz cs:y=\coo,x=\sidelength) -- (xyz cs:x=\sidelength,z=\sidelength,y=\coo);
+
+  \draw (xyz cs:z=\coo) -- (xyz cs:x=\sidelength,z=\coo);
+  \draw (xyz cs:z=\coo,x=\sidelength) -- (xyz cs:x=\sidelength,y=\sidelength,z=\coo);
+}
+
+% axes
+\draw[line width=0.75pt,->] (xyz cs:x=-0.5) -- (xyz cs:x={\sidelength+4}) node[above] {$x$} ;
+\draw[line width=0.75pt,->] (xyz cs:y=-1.5) -- (xyz cs:y={\sidelength+4}) node[left] {$y$};
+\draw[line width=0.75pt,->] (xyz cs:z=-1.5) -- (xyz cs:z={\sidelength+2}) node[right] {$z$};
+
+\draw [arrows={|-|}] (xyz cs:z={\sidelength+0.3pt},x=2) -- node[right] {$\Delta x$} (xyz cs:z={\sidelength+0.3pt},x=3);
+\draw [|-|] (xyz cs:x=-0.3pt,y=2,z=-0.2pt) -- node[left = 3pt] {$\Delta y$} (xyz cs:x=-0.3pt,y=3,z=-0.2pt);
+\draw [|-|] (xyz cs:x=-0.3pt,z=2) -- node[below] {$\Delta z$} (xyz cs:x=-0.3pt,z=3);
+
+\draw (xyz cs:y=\sidelength) -- (xyz cs:y=\sidelength,z=-0.3pt) node[left] {$y_\mathrm{max}$};
+\draw (xyz cs:x=\sidelength,z=\sidelength) -- (xyz cs:x=\sidelength,z={\sidelength+0.3pt}) node[right] {$x_\mathrm{max}$};
+\draw (xyz cs:z=\sidelength) -- (xyz cs:x=-0.3pt,z={\sidelength}) node[below] {$z_\mathrm{max}$};
+
+\draw [line width=1pt,->] (xyz cs:x=4,y=2.5,z=-5) -- node[above] {$\vec{k}$} (xyz cs:x=4,y=2.5,z=-2) ; 
+
+\node[fill,circle,inner sep=0.75pt] at (2,0,2) {};
+
+\node[align=center] at (8.5,0,6) (ori) {$u_{ij}^k = u(x_i,y_j,z_k)$};
+\draw[->,color=gray,shorten >=1.5pt] (ori) .. controls (5,0,5)  .. (2,0,2);
+
+\end{tikzpicture}

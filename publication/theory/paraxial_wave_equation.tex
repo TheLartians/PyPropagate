@@ -1,0 +1,53 @@
+
+
+\subsection{The Paraxial Wave Equation}
+
+\subsubsection{Propagation of electromagnetic waves in matter}
+
+The dynamics of electromagnetic waves are governed by Maxwell's Equations~\cite{PriciplesOfOptics}. For a monochromatic wave in a homogeneous, linear, and isotropic dielectric medium without free charges they take the form
+
+\begin{eqnarray*}
+\vec \nabla \vec E = 0 && \vec \nabla \times \vec E = - \frac{ \partial \vec B }{ \partial t }  \\
+\vec \nabla \vec B = 0 && \vec \nabla \times \vec B = \frac{n^2}{c^2} \frac{ \partial \vec E }{ \partial t },
+\end{eqnarray*}
+
+where $\vec B$ and $\vec E$ are the complex magnetic and electric field vectors, $c$ is the speed of light in vacuum and $n$ is the (frequency dependent) complex refractive index of the medium \cite{attwood2007soft}. The actual fields can be obtained by taking the real or imaginary part of the complex fields. Using the curl of the curl identity $\vec \nabla \times \vec \nabla \times \vec E = \vec \nabla (\vec \nabla  \vec E ) - \Delta  \vec E$ we obtain the wave equation for the electric field
+
+\begin{align} \label{eq:wave_equation} 
+\frac{n^2}{c^2} \frac{ \partial^2 \vec E }{ \partial t^2 } & = \Delta \vec E.
+\end{align}
+
+Since this equation is only valid for a monochromatic field with angular frequency $\omega$, the second time derivatives reduce to $\partial_t^2 \vec E = -  \omega^2 \vec E$. The wave equation is therefore
+
+\begin{align*}
+    n^2 k^2 \vec{ E }(\omega) & + \Delta  \vec{ E } = 0 ,
+\end{align*}
+
+with the wave number $k = \omega/c$. From the linearity of the equation it is apparent that it also applies to all components of the electric field. Particularly for a linearly polarized electric field $\vec{E} = \vec{e} \, \psi $, where $\vec{e}$ is the direction of polarization and $\psi$ is the complex amplitude of the wave, we find the relation
+
+\begin{align} \label{eq:helmholtz}
+    n^2 k^2 \psi & + \Delta \psi = 0,
+\end{align}
+
+which is known as the Helmholtz equation \cite{PriciplesOfOptics}.
+
+
+\subsubsection{Paraxial Approximation} \label{sec:paraxial_equation}
+
+We now look for solutions of the Helmholtz equation for linearly polarized waves whose direction of propagation is parallel or at a small angle to the $z$ axis. These solutions will be of the form $\psi = u(x,y,z) \cdot \exp(i k z)$ with a complex envelope $u(x,y,z)$ that changes slowly in $z$ direction. We will therefore assume that
+
+\begin{align*}
+\left| \frac{\partial^2 u}{\partial z^2} \right| \ll \left|  k \frac{\partial u}{\partial z}  \right|.
+\end{align*}
+
+Inserting this into the Helmholz equation \eqref{eq:helmholtz} and neglecting very small terms we find the paraxial wave equation
+
+\begin{align*}
+2 i k \frac{\partial u}{\partial z} + \frac{\partial^2 u}{\partial x^2} + \frac{\partial^2 u}{\partial y^2} + k^2 (n^2 - 1) u = 0.
+\end{align*}
+
+For convenience we define $A := \frac{i}{2k}$ and $F := \frac{ik}{2} (n^2 - 1) $ which let us write the partial differential equation more concisely as
+
+\begin{align} \label{eq:paraxial_wave_equation}
+\frac{\partial u}{\partial z} = A \left( \frac{\partial^2 u}{\partial x^2} + \frac{\partial^2 u}{\partial y^2} \right) + F  u.
+\end{align}

@@ -8,6 +8,8 @@ class Category(object):
         self._parent = parent
         self._keys = {}
         self.subcategories = {}
+        self.attributes = {}
+        self.methods = {}
         self._locked = False
         self.__doc__ = ""
         self._key_doc = {}
@@ -20,6 +22,7 @@ class Category(object):
             parent = self._parent
         if copy == None:
             copy = Category(parent)
+
         copy._keys = self._keys.copy()
         copy._locked = self._locked
         copy._key_doc = self._key_doc.copy()
@@ -32,7 +35,13 @@ class Category(object):
             catcop = cat.copy(parent = copy)
             copy.subcategories[name] = catcop
             copy.__dict__[name] = catcop
-            
+
+        for name,method in self.methods.iteritems():
+            copy.add_method(name,method)
+
+        for name,attribute in self.attributes.iteritems():
+            copy.add_attribute(name,attribute)
+
         return copy
         
     def lock(self,name = None,reason = None):
@@ -167,11 +176,23 @@ class Category(object):
             self._key_doc[name] = info
         self._set_attribute(name,key)
 
-    def _set_attribute(self,attr,value):
+        return key
+
+    def add_attribute(self, attr, value):
         if attr in self.__dict__:
             import warnings
             warnings.warn("overwriting attribute %s" % name, UserWarning)
+        self.attributes[attr] = value
         self.__dict__[attr] = value
+
+    def add_method(self, attr, value):
+        if attr in self.__dict__:
+            import warnings
+            warnings.warn("overwriting attribute %s" % name, UserWarning)
+        self.methods[attr] = value
+
+        from types import MethodType
+        self.__dict__[attr] = MethodType(value,self)
 
     def remove_key(self,key):
         """Removes a key from the category. The global key still remains valid."""
@@ -179,9 +200,8 @@ class Category(object):
             if key == comp:
                 self.remove_name(name) 
                 return
-        import warnings
-        warnings.warn("attempting to remove undefined key %s" % name, UserWarning)
-    
+        raise ValueError("attempting to remove undefined key %s" % key)
+
     def remove_name(self,name):
         """Removes a name from the category. The associated key still remains valid."""
         
@@ -238,14 +258,14 @@ class Category(object):
             keys = self.keys()
         return self._parent.dictionary(keys)
     
-    def export(self,dictionary):
+    def export(self,dictionary,**kwargs):
         """Copies name/key pairs into a target dictionary. Can be used to load variables into the local namespace by passing the globals() dictionary. Note that exisiting variables will be overwritten."""
         if isinstance(dictionary,Category):
             for name in self.names():
                 info = self.info(name)
-                dictionary.add_key(name,self.get_key(name),info=info)
+                dictionary.add_key(name,self.get_key(name),info=info,**kwargs)
         else:
-            dictionary.update(self._keys)
+            dictionary.update(self._keys,**kwargs)
 
 
 class CategorizedDictionary(Category):
@@ -312,6 +332,8 @@ class CategorizedDictionary(Category):
         return key in self.data
     
     def _create_key(self,name,key,value,info,sender):
+        if self._key_exisits(key) and value == None:
+            return
         self._set_value(key,value)
         
     def all_keys(self):
@@ -330,7 +352,10 @@ class CategorizedDictionary(Category):
             if self.data[key] == None:
                 res.add(key)
         return res
-    
+
+    def is_defined(self,key):
+        return self.data[key] != None
+
     def defined_keys(self):
         """Get all keys with value not equal to None"""
         return set(self.get_all_keys()) - self.get_undefined_keys()

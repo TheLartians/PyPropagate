@@ -15,6 +15,7 @@ setup(
     install_requires={
         'matplotlib',
         'numpy',
+        'mechanize',
         'expresso[pycas] >= 0.1.1'
     },
 

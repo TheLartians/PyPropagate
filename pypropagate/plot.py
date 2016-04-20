@@ -4,6 +4,8 @@ def get_metric_prefix(numbers):
                   
     if not isinstance(numbers,list):
         numbers = list(numbers)
+    if len(numbers) >= 2:
+        numbers = [numbers[-1] - numbers[0]]
         
     def get_exponent(number):
         return int(np.log10(np.abs(number))) if number != 0 else 0
@@ -14,6 +16,7 @@ def get_metric_prefix(numbers):
     largest = max(exponents,key=lambda x:abs(x))
     
     closest = min(metric_prefixes, key=lambda x:abs(x[1]+1-largest))
+
     return (closest[2],10**closest[1])
 
 def get_unitless_bounds(array):
@@ -101,18 +104,33 @@ def line_plot(carr,ax = None,ylabel = None,figsize = None,title = None,**kwargs)
 
     return lines[0]
 
-def expression_to_field(expression,settings):
+def expression_to_array(expression, settings, axes = None):
     import expresso.pycas
     import numpy as np
 
     s = settings.simulation_box
+
     expr = settings.get_optimized(expression)
-    sym = expresso.pycas.get_symbols_in(expr)
+
+
+    if axes == None:
+        sym = expresso.pycas.get_symbols_in(expr)
+    else:
+        sym = set()
+        for a in axes:
+            sym.add(expresso.pycas.Symbol(a.name + "_i"))
+
+    if isinstance(sym,set):
+        sym = set(sym)
 
     from .coordinate_ndarray import CoordinateNDArray
 
-    if sym - {s.xi,s.yi,s.zi} != set():
-        raise ValueError('cannot create field: contains non coordinate symbols %s' % ','.join([str(a) for a in sym - {s.x,s.y,s.z}]))
+    #namedict = {key:name for name,key in zip(s.names(),s.keys())}
+    def get_axis_name(symbol):
+    #    name = namedict[symbol]
+    #    return name[:-1]
+        return symbol.name[:-2]
+
     if len(sym) == 0:
         c = complex(expr)
         if c.imag == 0:
@@ -121,8 +139,9 @@ def expression_to_field(expression,settings):
         #raise ValueError('cannot create field: expression contains no symbols')
     elif len(sym) == 1:
         xi = sym.pop()
-        x = getattr(s,xi.name[0])
-        keys = tuple([getattr(s,p % x.name) for p in ['%smin','%smax','N%s']])
+        xname = get_axis_name(xi)
+        x = getattr(s,xname)
+        keys = tuple([getattr(s,p % xname) for p in ['%smin','%smax','N%s']])
         xmin,xmax,nx = settings.get_numeric( keys )
         nx = settings.get_as( nx , int )
         npx = np.arange(nx)
@@ -130,15 +149,23 @@ def expression_to_field(expression,settings):
         res =  CoordinateNDArray(data,[(xmin,xmax)],(x,),settings.get_numeric_transform())
     elif len(sym) == 2:
         yi,xi = sorted([sym.pop(),sym.pop()],key = lambda x:x.name)[::-1]
-        y,x = getattr(s,yi.name[0]),getattr(s,xi.name[0])
-        keys = tuple([getattr(s,p % i) for i in (x,y) for p in ['%smin','%smax','N%s']])
+
+        xname = get_axis_name(xi)
+        yname = get_axis_name(yi)
+
+        if xname == 't':
+            xi,xname,yi,yname = yi,yname,xi,xname
+
+        y,x = getattr(s,yname),getattr(s,xname)
+
+        keys = tuple([getattr(s,p % i) for i in (xname,yname) for p in ['%smin','%smax','N%s']])
         xmin,xmax,nx,ymin,ymax,ny = settings.get_numeric( keys )
         nx,ny = settings.get_as( (nx,ny) , int )
         npy,npx = np.meshgrid(np.arange(ny),np.arange(nx))
-        data =  expresso.pycas.numpyfy(expr)(**{xi.name:npx,yi.name:npy})
+        data =  expresso.pycas.numpyfy(expr,parallel=True)(**{xi.name:npx,yi.name:npy})
         res =  CoordinateNDArray(data,[(xmin,xmax),(ymin,ymax)],(x,y),settings.get_numeric_transform())
     else:
-        raise ValueError('cannot create field: three dimensional field creation not implemented')
+        raise ValueError('cannot create field: expression contains more than two free symbols: %s' % sym)
 
     return res
 
@@ -175,14 +202,18 @@ def plot(arg, *args, **kwargs):
                 raise ValueError('cannot plot expression: no settings provided')
             del kwargs['settings']
 
-        arg = expression_to_field(arg,settings)
+        arg = expression_to_array(arg, settings)
 
         if isinstance(arg,(float,complex)):
             print arg
             return
 
     elif not isinstance(arg,CoordinateNDArray):
-        raise ValueError('cannot plot non CoordinateNDArray object. For plotting regular arrays please use the matplotlib.pyplot module.')
+        if isinstance(arg,np.ndarray):
+            pc = expresso.pycas
+            arg = CoordinateNDArray(arg,[(pc.S(0),pc.S(n)) for n in arg.shape],[pc.Symbol('x_%i' % i) for i in range(len(arg.shape))])
+        else:
+            raise ValueError('cannot plot non CoordinateNDArray object. For plotting regular arrays please use the matplotlib.pyplot module.')
 
     if not np.can_cast(arg.data.dtype, np.float128):
         if np.all(arg.data.imag == 0): arg = arg.real

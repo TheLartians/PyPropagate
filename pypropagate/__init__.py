@@ -14,8 +14,11 @@ import units
 import presets
 import propagators
 
-from .plot import plot,expression_to_field
+from .plot import plot,expression_to_array
 from .settings import Settings
 
 import coordinate_ndarray
 np = coordinate_ndarray.WrappedNumpy()
+from coordinate_ndarray import CoordinateNDArray
+
+

@@ -14,6 +14,10 @@ A paraxial wave propagation framework for python 2.7 .
 - numpy
 - matplotlib
 
+## Documentation
+
+[![PDF Status](https://www.sharelatex.com/github/repos/TheLartians/PyPropagate/builds/latest/badge.svg)](https://www.sharelatex.com/github/repos/TheLartians/PyPropagate/builds/latest/output.pdf)
+
 ## Citing PyPropagate
 When using PyPropagate in your work it would be very appreciated to give us a citation. You can use the following BibTeX template:
 

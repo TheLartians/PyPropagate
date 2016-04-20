@@ -13,7 +13,6 @@ class Settings(CategorizedDictionary):
 
         self.updaters = collections.OrderedDict()
         self._cache = dict()
-        self._eval_cache = dict()
         self._initialized = True
         self._initializing = False
         self._initializers = collections.OrderedDict()
@@ -47,9 +46,9 @@ class Settings(CategorizedDictionary):
                 add_symbol_creation_to_category(inner_cat,short_name,cat_path)
                 return inner_cat
 
-            cat._set_attribute('create_symbol',create_symbol)
-            cat._set_attribute('create_function',create_function)
-            cat._set_attribute('create_category',create_category)
+            cat.add_attribute('create_symbol', create_symbol)
+            cat.add_attribute('create_function', create_function)
+            cat.add_attribute('create_category', create_category)
 
         cat = super(Settings, self).create_category(cat_name,*args,**kwargs)
         add_symbol_creation_to_category(cat,short_name)
@@ -95,7 +94,7 @@ class Settings(CategorizedDictionary):
     def _is_numeric(self,value):
         "Tests if a value should be classified as numeric"
         if isinstance(value,(bool,int,long,float,complex)):
-            return True
+            return value not in [1,0,-1,1j,-1j]
 
         import expresso.pycas as pc
         if isinstance(value,pc.Expression):
@@ -128,19 +127,19 @@ class Settings(CategorizedDictionary):
         elif key in self.numerics.keys() and not is_numeric:
             self.numerics.remove_key(key)
 
-        self._eval_cache = {}
+        self.clear_cache()
         self._initialized = self._initializing
 
     def _get_evaluator(self,numeric = False,unitless = False):
 
         key = (numeric,unitless)
+
         try:
-            return self._eval_cache[key]
+            return self._cache[key]
         except:
             pass
 
-
-        from expresso.pycas import Expression,RewriteEvaluator,ReplaceEvaluator,MultiEvaluator,Wildcard,S,Tuple
+        from expresso.pycas import Expression,RewriteEvaluator,ReplaceEvaluator,MultiEvaluator,Wildcard,S
 
         replacement_evaluator = ReplaceEvaluator(recursive=True)
         rule_evaluator = RewriteEvaluator(recursive=True)
@@ -161,13 +160,13 @@ class Settings(CategorizedDictionary):
                 sr = S(r)
                 if s==sr:
                     continue
-                if s.is_function:
+                if s.is_function and not s.function.is_operator:
                     wc_args = {arg:Wildcard(arg.name) for arg in s.args}
                     rule_evaluator.add_rule(s.subs(wc_args),sr.subs(wc_args))
                 else:
                     replacement_evaluator.add_replacement(s,r)
 
-        self._eval_cache[key] = evaluator
+        self._cache[key] = evaluator
 
         return evaluator
 
@@ -181,7 +180,8 @@ class Settings(CategorizedDictionary):
         self.initialize()
         evaluator = self._get_evaluator(numeric, unitless)
 
-        res = evaluator(expr,cache = self._eval_cache)
+        res = evaluator(expr, cache = self._cache)
+
         if evaluate == True:
             res = res.evaluate(cache = self.get_cache())
         return res
@@ -201,6 +201,7 @@ class Settings(CategorizedDictionary):
         return optimize_for_compilation(self.get_unitless(expr,**kwargs),cache = self.get_cache())
 
     def get_definition(self,expr):
+        self.initialize()
         return self.data[expr]
 
     def get_as(self,expr,type):
@@ -211,13 +212,6 @@ class Settings(CategorizedDictionary):
         return type(res)
 
     def get_numeric_transform(self):
-        return lambda x: self.get_numeric(x)
-
-
-
-
-
-
-
-
+        copy = self.copy()
+        return lambda x: copy.get_numeric(x)
 

@@ -28,8 +28,6 @@ class Solver(object):
                                 Voxel counts
     _xmin,_xmax,_tmin,_tmax:    Symbols
                                 Simulation Boundaries
-    _downscale:                 int [optional, defaults to 1]
-                                How much the result should be downscaled
     _transform:                 callable object [optional, defaults to lambda x:x]
                                 Function that converts symbolic expression to numeric values
     dtype:                      numpy dtype
@@ -74,13 +72,7 @@ class Solver(object):
             return self._transform
         except AttributeError:
             return lambda x:x
-        
-    def _get_downscale(self):
-        try:
-            return self._downscale
-        except AttributeError:
-            return 1
-        
+
     def _get_boundary(self,axis):
         if axis == 0:
             return (self._tmin,self._tmax)
@@ -103,7 +95,7 @@ class Solver(object):
             return self._z
         raise IndexError('axis out of range, define custom _get_axis_symbol')
         
-    def _get_box_size(self,axis,downscaled=True):
+    def _get_box_size(self,axis):
         if axis == 0:
             return self._nt
         if axis == 1:
@@ -140,8 +132,6 @@ class Solver(object):
     
     def get_field(self):
         res = self._get_field()
-        #if self._get_downscale() != 1:
-        #    res = rebin(res,self._get_nd_box_size()[1:])
         return CoordinateNDArray(res,self._get_nd_boundary()[1:],self._get_nd_axis_symbols()[1:],self._get_transform())
 
     def set_field(self,field):
@@ -149,7 +139,7 @@ class Solver(object):
         if isinstance(field,CoordinateNDArray):
             field = field.data
         
-        for x,xi,xj in zip(self._get_nd_axis_symbols()[1:],self._get_nd_box_size(downscaled=False)[1:],field.shape):
+        for x,xi,xj in zip(self._get_nd_axis_symbols()[1:],self._get_nd_box_size()[1:],field.shape):
             if xi != xj:
                 raise ValueError('Field size in %s direction (%s) doesn\'t match size defined in settings: %s' % (x,xj,xi))
         self._set_field(field)
@@ -165,11 +155,6 @@ class Solver(object):
         self._step()
 	if callback is not None:
 	    callback(self)
-
-    #def run(self,*args,**kwargs):
-    #    """Simulate for _nt steps and return the resulting CoordinateNDArray."""
-    #    return self._run_slice(self._get_nd_axis_symbols(self.ndim)[1:], *args, **kwargs)
-
 
     def run_slice(self,**kwargs):
 
@@ -191,9 +176,16 @@ class Solver(object):
         slice_agent = CoordinateNDArray(RunSliceAgent(self,agent_shape,kwargs),agent_bounds,agent_axis,self._get_transform())
         return slice_agent
 
-    def run(self,callback = None):
-        for i in range(self._get_box_size(0)):
+    def run(self,callback = None,display_progress=True, autohide_progress=False):
+        from .progressbar import ProgressBar
+
+        run_steps = range(1,self._get_box_size(0))
+        if display_progress == True:
+            run_steps = ProgressBar(run_steps, title='Simulation running. Step',autohide=autohide_progress)
+
+        for i in run_steps:
             self.step(callback=callback)
+
 
     def _run_slice(self, sliced , display_progress=True, autohide_progress=False, callback = None):
         """Simulate for _nt steps and return the resulting CoordinateNDArray."""
@@ -216,14 +208,17 @@ class Solver(object):
 
         sliced_indices = [(s.indices(b) if isinstance(s,slice) else (s,s+1,1)) for b,s in zip(box_size,sliced)]
 
-        box_size = [ (s[1] - s[0])/s[2]+1 if s[2]!=1 else s[1] - s[0] for s in sliced_indices]
+        box_size = [ (s[1] - s[0])/s[2] if s[2]!=1 else s[1] - s[0] for s in sliced_indices]
         box_size = [b for b in box_size if b != 1]
-
-        field = np.zeros(box_size[::-1] , dtype = self.dtype).transpose()
 
         sliced = tuple([slice(*s) if s[0]+1 != s[1] else s[0] for s in sliced_indices[1:]])
         def get_field():
             return self._get_field().__getitem__(sliced)
+
+
+        test = get_field()
+        for i in range(len(test.shape)):
+            box_size[i+1] = get_field().shape[i]
 
         i = 0
 
@@ -231,6 +226,8 @@ class Solver(object):
 
         for i in range(start):
             self.step(callback=callback)
+
+        field = np.zeros(box_size[::-1] , dtype = self.dtype).transpose()
 
         field[0] = get_field()
 

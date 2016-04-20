@@ -1,235 +1,237 @@
 
+def add_coordinate(settings,category,name):
 
+    import expresso.pycas as pc
 
-def add_simulation_box_symbols(settings):
+    x = category.create_key(name,pc.Symbol(name,type=pc.Types.Real),info='coordinate')
+    xmin = category.create_key('%smin' % name,pc.Symbol('%s_min' % name),info='minimum value')
+    xmax = category.create_key('%smax' % name,pc.Symbol('%s_max' % name),info='maximum value')
+    xi = pc.Symbol('%s_i' % name,type=pc.Types.Natural)
+    xif = category.create_key('%si' % name,pc.Function('%s_i' % name)(x),info='numerical index')
+    Nx = category.create_key('N%s' % name,pc.Symbol('N_%s' % name,type=pc.Types.Natural),info='numerical steps')
+    sx = category.create_key('s%s' % name,pc.Symbol('s_%s' % name),info='total size')
+    dx = category.create_key('d%s' % name,pc.Symbol('Delta %s' % name),info='step size')
+
+    setattr(category,name, xmin + xi * dx)
+    setattr(category,'%si' % name,(x - xmin)/dx)
+
+    setattr(category,'s%s' % name,xmax - xmin)
+    setattr(category,'d%s' % name,sx/(Nx-1))
+
+    category.lock(name,'defined by %si' % name)
+    category.lock('s%s' % name,'defined by %smin and %smax' % (name,name))
+    category.lock('d%s' % name,'defined by s%s and N%s' % (name,name))
+
+    settings.unitless.add_key('%s_coordinate' % name,x)
+
+def add_time_symbols(settings):
+    settings.simulation_box.unlock()
+    add_coordinate(settings,settings.simulation_box,'t')
+    sb  = settings.simulation_box
+    sb.tmin = 0
+    sb.export(settings.symbols,warn=False)
+
+    import units
+    settings.unitless.create_key(None,units.s,10**10)
+
+    if settings.has_category('wave_equation'):
+        settings.wave_equation.create_function('u0',(sb.x,sb.y,sb.z,sb.t))
+        settings.partial_differential_equation.u0 = settings.wave_equation.u0.subs(sb.t,0)
+
+def add_simulation_box_category(settings,coords = ['x','y','z']):
+    import expresso.pycas as pc
+    import types
 
     sb = settings.create_category("simulation_box",info="parameters and dimensions of the simulation box")
 
-    from expresso.pycas import Symbol,symbols,Function,pi,I,Types,sqrt
+    for c in coords:
+        add_coordinate(settings,sb,c)
 
-    x = sb.create_key("x",Symbol("x",type = Types.Real),info="field coordinate for 1D simulations")
-    y = sb.create_key("y",Symbol("y",type = Types.Real),info="second coordinate for 2D simulations")
-    z = sb.create_key("z",Symbol("z",type = Types.Real),info="propagation direction")
+    class CoordinateAttrs:
+        def __init__(self,sb,name):
+            self.name = name
+            self.symbol = getattr(sb,name)
+            self.min = getattr(sb,name+'min')
+            self.max = getattr(sb,name+'max')
+            self.step = getattr(sb,'d'+name)
+            self.steps = getattr(sb,'N'+name)
+            self.size = getattr(sb,'s'+name)
+            self.index =  pc.Symbol('%s_i' % name,type=pc.Types.Natural)
+        def __repr__(self):
+            return "<%s Attrs>" % self.name
 
-    sb.create_key("nx", Symbol("n_x",type = Types.Integer,positive=True),info="voxels in x direction minus the boundary conditions")
-    sb.create_key("ny", Symbol("n_y",type = Types.Integer,positive=True),info="voxels in y direction minus the boundary conditions")
-    sb.create_key("nz", Symbol("n_z",type = Types.Integer,positive=True),info="voxels in z direction minus the boundary condition")
-
-    sb.create_key("Nx", Symbol("N_x",type = Types.Integer,positive=True),info="actual voxels in x direction")
-    sb.create_key("Ny", Symbol("N_y",type = Types.Integer,positive=True),info="actual voxels in y direction")
-    sb.create_key("Nz", Symbol("N_z",type = Types.Integer,positive=True),info="actual voxels in z direction")
-
-    sb.nx = sb.Nx - 2
-    sb.ny = sb.Ny - 2
-    sb.nz = sb.Nz - 1
-    sb.lock('nx','defined by Nx')
-    sb.lock('ny','defined by Ny')
-    sb.lock('nz','defined by Nz')
-
-    sx = sb.create_key("sx",Symbol("s_x",type = Types.Real,positive=True),info="simulation box size in x direction")
-    sy = sb.create_key("sy",Symbol("s_y",type = Types.Real,positive=True),info="simulation box size in y direction")
-    sz = sb.create_key("sz",Symbol("s_z",type = Types.Real,positive=True),info="simulation box size in z direction")
-
-    sb.create_key("dx",Symbol("Delta x",type = Types.Real,positive=True),info="voxel size in x direction")
-    sb.create_key("dy",Symbol("Delta y",type = Types.Real,positive=True),info="voxel size in y direction")
-    settings.simulation_box.create_key("dz",Symbol("Delta z",type = Types.Real,positive=True),info="voxel size in z direction")
-
-    xmin = sb.create_key("xmin", Symbol("x_min",type = Types.Real),info="x value at the lower simulation box boundary")
-    xmax = sb.create_key("xmax", Symbol("x_max",type = Types.Real),info="x value at the upper simulation box boundary")
-    ymin = sb.create_key("ymin", Symbol("y_min",type = Types.Real),info="y value at the lower simulation box boundary")
-    ymax = sb.create_key("ymax", Symbol("y_max",type = Types.Real),info="y value at the upper simulation box boundary")
-    zmin = sb.create_key("zmin", Symbol("z_min",type = Types.Real),info="z value at the lower simulation box boundary")
-    zmax = sb.create_key("zmax", Symbol("z_max",type = Types.Real),info="z value at the upper simulation box boundary")
-
-    sb.zmin = 0
-
-    sb.dx = sx/(sb.Nx-1)
-    sb.dy = sy/(sb.Ny-1)
-    sb.dz = sz/(sb.Nz-1)
-    sb.lock('dx','defined by sx and Nx')
-    sb.lock('dy','defined by sy and Ny')
-    sb.lock('dz','defined by sz and Nz')
-
-    sb.sx = xmax - xmin
-    sb.sy = ymax - ymin
-    sb.sz = zmax - zmin
-    sb.lock('sx','defined by xmin and xmax')
-    sb.lock('sy','defined by ymin and ymax')
-    sb.lock('sz','defined by zmin and zmax')
-
-    sb.create_key('r',Function('r')(sb.x,sb.y),sqrt(sb.x**2+sb.y**2),info='distance from origin')
-
-    sb.create_key("fy",Symbol("fixed y",type = Types.Real),info="fixed y value for 2D simulations")
-    sb.fy = 0
-
-    import expresso.pycas as pc
-    sb.create_key("xi",Symbol('x_i',type=pc.Types.Natural),info="grid index for x value")
-    sb.create_key("yi",Symbol('y_i',type=pc.Types.Natural),info="grid index for y value")
-    sb.create_key("zi",Symbol('z_i',type=pc.Types.Natural),info="grid index for z value")
-
-    sb.create_key("coordinates",(x,y,z))
-    sb.lock('coordinates')
-
-    settings.unitless.add_key('x',x)
-    settings.unitless.x = sb.xmin+sb.xi*sb.dx
-    settings.unitless.add_key('y',y)
-    settings.unitless.y = sb.ymin+sb.yi*sb.dy
-    settings.unitless.add_key('z',z)
-    settings.unitless.z = sb.zmin+sb.zi*sb.dz
+    sb.add_attribute("coordinates", tuple(CoordinateAttrs(sb, c) for c in coords))
+    sb.add_attribute("coordinate_dict", {getattr(sb, c):d for c, d in zip(coords, sb.coordinates)})
 
     sb.lock()
 
-    def set_2D_voxel_size(Nx,Nz):
-        'Sets the voxe size of the simulation in x, y and z direction'
-        voxel_size = (Nx,Nz)
-        sb.Nx,sb.Nz = voxel_size
+    def set_size(sb,axis_name,size):
+        sb.unlock("%smin" % axis_name)
+        sb.unlock("%smax" % axis_name)
 
-    def set_2D_physical_size(sx,sz):
-        'Sets the physical box size of the simulation in x, y and z direction'
-        sb.unlock('xmin')
-        sb.unlock('xmax')
-        sb.unlock('zmin')
-        sb.unlock('zmax')
-        sb.unlock('sx')
-        sb.unlock('sz')
-
-        sb.sx,sb.sz = (sx,sz)
-        sb.xmin = -sb.sx/2
-        sb.xmax = sb.xmin + sb.sx
-        sb.zmax = sb.zmin + sb.sz
-
-        sb.lock('xmax','defined by xmin and sx')
-        sb.lock('zmax','defined by zmin and sz')
-
-    def set_physical_size(sx,sy,sz):
-        'Sets the physical box size of the simulation in x, y and z direction'
-        sb.unlock('xmin')
-        sb.unlock('xmax')
-        sb.unlock('ymin')
-        sb.unlock('ymax')
-        sb.unlock('zmin')
-        sb.unlock('zmax')
-        sb.unlock('sx')
-        sb.unlock('sy')
-        sb.unlock('sz')
-
-        sb.sx,sb.sy,sb.sz = (sx,sy,sz)
-        sb.xmin = -sb.sx/2
-        sb.ymin = -sb.sy/2
-        sb.xmax = sb.xmin + sb.sx
-        sb.ymax = sb.ymin + sb.sy
-        sb.zmax = sb.zmin + sb.sz
-
-        sb.lock('xmax','defined by xmin and sx')
-        sb.lock('ymax','defined by ymin and sy')
-        sb.lock('zmax','defined by zmin and sz')
-
-    def set_voxel_size(Nx,Ny,Nz):
-        'Sets the voxe size of the simulation in x, y and z direction'
-        voxel_size = (Nx,Ny,Nz)
-        sb.Nx,sb.Ny,sb.Nz = voxel_size
-
-    def set_simulation_box(physical_size,voxel_size):
-        """Sets the simulation box size using the physical_size and voxel_size arguments which are 3-tupels containing the simulation box dimensions in x, y, and z directions."""
-        if(len(physical_size) == 3):
-            set_physical_size(*physical_size)
-            set_voxel_size(*voxel_size)
+        if axis_name in 't,z':
+            setattr(sb,"%smin" % axis_name,0)
+            setattr(sb,"%smax" % axis_name,size)
         else:
-            set_2D_physical_size(*physical_size)
-            set_2D_voxel_size(*voxel_size)
+            setattr(sb,"%smin" % axis_name,-size/2)
+            setattr(sb,"%smax" % axis_name,size/2)
+
+        sb.lock("%smin" % axis_name,'defined by s%s' % axis_name)
+        sb.lock("%smax" % axis_name,'defined by s%s' % axis_name)
+
+    def set_vsize(sb,axis_name,size):
+        setattr(sb,"N%s" % axis_name,size)
+
+    def set_physical_size(sb,*sizes):
+        if len(coords) != len(sizes):
+            raise ValueError('number of arguments does not match coordinates %s' % coords)
+        for c,s in zip(coords,sizes):
+            sb.set_size(c,s)
+
+    def set_voxel_size(sb,*sizes):
+        if len(coords) != len(sizes):
+            raise ValueError('number of arguments does not match coordinates %s' % coords)
+        for c,s in zip(coords,sizes):
+            sb.set_vsize(c,s)
+
+    def set_method(sb,physical_size,voxel_size):
+        """Sets the simulation box size using the physical_size and voxel_size arguments which are 3-tupels containing the simulation box dimensions in x, y, and z directions."""
+        sb.set_physical_size(*physical_size)
+        sb.set_voxel_size(*voxel_size)
+
+    sb.add_method('set_size', set_size)
+    sb.add_method('set_vsize', set_vsize)
+
+    sb.add_method('set_physical_size', set_physical_size)
+    sb.add_method('set_voxel_size', set_voxel_size)
+    sb.add_method('set', set_method)
 
     def make_unitless(settings):
         sb = settings.simulation_box
 
         from units import get_unit
-        defined = {sb.sy}
+        defined = set()
 
-        for s in settings.get_numeric((sb.sx,sb.sy,sb.sz)):
+        for s in settings.get_numeric(tuple(getattr(sb,'s'+c) for c in coords)):
             unit = get_unit(s,cache = settings.get_cache())
+
             if unit is None or unit in defined:
                 continue
+
+            value = (unit/s).evaluate(cache=settings.get_cache())
+
+            if unit.function == pc.fraction:
+                unit = unit.args[0]
+                value = 1/value
+
+            if  unit.is_function:
+                continue
+
+            if unit is None or unit in defined or unit.is_function:
+                continue
+
             defined.add(unit)
             unit_name = str(unit)
             if not settings.unitless.has_name(unit_name):
                 settings.unitless.create_key(unit_name,unit)
-            setattr(settings.unitless,unit_name,(2*unit/s).evaluate(cache=settings.get_cache()))
+
+            setattr(settings.unitless,unit_name,value)
 
     settings.initializers['make_unitless'] = make_unitless
 
-    sb._set_attribute('set', set_simulation_box)
+    return sb
 
-
-def add_partial_differential_equation_symbols(settings):
+def add_partial_differential_equation_category(settings,coordinates = None):
     import expresso.pycas as pc
     sb = settings.simulation_box
     pde = settings.create_category('partial_differential_equation',short_name='PDE',info="parameters of the partial differential equation")
 
-    pde.create_function('A',sb.coordinates)
-    pde.create_function('C',sb.coordinates,pde.A)
-    pde.create_function('F',sb.coordinates)
+    arg_attrs = [sb.coordinate_dict[x] for x in coordinates] if coordinates is not None else sb.coordinates
+    pde.add_attribute('coordinates', arg_attrs)
 
-    pde.create_function('ra',sb.coordinates,pde.A*sb.dz/sb.dx**2,info="finite difference paramter")
-    pde.create_function('rc',sb.coordinates,pde.A*sb.dz/sb.dy**2,info="finite difference paramter")
-    pde.create_function('rf',sb.coordinates,pde.F*sb.dz/2,info="finite difference paramter")
+    x,y,z = [a.symbol for a in arg_attrs]
 
-    pde.create_function('u',sb.coordinates,info='solution to the PDE')
+    dx,dy,dz = [s.step for s in arg_attrs]
+    args = (x,y,z)
+
+    pde.create_function('A',args )
+    pde.create_function('C',args ,pde.A)
+    pde.create_function('F',args )
+
+    pde.create_function('ra',args ,pde.A*dz/dx**2,info="finite difference paramter")
+    pde.create_function('rc',args ,pde.C*dz/dy**2,info="finite difference paramter")
+    pde.create_function('rf',args ,pde.F*dz/2,info="finite difference paramter")
+
+    pde.create_function('u',args ,info='solution to the PDE')
     pde.lock('u')
 
-    pde._set_attribute('equation',pc.equal(pc.derivative(pde.u,sb.z), pde.A * pc.derivative(pc.derivative(pde.u,sb.x),sb.x) +  pde.C * pc.derivative(pc.derivative(pde.u,sb.y),sb.y)  + pde.F * pde.u ))
+    pde.add_attribute('equation', pc.equal(pc.derivative(pde.u, z), pde.A * pc.derivative(pc.derivative(pde.u, x), x) + pde.C * pc.derivative(pc.derivative(pde.u, y), y) + pde.F * pde.u))
 
-    pde.create_key('u0',pc.Function('u_0_PDE')(*sb.coordinates),info="field initial condition")
-    pde.create_function('u_boundary',sb.coordinates,info="field boundary condition");
+    pde.create_key('u0',pc.Function('u_0_PDE')(*args ),info="field initial condition")
+    pde.create_function('u_boundary',args ,info="field boundary condition");
+
+    pde.create_key(arg_attrs[1].name+'0',pc.Symbol(y.name+'_0_PDE'),(arg_attrs[1].min+arg_attrs[1].max)/2,info='Value to which the %s is set for 1D solvers' % y.name)
 
     pde.lock()
+
+    return pde
 
 def create_paraxial_settings():
     from .settings import Settings
     settings = Settings('settings for solving the paraxial differential equation')
-    add_simulation_box_symbols(settings)
+    add_simulation_box_category(settings)
     settings.simulation_box.export(settings.symbols)
-    add_partial_differential_equation_symbols(settings)
+    add_partial_differential_equation_category(settings)
     settings.partial_differential_equation.export(settings.symbols)
     return settings
 
-def add_wave_equation_symbols(settings):
+def add_wave_equation_category(settings):
     import units
     from expresso.pycas import Function,Symbol,Types,pi
 
     s = settings.simulation_box
 
-    we = settings.create_category("wave_equation",info="parameters for solving the wave equation")
+    c = settings.numerics.create_key('c',Symbol('c'),units.c,info='speed of light')
+    h = settings.numerics.create_key('h',Symbol('h'),units.h,info='Planck\'s constant')
+    hbar = settings.numerics.create_key('hbar',Symbol('hbar'),units.hbar,info='reduced Planck\'s constant')
 
-    n = we.create_key("n",Function("n")(s.x,s.y,s.z))
-    k = we.create_key("k",Symbol("k",type = Types.Complex))
+    we = settings.create_category("wave_equation",info="parameters for solving the wave equation",short_name="WE")
 
-    we.create_key("omega",Symbol(r"omega",type = Types.Real,positive=True),k*units.c)
-    we.create_key("wavelength",Symbol(r"lambda",type = Types.Real,positive=True),2*pi/we.k)
+    n = we.create_key("n",Function("n")(*[c.symbol for c in s.coordinates]))
 
-    we.lock('wavelength','defined by k')
-    we.lock('omega','defined by omega')
+    omega = we.create_key('omega',Symbol('omega'),info='angular wave frequency') if not hasattr(s,'omega') else we.add_key('omega',s.omega)
+    wavelength = we.create_key('wavelength',Symbol("lambda"),settings.numerics.c*2*pi/omega,info='vacuum wavelength')
+    k = we.create_key("k",Symbol("k"),omega/settings.numerics.c,info='wave number')
+    E = we.create_key("E",Symbol("E"),omega * settings.numerics.hbar,info='photon energy')
 
-    def set_energy(value):
-        if not we.has_name('E'):
-            we.create_key("E",Symbol("E",type = Types.Real,positive=True),info='Wave energy')
-            settings.symbols.add_key("E",we.E)
-            we.k = we.E / (units.hbar*units.c)
-            we.lock('k','defined by energy')
+    we.lock('k','defined by omega')
+    we.lock('E','defined by omega')
+
+    def set_energy(we,value):
+        we.unlock('E')
+        we.omega = we.E / hbar
+        we.lock('omega','defined by energy')
         we.E = value
 
-    we._set_attribute('set_energy',set_energy)
+    import types
+    we.add_method('set_energy',set_energy)
+
+    return we
 
 def create_paraxial_wave_equation_settings():
 
     from .settings import Settings
+    import expresso.pycas as pc
+
     settings = Settings('settings for solving the paraxial differential equation')
 
-    add_simulation_box_symbols(settings)
+    add_simulation_box_category(settings)
     settings.simulation_box.export(settings.symbols)
 
-    add_wave_equation_symbols(settings)
+    add_wave_equation_category(settings)
     settings.wave_equation.export(settings.symbols)
 
-    add_partial_differential_equation_symbols(settings)
+    add_partial_differential_equation_category(settings)
     settings.partial_differential_equation.export(settings.symbols)
 
     from expresso.pycas import I
@@ -246,16 +248,26 @@ def create_paraxial_wave_equation_settings():
 
     return settings
 
-def set_plane_wave_initial_conditions(settings):
-    """Sets the intial conditions to a plane wave with intensity 1.
-    The boundary are set to the index of refraction at z=0."""
+def set_1D_boundary_condition(settings):
     from expresso.pycas import exp
 
     s = settings.simulation_box
     pe = settings.partial_differential_equation
 
+    pe.u_boundary = pe.u0.subs(s.z,s.zmin) * exp(pe.F.subs(s.z,s.zmin)*s.z)
+
+
+def set_plane_wave_initial_conditions(settings):
+    """Sets the boundary conditions to a plane wave with intensity 1.
+    The boundary are set to the index of refraction at z=0."""
+
+    s = settings.simulation_box
+    pe = settings.partial_differential_equation
+
     pe.u0 = 1
-    pe.u_boundary = pe.u0.subs(s.z,0) * exp(pe.F.subs(s.z,0)*s.z)
+    set_1D_boundary_condition(settings)
+
+
 
 def create_next_settings(old_settings):
     settings = old_settings.copy(copy_initializers = False,copy_updaters = False)
@@ -284,8 +296,6 @@ def add_padding(array,factor,mode = 'edge',**kwargs):
     new_bounds = [(b-i,e+i) for i,(b,e) in zip(extension,array.bounds)]
 
     return CoordinateNDArray(new_data,new_bounds,array.axis,array.evaluate)
-
-
 
 def set_initial(settings,initial_array):
     import expresso.pycas as pc
@@ -330,6 +340,248 @@ def set_initial(settings,initial_array):
         sb.lock('xmax','defined by initial array')
         sb.lock('sx','defined by xmin and xmax')
 
+def get_refraction_indices(material,min_energy,max_energy,steps):
+    from mechanize import Browser
 
+    max_steps = 499
 
+    if steps > max_steps:
+        dn = (max_energy - min_energy)/(steps - 1)
+        current_max = min_energy + max_steps * dn
+        missing = max(steps-max_steps,3)
+        return get_refraction_indices(material,min_energy,current_max ,max_steps) + \
+               get_refraction_indices(material,current_max + dn,current_max + dn * missing,missing)
 
+    br = Browser()
+
+    br.open( "http://henke.lbl.gov/optical_constants/getdb.html" )
+
+    br.select_form(nr=0)
+
+    br.form[ 'Formula' ] = material
+    br.form[ 'Min' ] = str(min_energy)
+    br.form[ 'Max' ] = str(max_energy)
+    br.form[ 'Npts' ] = str(steps-1)
+    br.form[ 'Output' ] = ['Text File']
+
+    res = br.submit().read()
+
+    def is_number(s):
+        try:
+            float(s)
+            return True
+        except ValueError:
+            return False
+
+    def get_numbers(line):
+        return [float(v) for v in line.split(' ') if is_number(v)]
+
+    try:
+        betadelta = [get_numbers(line) for line in res.split('\n') if len(get_numbers(line)) == 3]
+        values = [1-float(v[1])+1j*float(v[2]) for v in betadelta]
+    except:
+        betadelta = []
+
+    if len(betadelta) != steps:
+        raise RuntimeError('error retrieving refractive index for %s (E from %s to %s in %s steps)\nserver response: %s' % (
+            material,min_energy,max_energy,steps,res))
+
+    return values
+
+def create_material(name,settings):
+
+    import expresso.pycas as pc
+
+    nname = 'n_%s' % name
+
+    if not settings.has_category('refractive_indices'):
+        settings.create_category('refractive_indices')
+    r = settings.refractive_indices
+
+    def init_material(settings):
+        import units
+        import numpy as np
+
+        sb = settings.simulation_box
+        r = settings.refractive_indices
+        omega = settings.wave_equation.omega
+
+        try:
+            N = settings.get_as(sb.Nomega,int)
+            omegamin,omegamax = (sb.omegamin,sb.omegamax)
+
+            EminExpr = omegamin * units.hbar / units.eV
+            EmaxExpr = omegamax * units.hbar / units.eV
+
+            omega_dependent = True
+        except:
+            N = 3
+            E = units.hbar * omega / units.eV
+            EmaxExpr = E + 1
+            EminExpr = E - 1
+            omega_i = 1
+            omega_dependent = False
+        try:
+            Emin = settings.get_as(EminExpr,float)
+            Emax = settings.get_as(EmaxExpr,float)
+        except:
+            setattr(r,nname,None)
+            return
+
+        key = (N,Emin,Emax)
+        if not hasattr(r,'_cache'):
+            r.add_attribute('_cache', {})
+        else:
+            if nname in r._cache and r._cache[nname] == key:
+                return
+        if omega_dependent:
+            narr = pc.array(nname,np.array(get_refraction_indices(name,Emax,Emin,N)))
+            setattr(r,nname,narr(sb.omegai))
+        else:
+            setattr(r,nname,get_refraction_indices(name,Emax,Emin,3)[1])
+
+        r._cache[nname] = key
+
+    settings.initializers["init_" + nname] = init_material
+
+    if r.has_name(nname):
+        return getattr(r,nname)
+    n = r.create_key(nname,pc.Function(nname)(settings.wave_equation.omega))
+
+    settings.numerics.add_key(nname,n)
+    return n
+
+def create_2D_paraxial_frequency_settings():
+    from .settings import Settings
+
+    settings = Settings()
+    sb = add_simulation_box_category(settings,['x','omega','z'])
+    pde = add_partial_differential_equation_category(settings,(sb.x,sb.omega,sb.z))
+    we = add_wave_equation_category(settings)
+
+    sb.export(settings.symbols,warn=False)
+    we.export(settings.symbols,warn=False)
+
+    settings.symbols.add_key('u0',pde.u0)
+    settings.symbols.add_key('u_boundary',pde.u_boundary)
+
+    pde.A = 1j/(2*we.k)
+    pde.C = 0
+    pde.F = 1j*we.k/2*(we.n**2-1)
+
+    return settings
+
+def create_2D_frequency_settings_from(settings):
+    import expresso.pycas as pc
+    import units
+    from .plot import expression_to_array
+    from .coordinate_ndarray import CoordinateNDArray
+    import numpy as np
+
+    settings.initialize()
+    settings = settings.copy()
+
+    sb = settings.simulation_box
+    we = settings.wave_equation
+    omega0 = settings.get_numeric(we.omega)
+    we.unlock('omega')
+    we.omega = None
+
+    freq_settings = create_paraxial_settings()
+    pde = freq_settings.partial_differential_equation
+
+    freq_settings.simulation_box.unlock()
+    freq_settings.simulation_box.remove_name('y')
+    omega = freq_settings.simulation_box.create_key('y',pc.Symbol('omega'))
+
+    fsb = freq_settings.simulation_box
+    freq_settings.simulation_box.y = fsb.ymin + fsb.yi * fsb.dy
+
+    n = settings.get_numeric(we.n.subs(sb.y,0)).subs(omega,abs(omega - omega0))
+
+    p = freq_settings.create_category('paramters',short_name="p")
+    p.create_function('n',(sb.x,sb.y,sb.z,omega),n)
+    p.create_symbol('k',(omega - omega0)/units.c)
+    p.create_symbol('k_0',omega0/units.c)
+
+    pde.A = 1j/(2*p.k_0)
+    pde.C = 0
+    pde.F = 1j/(2*p.k_0) * (p.n**2 * p.k**2 - p.k_0**2)
+
+    xmin = settings.get_numeric(sb.xmin)
+    xmax = settings.get_numeric(sb.xmax)
+
+    freq_settings.simulation_box.xmin = xmin
+    freq_settings.simulation_box.xmax = xmax
+    freq_settings.simulation_box.Nx = settings.get_as(sb.Nx,int)
+
+    omegamin = settings.get_numeric(-2*pc.pi*sb.Nt/sb.st)
+    omegamax = settings.get_numeric( 2*pc.pi*sb.Nt/sb.st)
+
+    freq_settings.simulation_box.ymin = omegamin
+    freq_settings.simulation_box.ymax = omegamax
+    freq_settings.simulation_box.Ny = settings.get_as(sb.Nt,int)
+
+    freq_settings.simulation_box.zmin = settings.get_numeric(sb.zmin)
+    freq_settings.simulation_box.zmax = settings.get_numeric(sb.zmax)
+    freq_settings.simulation_box.Nz = settings.get_as(sb.Nz,int)
+
+    freq_settings.unitless.create_key('s',units.s,settings.get_as( 2/(omegamax - omegamin)/units.s , float ) )
+
+    u0 = expression_to_array(settings.wave_equation.u0.subs([(sb.y, 0), (sb.z, sb.zmin)]), settings, axes=(sb.x, sb.t))
+
+    u0hat = CoordinateNDArray( np.fft.fftshift( np.fft.fft(u0.data,axis=1) , axes=(1,) ) ,
+                               [(xmin,xmax),( omegamin, omegamax )] ,
+                               [sb.x,omega])
+
+    set_initial(freq_settings,u0hat)
+    freq_settings.partial_differential_equation.u_boundary = 0
+
+    return freq_settings
+
+def fourier_transform(array,axis,new_axis,inverse=False):
+    import numpy as np
+    from numpy.fft import fft,ifft,fftshift,ifftshift
+    from expresso.pycas import pi
+    from .coordinate_ndarray import CoordinateNDArray
+
+    axi = array.axis.index(axis)
+
+    if not inverse:
+        new_data =  1/np.sqrt(2*np.pi) * fftshift(fft(array.data,axis=axi),axes=[axi])
+    else:
+        new_data =  np.sqrt(2*np.pi) * ifft(ifftshift(array.data,axes=[axi]),axis=axi)
+
+    sw = array.bounds[axi][1] - array.bounds[axi][0]
+    tmin,tmax = array.evaluate((-(pi*array.shape[axi])/sw,
+                                 (pi*array.shape[axi])/sw))
+
+    new_bounds = [(b[0],b[1]) if i!=axi else (tmin,tmax) for i,b in enumerate(array.bounds)]
+    new_axis = [a  if i!=axi else new_axis for i,a in enumerate(array.axis)]
+
+    return CoordinateNDArray(new_data,new_bounds,new_axis,array.evaluate)
+
+def inverse_fourier_transform(*args):
+    return fourier_transform(*args,inverse=True)
+
+def u_from_utilde(field,omega0):
+    import numpy as np
+    import expresso.pycas as pc
+    import units
+
+    omegamin,omegamax = field.bounds[1]
+    zmin, zmax = field.bounds[2]
+    sz = zmax - zmin
+
+    ukmin = float(field.evaluate( (omegamin-omega0)/units.c*sz ))
+    ukmax = float(field.evaluate( (omegamax-omega0)/units.c*sz ))
+    uzmin = 0
+    uzmax = 1
+
+    #print ukmin
+    #print ukmax
+
+    nz,ik = np.meshgrid(np.linspace(-uzmin,-uzmax,field.shape[2]),np.linspace(1j*ukmin,1j*ukmax,field.shape[1]))
+    factor = np.exp(ik*nz)
+
+    return fourier_transform(field * factor,field.axis[1],pc.Symbol('t'),inverse=True)

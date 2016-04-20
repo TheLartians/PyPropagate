@@ -9,34 +9,52 @@ class Propagator(Solver):
         super(Propagator,self).__init__(settings)
 
         sb = settings.simulation_box
+        coordinates = settings.partial_differential_equation.coordinates
 
-        self._x = sb.x
-        if self.ndim > 1: self._y = sb.y
-        self._t = sb.z
+        self._x,self._t = coordinates[0].symbol,coordinates[2].symbol
+        if self.ndim > 1: self._y = coordinates[1].symbol
 
-        self._nx,self._nt = settings.get_as((sb.Nx,sb.Nz),int)
-        if self.ndim > 1: self._ny = settings.get_as(sb.Ny,int)
-        self._xmin,self._xmax = settings.get_numeric((sb.xmin,sb.xmax))
-        if self.ndim > 1: self._ymin,self._ymax = settings.get_numeric((sb.ymin,sb.ymax))
-        self._tmin,self._tmax = settings.get_numeric((sb.zmin,sb.zmax))
+        self._nx,self._nt = settings.get_as((coordinates[0].steps,coordinates[2].steps),int)
+        if self.ndim > 1: self._ny = settings.get_as(coordinates[1].steps,int)
+
+        self._xmin,self._xmax,self._tmin,self._tmax = settings.get_numeric((coordinates[0].min,coordinates[0].max,coordinates[2].min,coordinates[2].max))
+        if self.ndim > 1: self._ymin,self._ymax = settings.get_numeric((coordinates[1].min,coordinates[1].max))
 
         import expresso.pycas as pc
         pe = settings.partial_differential_equation
 
         self._F_is_zero = settings.get_unitless( pe.F ) == pc.Zero
-        self._F_is_constant_in_z = settings.get_numeric(pc.derivative(pe.F, sb.z)) == pc.Zero
-        self._F_is_constant = self._F_is_constant_in_z and settings.get_numeric(pc.derivative(pe.F, sb.x)) == pc.Zero
-	if self.ndim > 1: self._F_is_constant &= settings.get_numeric(pc.derivative(pe.F, sb.y)) == pc.Zero
+        self._F_is_constant_in_z = settings.get_numeric(pc.derivative(pe.F, self._t )) == pc.Zero
+        self._F_is_constant = self._F_is_constant_in_z and settings.get_numeric(pc.derivative(pe.F, self._x)) == pc.Zero
+        if self.ndim > 1: self._F_is_constant &= settings.get_numeric(pc.derivative(pe.F, self._y )) == pc.Zero
 
     def _set_initial_field(self,settings):
         sb = settings.simulation_box
-        u0 = self._get_evaluators(settings.partial_differential_equation.u0.subs(sb.z,sb.zmin),settings)
+        z = sb.coordinates[2]
+        u0 = self._get_evaluators(settings.partial_differential_equation.u0.subs(z.symbol,z.min),settings)
         initial = u0(*self._get_coordinates())
         self.__initial = initial
         self.set_field(initial)
 
     def _reset(self):
         self.set_field(self.__initial)
+
+    def _evaluate(self,expr,settings):
+        if self.ndim == 1:
+            sb = settings.simulation_box
+            pde = settings.partial_differential_equation
+            x,y,z = pde.coordinates
+            y0 = getattr(pde,y.name + '0')
+            #try:
+            #    y0i = settings.get_as((y0 - y.min)/y.step,int)
+            #except:
+            #    y0i = 0
+            return settings.get_optimized(settings.get_optimized(expr.subs(y.symbol,y0)))
+        else:
+            return settings.get_optimized(expr)
+
+    def _get_as(self,expr,type,settings):
+        return type(self._evaluate(expr,settings))
 
     def __get_x_coordinates(self):
         import numpy as np
@@ -78,7 +96,7 @@ class Propagator(Solver):
     def _get_initial(self):
         return self.__initial
 
-    def _get_evaluators(self,expressions,settings,compile_to_c = None,**kwargs):
+    def _get_evaluators(self,expressions,settings,compile_to_c = None,args = None,**kwargs):
         import expresso.pycas as pc
 
         if not isinstance(expressions,(list,tuple)):
@@ -87,13 +105,12 @@ class Propagator(Solver):
         else:
             return_single = False
 
-        sb = settings.simulation_box
-        args = (sb.xi,sb.yi,sb.zi) if self.ndim == 2 else (sb.xi,sb.zi)
+        x,y,z = settings.simulation_box.coordinates
 
-        if self.ndim == 1:
-            expressions = [settings.get_optimized(expr.subs(sb.y,sb.fy)) for expr in expressions]
-        else:
-            expressions = [settings.get_optimized(expr) for expr in expressions]
+        if args is None:
+            args = (x.index,y.index,z.index) if self.ndim == 2 else (x.index,z.index)
+
+        expressions = [self._evaluate(expr,settings) for expr in expressions]
 
         if 'return_type' not in kwargs:
             kwargs['return_type'] = pc.Types.Complex
@@ -103,13 +120,13 @@ class Propagator(Solver):
             	expr.N()
 		return True
 	    except:
- 		return False   
+ 		return False
 
         definitions = [pc.FunctionDefinition('f%s' % i,args,expr,**kwargs)
                        for i,expr in enumerate(expressions) if not is_constant(expr)]
 
         if compile_to_c == None:
- 	    compile_to_c = self.ndim > 1       
+ 	    compile_to_c = self.ndim > 1
  
         if not compile_to_c:
             lib = pc.ncompile(*definitions)
@@ -134,7 +151,7 @@ class Propagator(Solver):
 		if res is not None:
 		    res.fill(c)
 		    return res
-	        return np.full(args[0].shape,c)      
+	        return np.full(args[0].shape,c)
             return constant_expression
 
         res = [ getattr(lib,'f%s' % i) if hasattr(lib,'f%s' % i) else get_constant_expression(expressions[i]) for i in range(len(expressions)) ]
