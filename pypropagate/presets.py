@@ -60,47 +60,51 @@ def add_simulation_box_category(settings,coords = ['x','y','z']):
         def __repr__(self):
             return "<%s Attrs>" % self.name
 
-    sb._set_attribute("coordinates",tuple(CoordinateAttrs(sb,c) for c in coords))
-    sb._set_attribute("coordinate_dict",{getattr(sb,c):d for c,d in zip(coords,sb.coordinates)})
+    sb.add_attribute("coordinates", tuple(CoordinateAttrs(sb, c) for c in coords))
+    sb.add_attribute("coordinate_dict", {getattr(sb, c):d for c, d in zip(coords, sb.coordinates)})
 
     sb.lock()
 
-    def set_size(self,axis_name,size):
+    def set_size(sb,axis_name,size):
         sb.unlock("%smin" % axis_name)
         sb.unlock("%smax" % axis_name)
 
         if axis_name in 't,z':
-            setattr(self,"%smin" % axis_name,0)
-            setattr(self,"%smax" % axis_name,size)
+            setattr(sb,"%smin" % axis_name,0)
+            setattr(sb,"%smax" % axis_name,size)
         else:
-            setattr(self,"%smin" % axis_name,-size/2)
-            setattr(self,"%smax" % axis_name,size/2)
+            setattr(sb,"%smin" % axis_name,-size/2)
+            setattr(sb,"%smax" % axis_name,size/2)
 
         sb.lock("%smin" % axis_name,'defined by s%s' % axis_name)
         sb.lock("%smax" % axis_name,'defined by s%s' % axis_name)
 
-    def set_vsize(self,axis_name,size):
-        setattr(self,"N%s" % axis_name,size)
+    def set_vsize(sb,axis_name,size):
+        setattr(sb,"N%s" % axis_name,size)
 
-    def set_physical_size(self,*sizes):
+    def set_physical_size(sb,*sizes):
+        if len(coords) != len(sizes):
+            raise ValueError('number of arguments does not match coordinates %s' % coords)
         for c,s in zip(coords,sizes):
-            self.set_size(c,s)
+            sb.set_size(c,s)
 
-    def set_voxel_size(self,*sizes):
+    def set_voxel_size(sb,*sizes):
+        if len(coords) != len(sizes):
+            raise ValueError('number of arguments does not match coordinates %s' % coords)
         for c,s in zip(coords,sizes):
-            self.set_vsize(c,s)
+            sb.set_vsize(c,s)
 
-    def set_method(self,physical_size,voxel_size):
+    def set_method(sb,physical_size,voxel_size):
         """Sets the simulation box size using the physical_size and voxel_size arguments which are 3-tupels containing the simulation box dimensions in x, y, and z directions."""
-        self.set_physical_size(*physical_size)
-        self.set_voxel_size(*voxel_size)
+        sb.set_physical_size(*physical_size)
+        sb.set_voxel_size(*voxel_size)
 
-    sb._set_attribute('set_size',types.MethodType(set_size,sb))
-    sb._set_attribute('set_vsize',types.MethodType(set_vsize,sb))
+    sb.add_method('set_size', set_size)
+    sb.add_method('set_vsize', set_vsize)
 
-    sb._set_attribute('set_physical_size',types.MethodType(set_physical_size,sb))
-    sb._set_attribute('set_voxel_size',types.MethodType(set_voxel_size,sb))
-    sb._set_attribute('set', types.MethodType(set_method,sb))
+    sb.add_method('set_physical_size', set_physical_size)
+    sb.add_method('set_voxel_size', set_voxel_size)
+    sb.add_method('set', set_method)
 
     def make_unitless(settings):
         sb = settings.simulation_box
@@ -143,7 +147,7 @@ def add_partial_differential_equation_category(settings,coordinates = None):
     pde = settings.create_category('partial_differential_equation',short_name='PDE',info="parameters of the partial differential equation")
 
     arg_attrs = [sb.coordinate_dict[x] for x in coordinates] if coordinates is not None else sb.coordinates
-    pde._set_attribute('coordinates',arg_attrs)
+    pde.add_attribute('coordinates', arg_attrs)
 
     x,y,z = [a.symbol for a in arg_attrs]
 
@@ -161,7 +165,7 @@ def add_partial_differential_equation_category(settings,coordinates = None):
     pde.create_function('u',args ,info='solution to the PDE')
     pde.lock('u')
 
-    pde._set_attribute('equation',pc.equal(pc.derivative(pde.u,z), pde.A * pc.derivative(pc.derivative(pde.u,x),x) +  pde.C * pc.derivative(pc.derivative(pde.u,y),y)  + pde.F * pde.u ))
+    pde.add_attribute('equation', pc.equal(pc.derivative(pde.u, z), pde.A * pc.derivative(pc.derivative(pde.u, x), x) + pde.C * pc.derivative(pc.derivative(pde.u, y), y) + pde.F * pde.u))
 
     pde.create_key('u0',pc.Function('u_0_PDE')(*args ),info="field initial condition")
     pde.create_function('u_boundary',args ,info="field boundary condition");
@@ -203,14 +207,14 @@ def add_wave_equation_category(settings):
     we.lock('k','defined by omega')
     we.lock('E','defined by omega')
 
-    def set_energy(settings,value):
+    def set_energy(we,value):
         we.unlock('E')
         we.omega = we.E / hbar
         we.lock('omega','defined by energy')
         we.E = value
 
     import types
-    we._set_attribute('set_energy',types.MethodType( set_energy, settings ) )
+    we.add_method('set_energy',set_energy)
 
     return we
 
@@ -426,7 +430,7 @@ def create_material(name,settings):
 
         key = (N,Emin,Emax)
         if not hasattr(r,'_cache'):
-            r._set_attribute('_cache',{})
+            r.add_attribute('_cache', {})
         else:
             if nname in r._cache and r._cache[nname] == key:
                 return

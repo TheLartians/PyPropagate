@@ -8,6 +8,8 @@ class Category(object):
         self._parent = parent
         self._keys = {}
         self.subcategories = {}
+        self.attributes = {}
+        self.methods = {}
         self._locked = False
         self.__doc__ = ""
         self._key_doc = {}
@@ -33,7 +35,13 @@ class Category(object):
             catcop = cat.copy(parent = copy)
             copy.subcategories[name] = catcop
             copy.__dict__[name] = catcop
-            
+
+        for name,method in self.methods.iteritems():
+            copy.add_method(name,method)
+
+        for name,attribute in self.attributes.iteritems():
+            copy.add_attribute(name,attribute)
+
         return copy
         
     def lock(self,name = None,reason = None):
@@ -170,11 +178,21 @@ class Category(object):
 
         return key
 
-    def _set_attribute(self,attr,value):
+    def add_attribute(self, attr, value):
         if attr in self.__dict__:
             import warnings
             warnings.warn("overwriting attribute %s" % name, UserWarning)
+        self.attributes[attr] = value
         self.__dict__[attr] = value
+
+    def add_method(self, attr, value):
+        if attr in self.__dict__:
+            import warnings
+            warnings.warn("overwriting attribute %s" % name, UserWarning)
+        self.methods[attr] = value
+
+        from types import MethodType
+        self.__dict__[attr] = MethodType(value,self)
 
     def remove_key(self,key):
         """Removes a key from the category. The global key still remains valid."""

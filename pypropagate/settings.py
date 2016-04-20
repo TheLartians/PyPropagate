@@ -46,9 +46,9 @@ class Settings(CategorizedDictionary):
                 add_symbol_creation_to_category(inner_cat,short_name,cat_path)
                 return inner_cat
 
-            cat._set_attribute('create_symbol',create_symbol)
-            cat._set_attribute('create_function',create_function)
-            cat._set_attribute('create_category',create_category)
+            cat.add_attribute('create_symbol', create_symbol)
+            cat.add_attribute('create_function', create_function)
+            cat.add_attribute('create_category', create_category)
 
         cat = super(Settings, self).create_category(cat_name,*args,**kwargs)
         add_symbol_creation_to_category(cat,short_name)
