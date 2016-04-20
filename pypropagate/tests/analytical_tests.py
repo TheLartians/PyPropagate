@@ -199,98 +199,58 @@ class TestWaveguide(TestCase):
         wg.create_symbol('n_1')
         wg.create_symbol('n_2')
         wg.create_symbol('r')
-        wg.create_symbol('l')
 
         s.n = pc.piecewise((wg.n_1,s.x**2+s.y**2<=wg.r**2),(wg.n_2,True))
 
         settings.wave_equation.set_energy(12*units.keV)
-        settings.simulation_box.set((0.1*units.um,0.1*units.um,0.8*units.mm),(500,500,1000))
+        settings.simulation_box.set((0.2*units.um,0.2*units.um,0.8*units.mm),(500,500,1000))
+
+        wg.n_2 = presets.create_material('Ge',settings)
+        wg.n_1 = 1
+        wg.r = 50 * units.nm
 
         self.settings = settings
 
     def test_fresnel_2D(self):
         settings = self.settings
+        s = settings.symbols
         propagator = propagators.FresnelPropagator1D(settings)
         an_field = analytical_slab_waveguide(settings)
         fd_field = propagator.run_slice()[:]
         r = self.settings.waveguide.r
         relative_deviation = (np.abs(an_field - fd_field)[-r:r]/np.abs(an_field[-r:r]))
-        self.assertLess(relative_deviation.mean(),0.1)
+        self.assertLess(abs(an_field - fd_field)[:,s.sz/2:].max()/abs(an_field[:,s.sz/2:]).max(),0.1)
 
     def test_fresnel_3D(self):
         settings = self.settings
+        s = settings.symbols
         propagator = propagators.FresnelPropagator2D(settings)
         an_field = analytical_circular_waveguide(settings)
         fd_field = propagator.run_slice()[:,0]
         r = self.settings.waveguide.r
-        relative_deviation = (np.abs(an_field - fd_field)[-r:r]/np.abs(an_field[-r:r]))
-        self.assertLess(relative_deviation.mean(),0.25) # we expect a large error here anyways
+        self.assertLess(abs(an_field - fd_field)[:,s.sz/2:].max()/abs(an_field[:,s.sz/2:]).max(),0.1)
 
     def test_finite_differences_2D(self):
         settings = self.settings
+        s = settings.symbols
         propagator = propagators.FiniteDifferencesPropagator1D(settings)
         an_field = analytical_slab_waveguide(settings)
         fd_field = propagator.run_slice()[:]
         r = self.settings.waveguide.r
-        relative_deviation = (np.abs(an_field - fd_field)[-r:r]/np.abs(an_field[-r:r]))
-        self.assertLess(relative_deviation.mean(),0.1)
+        self.assertLess(abs(an_field - fd_field)[:,s.sz/2:].max()/abs(an_field[:,s.sz/2:]).max(),0.1)
 
     def test_finite_differences_3D(self):
         settings = self.settings
+        s = settings.symbols
         propagator = propagators.FiniteDifferencesPropagator2D(settings)
         an_field = analytical_circular_waveguide(settings)
         fd_field = propagator.run_slice()[:,0]
         r = self.settings.waveguide.r
-        relative_deviation = (np.abs(an_field - fd_field)[-r:r]/np.abs(an_field[-r:r]))
-        self.assertLess(relative_deviation.mean(),0.1)
+        self.assertLess(abs(an_field - fd_field)[:,s.sz/2:].max()/abs(an_field[:,s.sz/2:]).max(),0.1)
 
 class TestGaussian(TestCase):
 
     def test_gaussian_3D(self):
-        settings = presets.create_paraxial_wave_equation_settings()
-        s = settings.symbols
-
-        # Make Wikipedia definition compatible
-        k = -1j/(2*settings.partial_differential_equation.A)
-        wavelength = 2*pc.pi/k
-
-        g = settings.create_category('gaussian',info='Parameters of the gaussian beam')
-        g.create_symbol('w_0',info = 'Waist size')
-        g.create_symbol('z_r',pc.pi*g.w_0**2/wavelength,info='rayleigh range')
-        g.create_function('w_z',(s.r,s.z),g.w_0*(1+(s.z/g.z_r)**2)**0.5,info='beam width')
-        g.create_function('R_z',(s.r,s.z),s.z*(1+(g.z_r/s.z)**2),info='radius of curvature')
-        g.create_function('C_z',(s.r,s.z),pc.atan(s.z/g.z_r),info='gouy phase')
-        g.create_function('psi',(s.r,s.z),g.w_0/g.w_z * pc.exp(1j*g.C_z  - 1j*k*s.z - 1*s.r**2/g.w_z**2 - 1j*k*s.r**2 * pc.piecewise((1/(2*g.R_z) ,pc.unequal(s.z,0)),(0,True) ) ),info='general gaussian beam')
-
-        g.create_symbol('x_0',0,info = 'Focal point coordinate')
-        g.create_symbol('y_0',0,info = 'Focal point coordinate')
-        g.create_symbol('z_0',0,info = 'Focal point coordinate')
-
-        g.create_symbol('phi',0,info = 'incident angle')
-        g.create_function('Psi',(s.x,s.y,s.z),g.psi.subs((s.x,s.x*pc.cos(g.phi)-s.z*pc.sin(g.phi)),(s.z,s.x*pc.sin(g.phi)+s.z*pc.cos(g.phi))),'rotated gaussian beam')
-
-        g.create_function('u',(s.x,s.y,s.z),g.Psi.function(s.x-g.x_0,s.y-g.y_0,s.z-g.z_0) * pc.exp(1j*k*s.z),'paraxial gaussian beam')
-
-        g.w_0 = 0.4*units.um
-        g.z_0 = 0.5*units.cm
-        g.phi = 0
-
-        s.n = 1
-        s.u0 = g.u
-        s.u_boundary = g.u
-
-        settings.wave_equation.set_energy(12*units.keV)
-        settings.simulation_box.set((3*units.um,1.5*units.um,20*units.mm),(500,500,500))
-
-        fieldan = expression_to_field(g.u.subs(s.y,0),settings)
-
-        propagator = propagators.FiniteDifferencesPropagator2D(settings)
-        fieldfd = propagator.run_slice()[:,0]
-
-        self.assertLess(abs(fieldan - fieldfd).max(),0.01)
-
-
-    def test_angled_gaussian_3D(self):
         settings = presets.create_paraxial_wave_equation_settings()
         s = settings.symbols
         pde = settings.partial_differential_equation
@@ -314,5 +274,6 @@ class TestGaussian(TestCase):
         propagator = propagators.FiniteDifferencesPropagator2D(settings)
         fieldfd = propagator.run_slice()[:,0]
 
+        self.assertLess(abs(fieldan - fieldfd).max(),0.01)
 
 

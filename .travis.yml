@@ -42,7 +42,7 @@ before_install:
 install: 
   - pip install .
 
-script: nosetests
+script: nosetests -v
  
 notifications:
   email: false
