@@ -6,12 +6,15 @@ def add_coordinate(settings,category,name):
     x = category.create_key(name,pc.Symbol(name,type=pc.Types.Real),info='coordinate')
     xmin = category.create_key('%smin' % name,pc.Symbol('%s_min' % name),info='minimum value')
     xmax = category.create_key('%smax' % name,pc.Symbol('%s_max' % name),info='maximum value')
-    xi = category.create_key('%si' % name,pc.Symbol('%s_i' % name,type=pc.Types.Natural),info='numerical index')
+    xi = pc.Symbol('%s_i' % name,type=pc.Types.Natural)
+    xif = category.create_key('%si' % name,pc.Function('%s_i' % name)(x),info='numerical index')
     Nx = category.create_key('N%s' % name,pc.Symbol('N_%s' % name,type=pc.Types.Natural),info='numerical steps')
     sx = category.create_key('s%s' % name,pc.Symbol('s_%s' % name),info='total size')
-    dx = category.create_key('d%s' % name,pc.Symbol('\Delta %s' % name),info='step size')
+    dx = category.create_key('d%s' % name,pc.Symbol('Delta %s' % name),info='step size')
 
     setattr(category,name, xmin + xi * dx)
+    setattr(category,'%si' % name,(x - xmin)/dx)
+
     setattr(category,'s%s' % name,xmax - xmin)
     setattr(category,'d%s' % name,sx/(Nx-1))
 
@@ -53,7 +56,7 @@ def add_simulation_box_category(settings,coords = ['x','y','z']):
             self.step = getattr(sb,'d'+name)
             self.steps = getattr(sb,'N'+name)
             self.size = getattr(sb,'s'+name)
-            self.index = getattr(sb,name+'i')
+            self.index =  pc.Symbol('%s_i' % name,type=pc.Types.Natural)
         def __repr__(self):
             return "<%s Attrs>" % self.name
 
@@ -108,6 +111,18 @@ def add_simulation_box_category(settings,coords = ['x','y','z']):
         for s in settings.get_numeric(tuple(getattr(sb,'s'+c) for c in coords)):
             unit = get_unit(s,cache = settings.get_cache())
 
+            if unit is None or unit in defined:
+                continue
+
+            value = (unit/s).evaluate(cache=settings.get_cache())
+
+            if unit.function == pc.fraction:
+                unit = unit.args[0]
+                value = 1/value
+
+            if  unit.is_function:
+                continue
+
             if unit is None or unit in defined or unit.is_function:
                 continue
 
@@ -115,7 +130,8 @@ def add_simulation_box_category(settings,coords = ['x','y','z']):
             unit_name = str(unit)
             if not settings.unitless.has_name(unit_name):
                 settings.unitless.create_key(unit_name,unit)
-            setattr(settings.unitless,unit_name,(unit/s).evaluate(cache=settings.get_cache()))
+
+            setattr(settings.unitless,unit_name,value)
 
     settings.initializers['make_unitless'] = make_unitless
 
@@ -385,23 +401,25 @@ def create_material(name,settings):
         omega = settings.wave_equation.omega
 
         try:
-            omega_dependent = True
-
             N = settings.get_as(sb.Nomega,int)
             omegamin,omegamax = (sb.omegamin,sb.omegamax)
 
-            EminExpr = abs(omegamin * units.hbar / units.eV)
-            EmaxExpr = abs(omegamax * units.hbar / units.eV)
+            EminExpr = omegamin * units.hbar / units.eV
+            EmaxExpr = omegamax * units.hbar / units.eV
+
+            omega_dependent = True
         except:
-            omega_dependent = False
+            N = 3
             E = units.hbar * omega / units.eV
             EmaxExpr = E + 1
             EminExpr = E - 1
             omega_i = 1
+            omega_dependent = False
         try:
             Emin = settings.get_as(EminExpr,float)
             Emax = settings.get_as(EmaxExpr,float)
         except:
+            setattr(r,nname,None)
             return
 
         key = (N,Emin,Emax)
@@ -427,7 +445,7 @@ def create_material(name,settings):
     settings.numerics.add_key(nname,n)
     return n
 
-def create_2D_frequency_settings():
+def create_2D_paraxial_frequency_settings():
     from .settings import Settings
 
     settings = Settings()
@@ -438,6 +456,9 @@ def create_2D_frequency_settings():
     sb.export(settings.symbols,warn=False)
     we.export(settings.symbols,warn=False)
 
+    settings.symbols.add_key('u0',pde.u0)
+    settings.symbols.add_key('u_boundary',pde.u_boundary)
+
     pde.A = 1j/(2*we.k)
     pde.C = 0
     pde.F = 1j*we.k/2*(we.n**2-1)
@@ -447,7 +468,7 @@ def create_2D_frequency_settings():
 def create_2D_frequency_settings_from(settings):
     import expresso.pycas as pc
     import units
-    from .plot import expression_to_field
+    from .plot import expression_to_array
     from .coordinate_ndarray import CoordinateNDArray
     import numpy as np
 
@@ -501,7 +522,7 @@ def create_2D_frequency_settings_from(settings):
 
     freq_settings.unitless.create_key('s',units.s,settings.get_as( 2/(omegamax - omegamin)/units.s , float ) )
 
-    u0 = expression_to_field(settings.wave_equation.u0.subs([(sb.y,0),(sb.z,sb.zmin)]), settings, axes=(sb.x,sb.t) )
+    u0 = expression_to_array(settings.wave_equation.u0.subs([(sb.y, 0), (sb.z, sb.zmin)]), settings, axes=(sb.x, sb.t))
 
     u0hat = CoordinateNDArray( np.fft.fftshift( np.fft.fft(u0.data,axis=1) , axes=(1,) ) ,
                                [(xmin,xmax),( omegamin, omegamax )] ,
@@ -512,16 +533,49 @@ def create_2D_frequency_settings_from(settings):
 
     return freq_settings
 
-def inverse_fourier_transform(field):
+def fourier_transform(array,axis,new_axis,inverse=False):
     import numpy as np
-    import expresso.pycas as pc
+    from numpy.fft import fft,ifft,fftshift,ifftshift
+    from expresso.pycas import pi
     from .coordinate_ndarray import CoordinateNDArray
 
-    udata = np.fft.ifftshift( np.fft.ifft(field.data,axis=1) , axes=(1,))
+    axi = array.axis.index(axis)
 
-    tbounds = [[b1,b2] for b1,b2 in field.bounds]
-    tbounds[1] = (0,(1/tbounds[1][1] * 2*pc.pi*udata.shape[1]).evaluate())
-    taxis = [a for a in field.axis]
-    taxis[1] = pc.Symbol('t')
+    if not inverse:
+        new_data =  1/np.sqrt(2*np.pi) * fftshift(fft(array.data,axis=axi),axes=[axi])
+    else:
+        new_data =  np.sqrt(2*np.pi) * ifft(ifftshift(array.data,axes=[axi]),axis=axi)
 
-    return CoordinateNDArray(udata,tbounds,taxis,field.evaluate)
+    sw = array.bounds[axi][1] - array.bounds[axi][0]
+    tmin,tmax = array.evaluate((-(pi*array.shape[axi])/sw,
+                                 (pi*array.shape[axi])/sw))
+
+    new_bounds = [(b[0],b[1]) if i!=axi else (tmin,tmax) for i,b in enumerate(array.bounds)]
+    new_axis = [a  if i!=axi else new_axis for i,a in enumerate(array.axis)]
+
+    return CoordinateNDArray(new_data,new_bounds,new_axis,array.evaluate)
+
+def inverse_fourier_transform(*args):
+    return fourier_transform(*args,inverse=True)
+
+def u_from_utilde(field,omega0):
+    import numpy as np
+    import expresso.pycas as pc
+    import units
+
+    omegamin,omegamax = field.bounds[1]
+    zmin, zmax = field.bounds[2]
+    sz = zmax - zmin
+
+    ukmin = float(field.evaluate( (omegamin-omega0)/units.c*sz ))
+    ukmax = float(field.evaluate( (omegamax-omega0)/units.c*sz ))
+    uzmin = 0
+    uzmax = 1
+
+    #print ukmin
+    #print ukmax
+
+    nz,ik = np.meshgrid(np.linspace(-uzmin,-uzmax,field.shape[2]),np.linspace(1j*ukmin,1j*ukmax,field.shape[1]))
+    factor = np.exp(ik*nz)
+
+    return fourier_transform(field * factor,field.axis[1],pc.Symbol('t'),inverse=True)

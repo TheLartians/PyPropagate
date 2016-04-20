@@ -13,7 +13,6 @@ class Settings(CategorizedDictionary):
 
         self.updaters = collections.OrderedDict()
         self._cache = dict()
-        self._eval_cache = dict()
         self._initialized = True
         self._initializing = False
         self._initializers = collections.OrderedDict()
@@ -128,18 +127,19 @@ class Settings(CategorizedDictionary):
         elif key in self.numerics.keys() and not is_numeric:
             self.numerics.remove_key(key)
 
-        self._eval_cache = {}
+        self.clear_cache()
         self._initialized = self._initializing
 
     def _get_evaluator(self,numeric = False,unitless = False):
 
         key = (numeric,unitless)
+
         try:
-            return self._eval_cache[key]
+            return self._cache[key]
         except:
             pass
 
-        from expresso.pycas import Expression,RewriteEvaluator,ReplaceEvaluator,MultiEvaluator,Wildcard,S,Tuple
+        from expresso.pycas import Expression,RewriteEvaluator,ReplaceEvaluator,MultiEvaluator,Wildcard,S
 
         replacement_evaluator = ReplaceEvaluator(recursive=True)
         rule_evaluator = RewriteEvaluator(recursive=True)
@@ -160,13 +160,13 @@ class Settings(CategorizedDictionary):
                 sr = S(r)
                 if s==sr:
                     continue
-                if s.is_function:
+                if s.is_function and not s.function.is_operator:
                     wc_args = {arg:Wildcard(arg.name) for arg in s.args}
                     rule_evaluator.add_rule(s.subs(wc_args),sr.subs(wc_args))
                 else:
                     replacement_evaluator.add_replacement(s,r)
 
-        self._eval_cache[key] = evaluator
+        self._cache[key] = evaluator
 
         return evaluator
 
@@ -180,7 +180,7 @@ class Settings(CategorizedDictionary):
         self.initialize()
         evaluator = self._get_evaluator(numeric, unitless)
 
-        res = evaluator(expr,cache = self._eval_cache)
+        res = evaluator(expr, cache = self._cache)
 
         if evaluate == True:
             res = res.evaluate(cache = self.get_cache())

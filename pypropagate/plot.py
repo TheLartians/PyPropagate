@@ -5,7 +5,7 @@ def get_metric_prefix(numbers):
     if not isinstance(numbers,list):
         numbers = list(numbers)
     if len(numbers) >= 2:
-        numbers = [numbers[1] - numbers[0]]
+        numbers = [numbers[-1] - numbers[0]]
         
     def get_exponent(number):
         return int(np.log10(np.abs(number))) if number != 0 else 0
@@ -104,7 +104,7 @@ def line_plot(carr,ax = None,ylabel = None,figsize = None,title = None,**kwargs)
 
     return lines[0]
 
-def expression_to_field(expression,settings,axes = None):
+def expression_to_array(expression, settings, axes = None):
     import expresso.pycas
     import numpy as np
 
@@ -125,11 +125,11 @@ def expression_to_field(expression,settings,axes = None):
 
     from .coordinate_ndarray import CoordinateNDArray
 
-    namedict = {key:name for name,key in zip(s.names(),s.keys())}
+    #namedict = {key:name for name,key in zip(s.names(),s.keys())}
     def get_axis_name(symbol):
-        name = namedict[symbol]
-        return name[:-1]
-
+    #    name = namedict[symbol]
+    #    return name[:-1]
+        return symbol.name[:-2]
 
     if len(sym) == 0:
         c = complex(expr)
@@ -165,7 +165,7 @@ def expression_to_field(expression,settings,axes = None):
         data =  expresso.pycas.numpyfy(expr,parallel=True)(**{xi.name:npx,yi.name:npy})
         res =  CoordinateNDArray(data,[(xmin,xmax),(ymin,ymax)],(x,y),settings.get_numeric_transform())
     else:
-        raise ValueError('cannot create field: expression may only contain one or two free symbols')
+        raise ValueError('cannot create field: expression contains more than two free symbols: %s' % sym)
 
     return res
 
@@ -202,7 +202,7 @@ def plot(arg, *args, **kwargs):
                 raise ValueError('cannot plot expression: no settings provided')
             del kwargs['settings']
 
-        arg = expression_to_field(arg,settings)
+        arg = expression_to_array(arg, settings)
 
         if isinstance(arg,(float,complex)):
             print arg

@@ -20,6 +20,7 @@ class Category(object):
             parent = self._parent
         if copy == None:
             copy = Category(parent)
+
         copy._keys = self._keys.copy()
         copy._locked = self._locked
         copy._key_doc = self._key_doc.copy()
@@ -313,6 +314,8 @@ class CategorizedDictionary(Category):
         return key in self.data
     
     def _create_key(self,name,key,value,info,sender):
+        if self._key_exisits(key) and value == None:
+            return
         self._set_value(key,value)
         
     def all_keys(self):

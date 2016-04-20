@@ -39,13 +39,19 @@ class Propagator(Solver):
     def _reset(self):
         self.set_field(self.__initial)
 
-    def _get_as(self,expr,type,settings):
-        y = settings.simulation_box.coordinates[1]
+    def _evaluate(self,expr,settings):
         if self.ndim == 1:
-            y0 = getattr(settings.partial_differential_equation,y.name + '0')
-            return settings.get_as(settings.get_numeric(expr).subs(y.symbol,y0),type)
+            sb = settings.simulation_box
+            pde = settings.partial_differential_equation
+            x,y,z = pde.coordinates
+            y0 = getattr(pde,y.name + '0')
+            y0i = settings.get_as((y0 - y.min)/y.step,int)
+            return settings.get_optimized(settings.get_optimized(expr).subs(y.index,y0i))
         else:
-            return settings.get_as(expr,type)
+            return settings.get_optimized(expr)
+
+    def _get_as(self,expr,type,settings):
+        return type(self._evaluate(expr,settings))
 
     def __get_x_coordinates(self):
         import numpy as np
@@ -101,11 +107,7 @@ class Propagator(Solver):
         if args is None:
             args = (x.index,y.index,z.index) if self.ndim == 2 else (x.index,z.index)
 
-        if self.ndim == 1:
-            y0 = getattr(settings.partial_differential_equation,y.name + '0')
-            expressions = [settings.get_optimized(expr.subs(y.symbol,y0)) for expr in expressions]
-        else:
-            expressions = [settings.get_optimized(expr) for expr in expressions]
+        expressions = [self._evaluate(expr,settings) for expr in expressions]
 
         if 'return_type' not in kwargs:
             kwargs['return_type'] = pc.Types.Complex
