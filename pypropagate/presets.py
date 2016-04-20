@@ -217,6 +217,8 @@ def add_wave_equation_category(settings):
 def create_paraxial_wave_equation_settings():
 
     from .settings import Settings
+    import expresso.pycas as pc
+
     settings = Settings('settings for solving the paraxial differential equation')
 
     add_simulation_box_category(settings)
