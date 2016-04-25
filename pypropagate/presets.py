@@ -383,7 +383,7 @@ def get_refraction_indices(material,min_energy,max_energy,steps):
 
     try:
         betadelta = [get_numbers(line) for line in res.split('\n') if len(get_numbers(line)) == 3]
-        values = [1-float(v[1])+1j*float(v[2]) for v in betadelta]
+        values = [1-float(v[1])-1j*float(v[2]) for v in betadelta]
     except:
         betadelta = []
 
@@ -470,9 +470,9 @@ def create_2D_paraxial_frequency_settings():
     settings.symbols.add_key('u0',pde.u0)
     settings.symbols.add_key('u_boundary',pde.u_boundary)
 
-    pde.A = 1j/(2*we.k)
+    pde.A = -1j/(2*we.k)
     pde.C = 0
-    pde.F = 1j*we.k/2*(we.n**2-1)
+    pde.F = -1j*we.k/2*(we.n**2-1)
 
     return settings
 
