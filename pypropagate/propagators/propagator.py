@@ -45,11 +45,13 @@ class Propagator(Solver):
             pde = settings.partial_differential_equation
             x,y,z = pde.coordinates
             y0 = getattr(pde,y.name + '0')
-            #try:
-            #    y0i = settings.get_as((y0 - y.min)/y.step,int)
-            #except:
-            #    y0i = 0
-            return settings.get_optimized(settings.get_optimized(expr.subs(y.symbol,y0)))
+            expr = settings.get_optimized(expr.subs(y.symbol,y0))
+            try:
+                y0i = settings.get_as(y.step.subs(y.symbol,y0),int)
+                expr = settings.get_optimized(expr.subs(y.index,y0i))
+            except:
+                pass
+            return expr
         else:
             return settings.get_optimized(expr)
 

@@ -38,7 +38,15 @@ def get_unitless_bounds(array):
             raise ValueError('Cannot convert to unitless expression: %s with unit: %s' % ((l,r),unit))
     
     return bounds
-    
+
+def get_plot_coordinates(array):
+    import numpy as np
+    from expresso.pycas import latex
+    e = get_unitless_bounds(array)[0]
+    prefix,factor = get_metric_prefix(e[:2])
+    return np.linspace(float(e[0])/factor,float(e[1])/factor,array.shape[0]), prefix + ' ' + latex(e[2])
+
+
 def image_plot(carr,ax = None,figsize = None,title = None, **kwargs):
     import matplotlib.pyplot as plt
 

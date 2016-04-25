@@ -268,7 +268,6 @@ def set_plane_wave_initial_conditions(settings):
     set_1D_boundary_condition(settings)
 
 
-
 def create_next_settings(old_settings):
     settings = old_settings.copy(copy_initializers = False,copy_updaters = False)
 
@@ -341,7 +340,12 @@ def set_initial(settings,initial_array):
         sb.lock('sx','defined by xmin and xmax')
 
 def get_refraction_indices(material,min_energy,max_energy,steps):
-    from mechanize import Browser
+
+    if min_energy < 0 and max_energy < 0:
+        return get_refraction_indices(material,abs(min_energy),abs(max_energy),steps)
+
+    if min_energy > max_energy:
+        return get_refraction_indices(material,max_energy,min_energy,steps)[::-1]
 
     max_steps = 499
 
@@ -352,6 +356,7 @@ def get_refraction_indices(material,min_energy,max_energy,steps):
         return get_refraction_indices(material,min_energy,current_max ,max_steps) + \
                get_refraction_indices(material,current_max + dn,current_max + dn * missing,missing)
 
+    from mechanize import Browser
     br = Browser()
 
     br.open( "http://henke.lbl.gov/optical_constants/getdb.html" )
@@ -435,7 +440,7 @@ def create_material(name,settings):
             if nname in r._cache and r._cache[nname] == key:
                 return
         if omega_dependent:
-            narr = pc.array(nname,np.array(get_refraction_indices(name,Emax,Emin,N)))
+            narr = pc.array(nname,np.array(get_refraction_indices(name,Emin,Emax,N)))
             setattr(r,nname,narr(sb.omegai))
         else:
             setattr(r,nname,get_refraction_indices(name,Emax,Emin,3)[1])

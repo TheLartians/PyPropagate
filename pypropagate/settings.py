@@ -75,8 +75,13 @@ class Settings(CategorizedDictionary):
 
         self._initializing = True
 
-        for initializer in self._initializers.values():
-            initializer(self)
+        try:
+            for initializer in self._initializers.values():
+                initializer(self)
+        except:
+            self._initialized = False
+            self._initializing = False
+            raise
 
         self._initialized = True
         self._initializing = False

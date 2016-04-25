@@ -14,7 +14,7 @@ import units
 import presets
 import propagators
 
-from .plot import plot,expression_to_array
+from .plot import plot,expression_to_array,get_plot_coordinates
 from .settings import Settings
 
 import coordinate_ndarray
