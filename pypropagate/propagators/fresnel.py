@@ -3,10 +3,10 @@ from .propagator import Propagator
 import numpy as np
 
 class FresnelPropagator2D(Propagator):
-    
+
     ndim = 2
     dtype = np.complex128
-    
+
     def __init__(self,settings,thread_count = None):
 
         super(FresnelPropagator2D,self).__init__(settings)
@@ -41,8 +41,8 @@ class FresnelPropagator2D(Propagator):
             fx*( self._nx/2.-np.abs(np.arange(self._nx)-self._nx/2.) )
         )
 
-        self.__D_step = np.fft.ifftshift( D(kx=kx,ky=ky,**self._get_coordinate_dict()) )
-    
+        self.__D_step = D(kx=kx,ky=ky,**self._get_coordinate_dict())
+
     def get_fft(self):
         try:
             import pyfftw
@@ -76,10 +76,10 @@ class FresnelPropagator2D(Propagator):
 
     def _get_field(self):
         return self.__data
-    
+
     def _set_field(self,field):
         import numpy as np
-        fft2,ifft2 = self.get_fft()        
+        fft2,ifft2 = self.get_fft()
         self.__data = field.astype(np.complex128)
         self.__freq_data = fft2(self.__data)
 
@@ -129,7 +129,7 @@ class FresnelPropagator1D(Propagator):
             return fft,ifft
 
     def _step(self):
-        fft,ifft = self.get_fft()        
+        fft,ifft = self.get_fft()
 
         if self._F_is_constant:
             self.__freq_data *= self.__D_step * self.__R_step
