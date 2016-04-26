@@ -18,47 +18,47 @@ class FresnelPropagator2D(Propagator):
 
         self._set_initial_field(settings)
 
-        sb = settings.simulation_box
         pe = settings.partial_differential_equation
+        x,y,z = settings.partial_differential_equation.coordinates
 
         import expresso.pycas as pc
-        R, = self._get_evaluators([pc.exp(pe.F*sb.dz)],settings,return_type=pc.Types.Complex,parallel=not self._F_is_constant_in_z)
+        R, = self._get_evaluators([pc.exp(pe.F*z.step)],settings,return_type=pc.Types.Complex,parallel=not self._F_is_constant_in_z)
 
         if self._F_is_constant_in_z:
             self.__R_step = R(*self._get_coordinates())
         else:
             self.__R = R
 
-        D = pc.numpyfy( settings.get_optimized( pc.exp(-pe.A*sb.dz*(pc.Symbol('kx')**2+pc.Symbol('ky')**2)) ) )
+        D = pc.numpyfy( self._evaluate( pc.exp(-z.step*(pe.A * pc.Symbol('kx')**2 + pe.C * pc.Symbol('ky')**2)) ,settings) )
 
         import numpy as np
 
-        fx = 2*np.pi/(self._nx*settings.get_as(sb.dx,float))
-        fy = 2*np.pi/(self._ny*settings.get_as(sb.dy,float))
+        fx = 2*np.pi/(self._nx*self._get_as(x.step,float,settings))
+        fy = 2*np.pi/(self._ny*self._get_as(y.step,float,settings))
 
-        kx,ky = np.meshgrid(
+        ky,kx = np.meshgrid(
             fy*( self._ny/2.-np.abs(np.arange(self._ny)-self._ny/2.) ),
             fx*( self._nx/2.-np.abs(np.arange(self._nx)-self._nx/2.) )
         )
-	
-        self.__D_step = D(kx=kx,ky=ky)
+
+        self.__D_step = np.fft.ifftshift( D(kx=kx,ky=ky,**self._get_coordinate_dict()) )
     
     def get_fft(self):
         try:
-	    import pyfftw
-	    if not hasattr(self,'__fftw_ffts'):
-	    	a = pyfftw.empty_aligned((self._nx, self._ny), dtype='complex128')
-	    	b = pyfftw.empty_aligned((self._nx, self._ny), dtype='complex128')
-	    	fft2 = pyfftw.FFTW(a, b, axes=(0,1), threads=self._thread_count, direction = 'FFTW_FORWARD')
-	    	ifft2 = pyfftw.FFTW(b, a, axes=(0,1), threads=self._thread_count, direction = 'FFTW_BACKWARD')
-		self.__fftw_ffts = fft2,ifft2
-	    return self.__fftw_ffts
+            import pyfftw
+            if not hasattr(self,'__fftw_ffts'):
+                a = pyfftw.empty_aligned((self._nx, self._ny), dtype='complex128')
+                b = pyfftw.empty_aligned((self._nx, self._ny), dtype='complex128')
+                fft2 = pyfftw.FFTW(a, b, axes=(0,1), threads=self._thread_count, direction = 'FFTW_FORWARD')
+                ifft2 = pyfftw.FFTW(b, a, axes=(0,1), threads=self._thread_count, direction = 'FFTW_BACKWARD')
+                self.__fftw_ffts = fft2,ifft2
+            return self.__fftw_ffts
         except ImportError:
             from numpy.fft import fft2,ifft2
             return fft2,ifft2
 
     def _step(self):
-        fft2,ifft2 = self.get_fft()        
+        fft2,ifft2 = self.get_fft()
 
         if self._F_is_constant:
             self.__freq_data *= self.__D_step * self.__R_step
@@ -81,7 +81,7 @@ class FresnelPropagator2D(Propagator):
         import numpy as np
         fft2,ifft2 = self.get_fft()        
         self.__data = field.astype(np.complex128)
-	self.__freq_data = fft2(self.__data)
+        self.__freq_data = fft2(self.__data)
 
 
 class FresnelPropagator1D(Propagator):
@@ -93,16 +93,16 @@ class FresnelPropagator1D(Propagator):
         import expresso.pycas as pc
 
         super(FresnelPropagator1D,self).__init__(settings)
-	self._thread_count = thread_count
+        self._thread_count = thread_count
 
         self._set_initial_field(settings)
 
-        sb = settings.simulation_box
         pe = settings.partial_differential_equation
+        x,y,z = settings.partial_differential_equation.coordinates
 
-        R, = self._get_evaluators([pc.exp(pe.F*sb.dz)],settings,return_type=pc.Types.Complex)
+        R, = self._get_evaluators([pc.exp(pe.F*z.step)],settings,return_type=pc.Types.Complex)
 
-        D = pc.numpyfy( settings.get_optimized( pc.exp(-pe.A*sb.dz*(pc.Symbol('kx')**2)) ) )
+        D = pc.numpyfy( self._evaluate( pc.exp(-pe.A*z.step*(pc.Symbol('kx')**2)) , settings) )
 
         if self._F_is_constant_in_z:
             self.__R_step = R(*self._get_coordinates())
@@ -110,20 +110,20 @@ class FresnelPropagator1D(Propagator):
             self.__R = R
 
         import numpy as np
-        fx = 2*np.pi/(self._nx*settings.get_as(sb.dx,float))
+        fx = 2*np.pi/(self._nx*self._get_as(x.step,float,settings))
         kx = fx*( self._nx/2.-np.abs(np.arange(self._nx)- self._nx/2.) )
-        self.__D_step = D(kx=kx)
+        self.__D_step = D(kx=kx,**self._get_coordinate_dict())
 
     def get_fft(self):
         try:
-	    import pyfftw
-	    if not hasattr(self,'__fftw_ffts'):
-	    	a = pyfftw.empty_aligned(self._nx, dtype='complex128')
-	    	b = pyfftw.empty_aligned(self._nx, dtype='complex128')
-	    	fft = pyfftw.FFTW(a, b, axes=(0,),  threads=self._thread_count, direction = 'FFTW_FORWARD')
-	    	ifft = pyfftw.FFTW(b, a, axes=(0,), threads=self._thread_count, direction = 'FFTW_BACKWARD')
-		self.__fftw_ffts = fft,ifft
-	    return self.__fftw_ffts
+            import pyfftw
+            if not hasattr(self,'__fftw_ffts'):
+                a = pyfftw.empty_aligned(self._nx, dtype='complex128')
+                b = pyfftw.empty_aligned(self._nx, dtype='complex128')
+                fft = pyfftw.FFTW(a, b, axes=(0,),  threads=self._thread_count, direction = 'FFTW_FORWARD')
+                ifft = pyfftw.FFTW(b, a, axes=(0,), threads=self._thread_count, direction = 'FFTW_BACKWARD')
+                self.__fftw_ffts = fft,ifft
+            return self.__fftw_ffts
         except ImportError:
             from numpy.fft import fft,ifft
             return fft,ifft
@@ -152,5 +152,5 @@ class FresnelPropagator1D(Propagator):
         fft,ifft = self.get_fft()
         import numpy as np
         self.__data = field.astype(np.complex128)
-        self.__freq_data = fft(self.__data)
+        self.__freq_data = fft(self.__data).astype(np.complex128)
 

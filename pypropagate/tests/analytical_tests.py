@@ -13,8 +13,8 @@ def analytical_slab_waveguide(settings):
     s = settings.symbols
 
     k = settings.get_as(s.k,float)
-    n1 = settings.get_as(settings.waveguide.n_1,complex)
-    n2 = settings.get_as(settings.waveguide.n_2,complex)
+    n1 = settings.get_as(settings.waveguide.n_1,complex).conjugate()
+    n2 = settings.get_as(settings.waveguide.n_2,complex).conjugate()
     d  = 2*settings.get_as(settings.waveguide.r,float)
 
     # We will determine um for all guided modes as the roots of the characteristic equation:
@@ -105,8 +105,8 @@ def analytical_circular_waveguide(settings):
     s = settings.symbols
 
     kn = settings.get_as(s.k,float)
-    n1 = settings.get_as(settings.waveguide.n_1,complex)
-    n2 = settings.get_as(settings.waveguide.n_2,complex)
+    n1 = settings.get_as(settings.waveguide.n_1,complex).conjugate()
+    n2 = settings.get_as(settings.waveguide.n_2,complex).conjugate()
     a  = settings.get_as(settings.waveguide.r,float)
 
     # We will determine um for all guided modes as the roots of the characteristic equation:

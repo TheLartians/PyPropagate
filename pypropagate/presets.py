@@ -40,7 +40,6 @@ def add_time_symbols(settings):
 
 def add_simulation_box_category(settings,coords = ['x','y','z']):
     import expresso.pycas as pc
-    import types
 
     sb = settings.create_category("simulation_box",info="parameters and dimensions of the simulation box")
 
@@ -238,8 +237,8 @@ def create_paraxial_wave_equation_settings():
 
     pe = settings.partial_differential_equation
     s = settings.symbols
-    pe.F = I*s.k/2*(s.n**2-1)
-    pe.A = I/(2*s.k)
+    pe.F = s.k/2j*(s.n**2-1)
+    pe.A = 1/(2j*s.k)
 
     pe.lock('F','defined by wave equation')
     pe.lock('A','defined by wave equation')
