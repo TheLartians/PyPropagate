@@ -168,7 +168,7 @@ def analytical_circular_waveguide(settings):
     def field(x,r):
         solution = None
         for i in range(len(u_values)):
-            mode = c_values[i] * psi(u_values[i],np.abs(r)) * exp( (1j*beta_values[i]-mu_values[i]) * x)
+            mode = c_values[i] * psi(u_values[i],np.abs(r)) * exp( (1j*(beta_values[i]-kn)-mu_values[i]) * x)
             if solution is None: solution = mode
             else: solution += mode
         return solution
@@ -176,7 +176,7 @@ def analytical_circular_waveguide(settings):
     x_values = np.linspace(*settings.get_as((s.zmin,s.zmax,s.Nz),float))
     r_values = np.linspace(*settings.get_as((s.xmin,s.xmax,s.Nx),float))
 
-    data = np.conjugate(field(*np.meshgrid(x_values,r_values)) * exp(1j*kn*x_values))
+    data = np.conjugate(field(*np.meshgrid(x_values,r_values)))
 
     sx = settings.get_numeric(s.sx)
     sz = settings.get_numeric(s.sz)
