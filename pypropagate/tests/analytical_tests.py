@@ -75,7 +75,7 @@ def analytical_slab_waveguide(settings):
         solution = None
         for c,b,kappa,mu in zip(c_values,B_values,kappa_values,mu_values):
             beta = sqrt(k**2*n1.real**2 - kappa**2)
-            mode = c * psi(kappa,r) * exp((-mu-1j*(beta-k))*x)
+            mode = c * psi(kappa,r) * exp((-mu+1j*(beta-k))*x)
             if solution is None: solution = mode
             else: solution += mode
         return solution
@@ -168,7 +168,7 @@ def analytical_circular_waveguide(settings):
     def field(x,r):
         solution = None
         for i in range(len(u_values)):
-            mode = c_values[i] * psi(u_values[i],np.abs(r)) * exp( (-1j*beta_values[i]-mu_values[i]) * x)
+            mode = c_values[i] * psi(u_values[i],np.abs(r)) * exp( (1j*beta_values[i]-mu_values[i]) * x)
             if solution is None: solution = mode
             else: solution += mode
         return solution
