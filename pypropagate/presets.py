@@ -40,7 +40,6 @@ def add_time_symbols(settings):
 
 def add_simulation_box_category(settings,coords = ['x','y','z']):
     import expresso.pycas as pc
-    import types
 
     sb = settings.create_category("simulation_box",info="parameters and dimensions of the simulation box")
 
@@ -238,8 +237,8 @@ def create_paraxial_wave_equation_settings():
 
     pe = settings.partial_differential_equation
     s = settings.symbols
-    pe.F = I*s.k/2*(s.n**2-1)
-    pe.A = I/(2*s.k)
+    pe.F = s.k/2j*(s.n**2-1)
+    pe.A = 1/(2j*s.k)
 
     pe.lock('F','defined by wave equation')
     pe.lock('A','defined by wave equation')
@@ -266,7 +265,6 @@ def set_plane_wave_initial_conditions(settings):
 
     pe.u0 = 1
     set_1D_boundary_condition(settings)
-
 
 
 def create_next_settings(old_settings):
@@ -341,7 +339,12 @@ def set_initial(settings,initial_array):
         sb.lock('sx','defined by xmin and xmax')
 
 def get_refraction_indices(material,min_energy,max_energy,steps):
-    from mechanize import Browser
+
+    if min_energy < 0 and max_energy < 0:
+        return get_refraction_indices(material,abs(min_energy),abs(max_energy),steps)
+
+    if min_energy > max_energy:
+        return get_refraction_indices(material,max_energy,min_energy,steps)[::-1]
 
     max_steps = 499
 
@@ -352,6 +355,7 @@ def get_refraction_indices(material,min_energy,max_energy,steps):
         return get_refraction_indices(material,min_energy,current_max ,max_steps) + \
                get_refraction_indices(material,current_max + dn,current_max + dn * missing,missing)
 
+    from mechanize import Browser
     br = Browser()
 
     br.open( "http://henke.lbl.gov/optical_constants/getdb.html" )
@@ -378,7 +382,7 @@ def get_refraction_indices(material,min_energy,max_energy,steps):
 
     try:
         betadelta = [get_numbers(line) for line in res.split('\n') if len(get_numbers(line)) == 3]
-        values = [1-float(v[1])+1j*float(v[2]) for v in betadelta]
+        values = [1-float(v[1])-1j*float(v[2]) for v in betadelta]
     except:
         betadelta = []
 
@@ -435,7 +439,7 @@ def create_material(name,settings):
             if nname in r._cache and r._cache[nname] == key:
                 return
         if omega_dependent:
-            narr = pc.array(nname,np.array(get_refraction_indices(name,Emax,Emin,N)))
+            narr = pc.array(nname,np.array(get_refraction_indices(name,Emin,Emax,N)))
             setattr(r,nname,narr(sb.omegai))
         else:
             setattr(r,nname,get_refraction_indices(name,Emax,Emin,3)[1])
@@ -465,9 +469,9 @@ def create_2D_paraxial_frequency_settings():
     settings.symbols.add_key('u0',pde.u0)
     settings.symbols.add_key('u_boundary',pde.u_boundary)
 
-    pde.A = 1j/(2*we.k)
+    pde.A = -1j/(2*we.k)
     pde.C = 0
-    pde.F = 1j*we.k/2*(we.n**2-1)
+    pde.F = -1j*we.k/2*(we.n**2-1)
 
     return settings
 

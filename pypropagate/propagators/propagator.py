@@ -8,14 +8,13 @@ class Propagator(Solver):
     def __init__(self,settings):
         super(Propagator,self).__init__(settings)
 
-        sb = settings.simulation_box
         coordinates = settings.partial_differential_equation.coordinates
 
         self._x,self._t = coordinates[0].symbol,coordinates[2].symbol
         if self.ndim > 1: self._y = coordinates[1].symbol
 
-        self._nx,self._nt = settings.get_as((coordinates[0].steps,coordinates[2].steps),int)
-        if self.ndim > 1: self._ny = settings.get_as(coordinates[1].steps,int)
+        self._nx,self._nt = self._get_as((coordinates[0].steps,coordinates[2].steps),int,settings)
+        if self.ndim > 1: self._ny = self._get_as(coordinates[1].steps,int,settings)
 
         self._xmin,self._xmax,self._tmin,self._tmax = settings.get_numeric((coordinates[0].min,coordinates[0].max,coordinates[2].min,coordinates[2].max))
         if self.ndim > 1: self._ymin,self._ymax = settings.get_numeric((coordinates[1].min,coordinates[1].max))
@@ -27,6 +26,11 @@ class Propagator(Solver):
         self._F_is_constant_in_z = settings.get_numeric(pc.derivative(pe.F, self._t )) == pc.Zero
         self._F_is_constant = self._F_is_constant_in_z and settings.get_numeric(pc.derivative(pe.F, self._x)) == pc.Zero
         if self.ndim > 1: self._F_is_constant &= settings.get_numeric(pc.derivative(pe.F, self._y )) == pc.Zero
+
+        if self.ndim > 1:
+            self.__coordinate_names = [c.index.name for c in coordinates]
+        else:
+            self.__coordinate_names = [c.index.name for c in (coordinates[0],coordinates[2])]
 
     def _set_initial_field(self,settings):
         sb = settings.simulation_box
@@ -40,21 +44,26 @@ class Propagator(Solver):
         self.set_field(self.__initial)
 
     def _evaluate(self,expr,settings):
+        import expresso.pycas as pc
+        expr = pc.S(expr)
+
         if self.ndim == 1:
             sb = settings.simulation_box
             pde = settings.partial_differential_equation
             x,y,z = pde.coordinates
             y0 = getattr(pde,y.name + '0')
-            #try:
-            #    y0i = settings.get_as((y0 - y.min)/y.step,int)
-            #except:
-            #    y0i = 0
-            return settings.get_optimized(settings.get_optimized(expr.subs(y.symbol,y0)))
+            expr = settings.get_optimized(expr.subs(y.symbol,y0))
+            try:
+                y0i = settings.get_as(y.step.subs(y.symbol,y0),int)
+                expr = settings.get_optimized(expr.subs(y.index,y0i))
+            except:
+                pass
+            return expr
         else:
             return settings.get_optimized(expr)
 
     def _get_as(self,expr,type,settings):
-        return type(self._evaluate(expr,settings))
+        return settings.get_as(self._evaluate(expr,settings),type)
 
     def __get_x_coordinates(self):
         import numpy as np
@@ -92,6 +101,9 @@ class Propagator(Solver):
             self.__coordinates = [self.__get_x_coordinates()] if self.ndim == 1 else list(self.__get_xy_coordinates())
             self.__z_coordinates = np.zeros(self.__coordinates[0].shape,dtype=np.uint)
             return self._get_coordinates()
+
+    def _get_coordinate_dict(self):
+        return {n:v for n,v in zip(self.__coordinate_names,self._get_coordinates())}
 
     def _get_initial(self):
         return self.__initial
@@ -151,7 +163,7 @@ class Propagator(Solver):
 		if res is not None:
 		    res.fill(c)
 		    return res
-	        return np.full(args[0].shape,c)
+	        return np.full(args[0].shape,c,dtype=self.dtype)
             return constant_expression
 
         res = [ getattr(lib,'f%s' % i) if hasattr(lib,'f%s' % i) else get_constant_expression(expressions[i]) for i in range(len(expressions)) ]

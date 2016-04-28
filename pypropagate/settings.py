@@ -75,8 +75,13 @@ class Settings(CategorizedDictionary):
 
         self._initializing = True
 
-        for initializer in self._initializers.values():
-            initializer(self)
+        try:
+            for initializer in self._initializers.values():
+                initializer(self)
+        except:
+            self._initialized = False
+            self._initializing = False
+            raise
 
         self._initialized = True
         self._initializing = False
@@ -204,12 +209,12 @@ class Settings(CategorizedDictionary):
         self.initialize()
         return self.data[expr]
 
-    def get_as(self,expr,type):
+    def get_as(self,expr,cast):
         import expresso.pycas as pc
         res = self.get_unitless(expr)
         if res.function == pc.Tuple:
-            return [type(e) for e in res]
-        return type(res)
+            return [cast(e) for e in res]
+        return cast(res)
 
     def get_numeric_transform(self):
         copy = self.copy()

@@ -13,8 +13,8 @@ def analytical_slab_waveguide(settings):
     s = settings.symbols
 
     k = settings.get_as(s.k,float)
-    n1 = settings.get_as(settings.waveguide.n_1,complex)
-    n2 = settings.get_as(settings.waveguide.n_2,complex)
+    n1 = settings.get_as(settings.waveguide.n_1,complex).conjugate()
+    n2 = settings.get_as(settings.waveguide.n_2,complex).conjugate()
     d  = 2*settings.get_as(settings.waveguide.r,float)
 
     # We will determine um for all guided modes as the roots of the characteristic equation:
@@ -75,7 +75,7 @@ def analytical_slab_waveguide(settings):
         solution = None
         for c,b,kappa,mu in zip(c_values,B_values,kappa_values,mu_values):
             beta = sqrt(k**2*n1.real**2 - kappa**2)
-            mode = c * psi(kappa,r) * exp((-mu-1j*(beta-k))*x)
+            mode = c * psi(kappa,r) * exp((-mu+1j*(beta-k))*x)
             if solution is None: solution = mode
             else: solution += mode
         return solution
@@ -105,8 +105,8 @@ def analytical_circular_waveguide(settings):
     s = settings.symbols
 
     kn = settings.get_as(s.k,float)
-    n1 = settings.get_as(settings.waveguide.n_1,complex)
-    n2 = settings.get_as(settings.waveguide.n_2,complex)
+    n1 = settings.get_as(settings.waveguide.n_1,complex).conjugate()
+    n2 = settings.get_as(settings.waveguide.n_2,complex).conjugate()
     a  = settings.get_as(settings.waveguide.r,float)
 
     # We will determine um for all guided modes as the roots of the characteristic equation:
@@ -168,7 +168,7 @@ def analytical_circular_waveguide(settings):
     def field(x,r):
         solution = None
         for i in range(len(u_values)):
-            mode = c_values[i] * psi(u_values[i],np.abs(r)) * exp( (-1j*beta_values[i]-mu_values[i]) * x)
+            mode = c_values[i] * psi(u_values[i],np.abs(r)) * exp( (1j*(beta_values[i]-kn)-mu_values[i]) * x)
             if solution is None: solution = mode
             else: solution += mode
         return solution
@@ -176,7 +176,7 @@ def analytical_circular_waveguide(settings):
     x_values = np.linspace(*settings.get_as((s.zmin,s.zmax,s.Nz),float))
     r_values = np.linspace(*settings.get_as((s.xmin,s.xmax,s.Nx),float))
 
-    data = np.conjugate(field(*np.meshgrid(x_values,r_values)) * exp(1j*kn*x_values))
+    data = np.conjugate(field(*np.meshgrid(x_values,r_values)))
 
     sx = settings.get_numeric(s.sx)
     sz = settings.get_numeric(s.sz)
