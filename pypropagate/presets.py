@@ -199,9 +199,9 @@ def add_wave_equation_category(settings):
     n = we.create_key("n",Function("n")(*[c.symbol for c in s.coordinates]))
 
     omega = we.create_key('omega',Symbol('omega'),info='angular wave frequency') if not hasattr(s,'omega') else we.add_key('omega',s.omega)
-    wavelength = we.create_key('wavelength',Symbol("lambda"),settings.numerics.c*2*pi/omega,info='vacuum wavelength')
-    k = we.create_key("k",Symbol("k"),omega/settings.numerics.c,info='wave number')
-    E = we.create_key("E",Symbol("E"),omega * settings.numerics.hbar,info='photon energy')
+    wavelength = we.create_key('wavelength',Function("lambda")(omega),settings.numerics.c*2*pi/omega,info='vacuum wavelength')
+    k = we.create_key("k",Function("k")(omega),omega/settings.numerics.c,info='wave number')
+    E = we.create_key("E",Function("E")(omega),omega * settings.numerics.hbar,info='photon energy')
 
     we.lock('k','defined by omega')
     we.lock('E','defined by omega')
@@ -545,16 +545,23 @@ def create_2D_frequency_settings_from(settings):
 
 def fourier_transform(array,axis,new_axis,inverse=False):
     import numpy as np
-    from numpy.fft import fft,ifft,fftshift,ifftshift
+    from numpy.fft import fftshift,ifftshift
     from expresso.pycas import pi
     from .coordinate_ndarray import CoordinateNDArray
+
+    try:
+        from pyfftw.interfaces.numpy_fft import fft,ifft
+    except ImportError:
+        from numpy.fft import fft,ifft
 
     axi = array.axis.index(axis)
 
     if not inverse:
-        new_data =  1/np.sqrt(2*np.pi) * fftshift(fft(array.data,axis=axi),axes=[axi])
+        new_data = fftshift(fft(array.data,axis=axi),axes=[axi])
+        new_data *= 1/np.sqrt(2*np.pi)  
     else:
-        new_data =  np.sqrt(2*np.pi) * ifft(ifftshift(array.data,axes=[axi]),axis=axi)
+        new_data = ifft(ifftshift(array.data,axes=[axi]),axis=axi)
+        new_data *= np.sqrt(2*np.pi) 
 
     sw = array.bounds[axi][1] - array.bounds[axi][0]
     tmin,tmax = array.evaluate((-(pi*array.shape[axi])/sw,
@@ -587,5 +594,11 @@ def u_from_utilde(field,omega0):
 
     nz,ik = np.meshgrid(np.linspace(-uzmin,-uzmax,field.shape[2]),np.linspace(1j*ukmin,1j*ukmax,field.shape[1]))
     factor = np.exp(ik*nz)
+    
+    transform = field * factor
+    del factor,nz,ik
 
-    return fourier_transform(field * factor,field.axis[1],pc.Symbol('t'),inverse=True)
+    return fourier_transform(transform, field.axis[1], pc.Symbol('t'), inverse=True)
+
+
+
