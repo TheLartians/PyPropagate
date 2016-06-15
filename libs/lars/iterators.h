@@ -6,17 +6,9 @@
 #include <vector>
 #include <assert.h>
 #include <cmath>
+#include <lars/unused.h>
 
 namespace lars {
-  
-#if defined(__GNUC__)
-#  define UNUSED __attribute__ ((unused))
-#elif defined(_MSC_VER)
-#  define UNUSED __pragma(warning(suppress:4100))
-#else
-#  define UNUSED
-#endif
-  
   
   template<class T> class range_wrapper {
   
@@ -60,7 +52,9 @@ namespace lars {
   template<class T> range_wrapper<T> range(const T &start, const T &end, const T & increment) { return range_wrapper<T>(start, end, increment); }
   template<class T> range_wrapper<T> range(const T &start, const T &end) { return range_wrapper<T>(start, end, 1); }
   template<class T> range_wrapper<T> range(const T &end) { return range_wrapper<T>(0, end, 1); }
-  
+
+  template<class T> range_wrapper<size_t> indices(const T &container) { return range(container.size()); }
+
   //
   // ---- Reverse ----
   //
@@ -95,11 +89,13 @@ namespace lars {
     static constexpr bool value = true;
   };
   
-  template <typename T> struct is_iterable{
-    template<typename U,size_t (U::*)() const> struct SFINAE { constexpr static bool value=true; };
-    template<typename U> static char Test(SFINAE<U, &U::begin>*);
-    template<typename U> static int Test(...);
-    static constexpr bool value = sizeof(Test<T>(0)) == sizeof(char);
+  // From http://stackoverflow.com/questions/13830158/check-if-a-variable-is-iterable
+  template<typename C>struct is_iterable{
+    typedef long false_type;
+    typedef char true_type;
+    template<class T> static false_type check(...);
+    template<class T> static true_type  check(int, typename T::const_iterator = C().end());
+    enum { value = sizeof(check<C>(0)) == sizeof(true_type) };
   };
 
   template<class T> typename std::enable_if<is_iterable<T>::value,reverse_wrapper<T>>::type reverse(T & obj){

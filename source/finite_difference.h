@@ -15,15 +15,17 @@
 namespace lars {
   
   namespace finite_differences{
+    
     using real = double;
     using complex = algebra::complex<real>;
+    
     using scalar = complex;
 
-    using array_1D   = ndarray<scalar, 1>;
-    using array_2D   = ndarray<scalar, 2>;
+    using array_1D   = HeapNDArray<scalar,DynamicIndexTuple<1>>;
+    using array_2D   = HeapNDArray<scalar,DynamicIndexTuple<2>>;
     
     class pseudo_field{
-      private:
+      private: 
       scalar _value;
       public:
       pseudo_field(const scalar & value):_value(value){}
@@ -45,7 +47,7 @@ namespace lars {
    
   */
   
-  class finite_difference_aF{
+  class finite_difference_AF{
   public:
     
     using scalar = finite_differences::complex;
@@ -53,13 +55,12 @@ namespace lars {
     
   private:
     
-    field up,rfp;
-    field B,R,tmp;
+    field up,rfp,rap;
+    field A,B,R,tmp;
     
   public:
     
-    scalar ra;
-    field u,rf;
+    field u,rf,ra;
     
     void step();
     void update();
@@ -67,7 +68,7 @@ namespace lars {
     void resize(size_t N);
   };
   
-  class finite_difference_acF{
+  class finite_difference_ACF{
   public:
     
     using scalar = finite_differences::complex;
@@ -75,12 +76,11 @@ namespace lars {
     
   private:
     
-    field up,rfp;
+    field up,rfp,rap,rcp;
     
   public:
     
-    scalar ra,rc;
-    field u,rf;
+    field u,rf,ra,rc;
     
     void step_1();
     void step_2();

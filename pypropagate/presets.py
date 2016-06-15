@@ -237,8 +237,8 @@ def create_paraxial_wave_equation_settings():
 
     pe = settings.partial_differential_equation
     s = settings.symbols
-    pe.F = s.k/2j*(s.n**2-1)
-    pe.A = 1/(2j*s.k)
+    pe.F = -1j*s.k*(s.n-1)
+    pe.A = 1/(2j*s.k*s.n)
 
     pe.lock('F','defined by wave equation')
     pe.lock('A','defined by wave equation')
@@ -338,13 +338,13 @@ def set_initial(settings,initial_array):
         sb.lock('xmax','defined by initial array')
         sb.lock('sx','defined by xmin and xmax')
 
-def get_refraction_indices(material,min_energy,max_energy,steps):
+def get_refraction_indices(material,min_energy,max_energy,steps,density=-1):
 
     if min_energy < 0 and max_energy < 0:
-        return get_refraction_indices(material,abs(min_energy),abs(max_energy),steps)
+        return get_refraction_indices(material,abs(min_energy),abs(max_energy),steps,density=density)
 
     if min_energy > max_energy:
-        return get_refraction_indices(material,max_energy,min_energy,steps)[::-1]
+        return get_refraction_indices(material,max_energy,min_energy,steps,density=density)[::-1]
 
     max_steps = 499
 
@@ -352,8 +352,8 @@ def get_refraction_indices(material,min_energy,max_energy,steps):
         dn = (max_energy - min_energy)/(steps - 1)
         current_max = min_energy + max_steps * dn
         missing = max(steps-max_steps,3)
-        return get_refraction_indices(material,min_energy,current_max ,max_steps) + \
-               get_refraction_indices(material,current_max + dn,current_max + dn * missing,missing)
+        return get_refraction_indices(material,min_energy,current_max ,max_steps,density=density) + \
+               get_refraction_indices(material,current_max + dn,current_max + dn * missing,missing,density=density)
 
     from mechanize import Browser
     br = Browser()
@@ -363,6 +363,7 @@ def get_refraction_indices(material,min_energy,max_energy,steps):
     br.select_form(nr=0)
 
     br.form[ 'Formula' ] = material
+    br.form[ 'Density' ] = str(density)
     br.form[ 'Min' ] = str(min_energy)
     br.form[ 'Max' ] = str(max_energy)
     br.form[ 'Npts' ] = str(steps-1)
@@ -392,7 +393,10 @@ def get_refraction_indices(material,min_energy,max_energy,steps):
 
     return values
 
-def create_material(name,settings):
+def create_material(name,settings,density=-1):
+    '''
+    density in gm/cm^3
+    '''
 
     import expresso.pycas as pc
 
@@ -432,7 +436,7 @@ def create_material(name,settings):
             setattr(r,nname,None)
             return
 
-        key = (nname,N,Emin,Emax)
+        key = (nname,N,Emin,Emax,density)
         if not hasattr(r,'_cache'):
             r.add_attribute('_cache', {})
         else:
@@ -440,11 +444,11 @@ def create_material(name,settings):
                 setattr(r,nname,r._cache[key])
                 return
         if omega_dependent:
-            narr = pc.array(nname,np.array(get_refraction_indices(name,Emin,Emax,N)))
+            narr = pc.array(nname,np.array(get_refraction_indices(name,Emin,Emax,N,density=density)))
             setattr(r,nname,narr(sb.omegai))
             r._cache[key] = narr(sb.omegai)
         else:
-            val = get_refraction_indices(name,Emax,Emin,3)[1]
+            val = get_refraction_indices(name,Emax,Emin,3,density=density)[1]
             setattr(r,nname,val)
             r._cache[key] = val
 
