@@ -432,19 +432,21 @@ def create_material(name,settings):
             setattr(r,nname,None)
             return
 
-        key = (N,Emin,Emax)
+        key = (nname,N,Emin,Emax)
         if not hasattr(r,'_cache'):
             r.add_attribute('_cache', {})
         else:
-            if nname in r._cache and r._cache[nname] == key:
+            if key in r._cache:
+                setattr(r,nname,r._cache[key])
                 return
         if omega_dependent:
             narr = pc.array(nname,np.array(get_refraction_indices(name,Emin,Emax,N)))
             setattr(r,nname,narr(sb.omegai))
+            r._cache[key] = narr(sb.omegai)
         else:
-            setattr(r,nname,get_refraction_indices(name,Emax,Emin,3)[1])
-
-        r._cache[nname] = key
+            val = get_refraction_indices(name,Emax,Emin,3)[1]
+            setattr(r,nname,val)
+            r._cache[key] = val
 
     settings.initializers["init_" + nname] = init_material
 
