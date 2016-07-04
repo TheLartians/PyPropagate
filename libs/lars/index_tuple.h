@@ -19,11 +19,13 @@ struct DynamicIndex{
   constexpr static bool is_dynamic = true;
 };
 
+  
+  // TODO: when all works reintroduce and try to compile with size-0 array
 template <size_t _value> struct StaticIndex{
   char MAKE_SIZE_ZERO_IF_EMPTY[0];
   constexpr StaticIndex(){ }
   static const size_t value = _value;
-  operator size_t()const{ return _value; (void)(MAKE_SIZE_ZERO_IF_EMPTY[0]); /* this will silence unused member warnings */ }
+  operator size_t()const{ (void)(MAKE_SIZE_ZERO_IF_EMPTY[0]); return _value;  /*  this will silence unused member warnings */ }
   constexpr static bool is_dynamic = false;
 };
 
@@ -191,7 +193,7 @@ public:
   template <size_t B,size_t E,typename Enable = void> struct make_slice;
   template <size_t B,size_t E> struct make_slice<B,E,typename std::enable_if<B == E>::type>{ using type = IndexTuple<>; };
   template <size_t B,size_t E> struct make_slice<B,E,typename std::enable_if<B < E>::type>{ using type = typename IndexTuple<ElementType<B>>::template append_type<typename make_slice<B+1,E>::type>; };
-  template <size_t B,size_t E> using SliceType = typename make_slice<B, E>::type;
+  template <size_t B,size_t E> using Slice = typename make_slice<B, E>::type;
   
   template <size_t Begin, size_t End, typename Args> void set_from_arg_range(const Args &args){
     static_assert(End - Begin == size(), "invalid range");
@@ -199,7 +201,7 @@ public:
     apply_template(value_setter);
   }
   
-  template <size_t B,size_t E> SliceType<B,E> slice()const{
+  template <size_t B,size_t E> Slice<B,E> slice()const{
     typename make_slice<B,E>::type res;
     res.template set_from_arg_range<B,E>( std::tuple<Indices...>(*this) );
     return res;
@@ -225,6 +227,23 @@ public:
   template <typename Other> using mul_result = reduced_result<mul_reduce, Other>;
   template <typename Other> using dif_result = reduced_result<dif_reduce, Other>;
   template <typename Other> using div_result = reduced_result<div_reduce, Other>;
+  
+  
+  template <size_t Idx,typename ... OtherIndices> typename std::enable_if<Idx != 0,bool>::type is_equal(const IndexTuple<OtherIndices...> &other)const{
+    return get<Idx>() == other.template get<Idx>() && is_equal<Idx-1>(other);
+  }
+  
+  template <size_t Idx,typename ... OtherIndices> typename std::enable_if<Idx == 0,bool>::type is_equal(const IndexTuple<OtherIndices...> &other)const{
+    return get<Idx>() == other.template get<Idx>();
+  }
+  
+  template <typename ... OtherIndices> bool operator==(const IndexTuple<OtherIndices...> &other)const{
+    return is_equal<size()-1>(other);
+  }
+  
+  template <typename ... OtherIndices> bool operator!=(const IndexTuple<OtherIndices...> &other)const{
+    return !is_equal<size()-1>(other);
+  }
   
   template <typename ... OtherIndices> sum_result<IndexTuple<OtherIndices...>> operator+(const IndexTuple<OtherIndices...> &other)const{
     return reduce<sum_reduce>(other);
