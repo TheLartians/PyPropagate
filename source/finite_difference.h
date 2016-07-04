@@ -90,7 +90,7 @@ namespace lars {
   };
   
   
-  class finite_difference_a0F{
+  class finite_difference_A0F{
   public:
     
     using scalar = finite_differences::complex;
@@ -98,12 +98,11 @@ namespace lars {
     
   private:
     
-    field up,rfp;
+    field up,rfp,rap;
     
   public:
     
-    finite_differences::array_1D ra;
-    field u,rf;
+    field u,rf,ra;
     
     void step();
     void update();

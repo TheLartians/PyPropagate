@@ -21,6 +21,15 @@ int main(){
     
   });
   
+  timeit<2>("A0F", [](){
+    finite_difference_A0F propagator;
+    propagator.resize(1000, 100);
+    for(auto i UNUSED:range(1000)){
+      propagator.update();
+      propagator.step();
+    }
+  });
+
   timeit<2>("ACF", [](){
     finite_difference_ACF propagator;
     propagator.resize(1000, 100);

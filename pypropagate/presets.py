@@ -475,9 +475,9 @@ def create_2D_paraxial_frequency_settings():
     settings.symbols.add_key('u0',pde.u0)
     settings.symbols.add_key('u_boundary',pde.u_boundary)
 
-    pde.A = -1j/(2*we.k)
+    pde.A = 1/(2j*we.k*we.n)
     pde.C = 0
-    pde.F = -1j*we.k/2*(we.n**2-1)
+    pde.F = -1j*we.k*(we.n-1)
 
     return settings
 
@@ -581,7 +581,7 @@ def fourier_transform(array,axis,new_axis,inverse=False):
 def inverse_fourier_transform(*args):
     return fourier_transform(*args,inverse=True)
 
-def u_from_utilde(field,omega0):
+def u_from_utilde(field,omega0,a=0):
     import numpy as np
     import expresso.pycas as pc
     import units
@@ -598,7 +598,7 @@ def u_from_utilde(field,omega0):
     #print ukmin
     #print ukmax
 
-    nz,ik = np.meshgrid(np.linspace(-uzmin,-uzmax,field.shape[2]),np.linspace(1j*ukmin,1j*ukmax,field.shape[1]))
+    nz,ik = np.meshgrid(np.linspace(uzmin*(a-1),uzmax*(a-1),field.shape[2]),np.linspace(1j*ukmin,1j*ukmax,field.shape[1]))
     factor = np.exp(ik*nz)
     
     transform = field * factor
