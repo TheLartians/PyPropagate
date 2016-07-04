@@ -35,7 +35,7 @@ add_library(FD STATIC ${sources} ${headers} )
 # ---- executable ----
 
 add_executable(run ${PROJECT_SOURCE_DIR}/main.cpp)
-TARGET_LINK_LIBRARIES(run FD)
+TARGET_LINK_LIBRARIES(run FD pthread)
 
 # ---- python ----
 SET(Python_ADDITIONAL_VERSIONS 2.7 2.6 2.5)
