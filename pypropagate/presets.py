@@ -338,13 +338,13 @@ def set_initial(settings,initial_array):
         sb.lock('xmax','defined by initial array')
         sb.lock('sx','defined by xmin and xmax')
 
-def get_refraction_indices(material,min_energy,max_energy,steps,density=-1):
+def get_refraction_indices(material,min_energy,max_energy,steps,density=-1,uniform_distance = False):
 
     if min_energy < 0 and max_energy < 0:
-        return get_refraction_indices(material,abs(min_energy),abs(max_energy),steps,density=density)
+        return get_refraction_indices(material,abs(min_energy),abs(max_energy),steps,density,uniform_distance)
 
     if min_energy > max_energy:
-        return get_refraction_indices(material,max_energy,min_energy,steps,density=density)[::-1]
+        return get_refraction_indices(material,max_energy,min_energy,steps,density,uniform_distance)[::-1]
 
     max_steps = 499
 
@@ -352,25 +352,25 @@ def get_refraction_indices(material,min_energy,max_energy,steps,density=-1):
         dn = (max_energy - min_energy)/(steps - 1)
         current_max = min_energy + max_steps * dn
         missing = max(steps-max_steps,3)
-        return get_refraction_indices(material,min_energy,current_max ,max_steps,density=density) + \
-               get_refraction_indices(material,current_max + dn,current_max + dn * missing,missing,density=density)
+        return get_refraction_indices(material,min_energy,current_max ,max_steps,density,uniform_distance) + \
+               get_refraction_indices(material,current_max + dn,current_max + dn * missing,missing,density,uniform_distance)
 
     from mechanize import Browser
     br = Browser()
 
-    br.open( "http://henke.lbl.gov/optical_constants/getdb.html" )
+    br.open("http://henke.lbl.gov/optical_constants/getdb.html")
 
     br.select_form(nr=0)
-
+    
     br.form[ 'Formula' ] = material
     br.form[ 'Density' ] = str(density)
-    br.form[ 'Min' ] = str(min_energy)
-    br.form[ 'Max' ] = str(max_energy)
+    br.form[ 'Min' ] = str(min_energy) if not uniform_distance else str(min_energy-1)
+    br.form[ 'Max' ] = str(max_energy) if not uniform_distance else str(max_energy+1)
     br.form[ 'Npts' ] = str(steps-1)
     br.form[ 'Output' ] = ['Text File']
 
     res = br.submit().read()
-
+    
     def is_number(s):
         try:
             float(s)
@@ -380,18 +380,26 @@ def get_refraction_indices(material,min_energy,max_energy,steps,density=-1):
 
     def get_numbers(line):
         return [float(v) for v in line.split(' ') if is_number(v)]
-
     try:
         betadelta = [get_numbers(line) for line in res.split('\n') if len(get_numbers(line)) == 3]
-        values = [1-float(v[1])-1j*float(v[2]) for v in betadelta]
+        E_values = [float(v[0]) for v in betadelta]
+        n_values = [complex(1-float(v[1]),-float(v[2])) for v in betadelta]
     except:
         betadelta = []
 
     if len(betadelta) != steps:
         raise RuntimeError('error retrieving refractive index for %s (E from %s to %s in %s steps)\nserver response: %s' % (
             material,min_energy,max_energy,steps,res))
-
-    return values
+    
+    if uniform_distance:
+        from scipy.interpolate import interp1d
+        import numpy as np
+        int_f = interp1d(E_values,n_values)
+        E_values = np.linspace(min_energy,max_energy,steps)
+        interpolated = int_f(E_values)
+        return interpolated
+    
+    return zip(E_values,n_values)
 
 def create_material(name,settings,density=-1):
     '''
@@ -444,11 +452,11 @@ def create_material(name,settings,density=-1):
                 setattr(r,nname,r._cache[key])
                 return
         if omega_dependent:
-            narr = pc.array(nname,np.array(get_refraction_indices(name,Emin,Emax,N,density=density)))
+            narr = pc.array(nname,np.array(get_refraction_indices(name,Emin,Emax,N,density,True)))
             setattr(r,nname,narr(sb.omegai))
             r._cache[key] = narr(sb.omegai)
         else:
-            val = get_refraction_indices(name,Emax,Emin,3,density=density)[1]
+            val = get_refraction_indices(name,Emax,Emin,3,density,True)[1]
             setattr(r,nname,val)
             r._cache[key] = val
 
@@ -598,8 +606,8 @@ def u_from_utilde(field,omega0,a=0):
     #print ukmin
     #print ukmax
 
-    nz,ik = np.meshgrid(np.linspace(uzmin*(a-1),uzmax*(a-1),field.shape[2]),np.linspace(1j*ukmin,1j*ukmax,field.shape[1]))
-    factor = np.exp(ik*nz)
+    nz,ik = np.meshgrid(np.linspace(uzmin,uzmax,field.shape[2]),np.linspace(1j*ukmin,1j*ukmax,field.shape[1]))
+    factor = np.exp(ik*nz*(a-1))
     
     transform = field * factor
     del factor,nz,ik
