@@ -349,11 +349,12 @@ def get_refraction_indices(material,min_energy,max_energy,steps,density=-1,unifo
     max_steps = 499
 
     if steps > max_steps:
+        import numpy as np
         dn = (max_energy - min_energy)/(steps - 1)
         current_max = min_energy + max_steps * dn
         missing = max(steps-max_steps,3)
-        return get_refraction_indices(material,min_energy,current_max ,max_steps,density,uniform_distance) + \
-               get_refraction_indices(material,current_max + dn,current_max + dn * missing,missing,density,uniform_distance)
+        return np.append(get_refraction_indices(material,min_energy,current_max ,max_steps,density,uniform_distance), \
+               get_refraction_indices(material,current_max + dn,current_max + dn * missing,missing,density,uniform_distance),axis=0)
 
     from mechanize import Browser
     br = Browser()
@@ -589,7 +590,15 @@ def fourier_transform(array,axis,new_axis,inverse=False):
 def inverse_fourier_transform(*args):
     return fourier_transform(*args,inverse=True)
 
-def u_from_utilde(field,omega0,a=0):
+def u_from_utilde(field,omega0,s=None,a=None):
+
+    if a is None and s is None:
+	raise ValueError("a or s needs to be specified")
+    if a is not None and s is not None:
+        raise ValueError("only one value for a/s can be specified")
+    if a is not None:
+        s = 1/(1-a)
+
     import numpy as np
     import expresso.pycas as pc
     import units
@@ -607,7 +616,7 @@ def u_from_utilde(field,omega0,a=0):
     #print ukmax
 
     nz,ik = np.meshgrid(np.linspace(uzmin,uzmax,field.shape[2]),np.linspace(1j*ukmin,1j*ukmax,field.shape[1]))
-    factor = np.exp(ik*nz*(a-1))
+    factor = np.exp(-ik*nz/s)
     
     transform = field * factor
     del factor,nz,ik
