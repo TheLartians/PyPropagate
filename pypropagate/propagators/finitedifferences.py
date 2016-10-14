@@ -26,19 +26,19 @@ class FiniteDifferencesPropagator1D(Propagator):
         self._reset()
 
     def _reset(self):
-        self.__ra(*self._get_coordinates(),res=self._solver.ra.as_numpy())
-        self.__rf(*self._get_coordinates(),res=self._solver.rf.as_numpy())
+        self.__ra(*self._get_indices(), res=self._solver.ra.as_numpy())
+        self.__rf(*self._get_indices(), res=self._solver.rf.as_numpy())
         self._solver.update()
         super(FiniteDifferencesPropagator1D,self)._reset()
-        self.__ra(*self._get_coordinates(),res=self._solver.ra.as_numpy())
-        self.__rf(*self._get_coordinates(),res=self._solver.rf.as_numpy())
+        self.__ra(*self._get_indices(), res=self._solver.ra.as_numpy())
+        self.__rf(*self._get_indices(), res=self._solver.rf.as_numpy())
 
     def _update(self):
         self._solver.update()
         self.__z_values.fill(self._i)
         self._solver.u.as_numpy()[self.__boundary_values] = self.__u_boundary(self.__boundary_values,self.__z_values)
         if not self._F_is_constant_in_z:
-            self.__rf(*self._get_coordinates(),res=self._solver.rf.as_numpy())
+            self.__rf(*self._get_indices(), res=self._solver.rf.as_numpy())
 
     def _step(self):
         self._update()
@@ -86,11 +86,11 @@ class FiniteDifferencesPropagator2D(Propagator):
         self._solver = finite_difference_ACF() if not self.__C_is_zero else finite_difference_A0F()
         self._solver.resize(self._nx,self._ny)
 
-        d,u,l,r = [(self._get_x_coordinates(),np.zeros(self._nx,dtype = np.uint)),
-                   (self._get_x_coordinates(),np.ones(self._nx,dtype = np.uint)*(self._ny-1)),
+        d,u,l,r = [(self._get_x_indices(), np.zeros(self._nx, dtype = np.uint)),
+                   (self._get_x_indices(), np.ones(self._nx, dtype = np.uint) * (self._ny - 1)),
                    (np.zeros(self._ny,dtype = np.uint),
-                    self._get_y_coordinates()),
-                   (np.ones(self._ny,dtype = np.uint)*(self._nx-1),self._get_y_coordinates())]
+                    self._get_y_indices()),
+                   (np.ones(self._ny,dtype = np.uint)*(self._nx-1),self._get_y_indices())]
 
         self.__boundary_values = [np.concatenate([v[0] for v in d,u,l,r]),
                                   np.concatenate([v[1] for v in d,u,l,r]),
@@ -100,14 +100,14 @@ class FiniteDifferencesPropagator2D(Propagator):
         self._reset()
         
     def _reset(self):
-        self.__ra[1](*self._get_coordinates(),res=self._solver.ra.as_numpy())
-        if not self.__C_is_zero: self.__rc[1](*self._get_coordinates(),res=self._solver.rc.as_numpy())
-        self.__rf[1](*self._get_coordinates(),res=self._solver.rf.as_numpy())
+        self.__ra[1](*self._get_indices(), res=self._solver.ra.as_numpy())
+        if not self.__C_is_zero: self.__rc[1](*self._get_indices(), res=self._solver.rc.as_numpy())
+        self.__rf[1](*self._get_indices(), res=self._solver.rf.as_numpy())
         self._solver.u.as_numpy().fill(0)
         self._solver.update()
-        self.__ra[0](*self._get_coordinates(),res=self._solver.ra.as_numpy())
-        if not self.__C_is_zero: self.__rc[0](*self._get_coordinates(),res=self._solver.rc.as_numpy())
-        self.__rf[0](*self._get_coordinates(),res=self._solver.rf.as_numpy())
+        self.__ra[0](*self._get_indices(), res=self._solver.ra.as_numpy())
+        if not self.__C_is_zero: self.__rc[0](*self._get_indices(), res=self._solver.rc.as_numpy())
+        self.__rf[0](*self._get_indices(), res=self._solver.rf.as_numpy())
         super(FiniteDifferencesPropagator2D,self)._reset()
 
     def _update_boundary(self,half_step):
@@ -124,9 +124,9 @@ class FiniteDifferencesPropagator2D(Propagator):
         self._solver.update()
         self._update_boundary(half_step)
         if (not self._F_is_constant_in_z):
-            self.__ra[half_step](*self._get_coordinates(),res=self._solver.ra.as_numpy())
-            if not self.__C_is_zero: self.__rc[half_step](*self._get_coordinates(),res=self._solver.rc.as_numpy())
-            self.__rf[half_step](*self._get_coordinates(),res=self._solver.rf.as_numpy())
+            self.__ra[half_step](*self._get_indices(), res=self._solver.ra.as_numpy())
+            if not self.__C_is_zero: self.__rc[half_step](*self._get_indices(), res=self._solver.rc.as_numpy())
+            self.__rf[half_step](*self._get_indices(), res=self._solver.rf.as_numpy())
 
     def _step(self):
         if not self.__C_is_zero:

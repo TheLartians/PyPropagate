@@ -10,22 +10,18 @@ class FresnelPropagator2D(Propagator):
     def __init__(self,settings,thread_count = None):
 
         super(FresnelPropagator2D,self).__init__(settings)
-
         if thread_count == None:
             import multiprocessing
             thread_count = multiprocessing.cpu_count()
         self._thread_count = thread_count
-
         self._set_initial_field(settings)
-
         pe = settings.partial_differential_equation
         x,y,z = settings.partial_differential_equation.coordinates
 
         import expresso.pycas as pc
         R, = self._get_evaluators([pc.exp(pe.F*z.step)],settings,return_type=pc.Types.Complex,parallel=not self._F_is_constant_in_z)
-
         if self._F_is_constant_in_z:
-            self.__R_step = R(*self._get_coordinates())
+            self.__R_step = R(*self._get_indices())
         else:
             self.__R = R
 
@@ -41,7 +37,7 @@ class FresnelPropagator2D(Propagator):
             fx*( self._nx/2.-np.abs(np.arange(self._nx)-self._nx/2.) )
         )
 
-        self.__D_step = D(kx=kx,ky=ky,**self._get_coordinate_dict())
+        self.__D_step = D(kx=kx, ky=ky, **self._get_indices_dict())
 
     def get_fft(self):
         try:
@@ -72,7 +68,7 @@ class FresnelPropagator2D(Propagator):
             self.__freq_data = fft2(self.__data)
             self.__freq_data *= self.__D_step
             self.__data = ifft2(self.__freq_data)
-            self.__data *= self.__R(*self._get_coordinates())
+            self.__data *= self.__R(*self._get_indices())
 
     def _get_field(self):
         return self.__data
@@ -105,14 +101,14 @@ class FresnelPropagator1D(Propagator):
         D = pc.numpyfy( self._evaluate( pc.exp(-pe.A*z.step*(pc.Symbol('kx')**2)) , settings) )
 
         if self._F_is_constant_in_z:
-            self.__R_step = R(*self._get_coordinates())
+            self.__R_step = R(*self._get_indices())
         else:
             self.__R = R
 
         import numpy as np
         fx = 2*np.pi/(self._nx*self._get_as(x.step,float,settings))
         kx = fx*( self._nx/2.-np.abs(np.arange(self._nx)- self._nx/2.) )
-        self.__D_step = D(kx=kx,**self._get_coordinate_dict())
+        self.__D_step = D(kx=kx, **self._get_indices_dict())
 
     def get_fft(self):
         try:
@@ -143,7 +139,7 @@ class FresnelPropagator1D(Propagator):
             self.__freq_data = fft(self.__data)
             self.__freq_data *= self.__D_step
             self.__data = ifft(self.__freq_data)
-            self.__data *= self.__R(*self._get_coordinates())
+            self.__data *= self.__R(*self._get_indices())
 
     def _get_field(self):
         return self.__data

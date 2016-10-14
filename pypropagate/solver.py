@@ -147,14 +147,17 @@ class Solver(object):
     def reset(self):
         self._reset()
         self._i = 0
-    
+
+    def _call_updaters(self):
+        for updater in self._updaters.values():
+            updater(self)
+
     def step(self,callback=None):
         self._i += 1
-        for updater in self._updaters.values():
-            updater(self._i,self._get_field())
+        self._call_updaters()
         self._step()
-	if callback is not None:
-	    callback(self)
+        if callback is not None:
+            callback(self)
 
     def run_slice(self,**kwargs):
 
@@ -186,7 +189,6 @@ class Solver(object):
         for i in run_steps:
             self.step(callback=callback)
 
-
     def _run_slice(self, sliced , display_progress=True, autohide_progress=False, callback = None):
         """Simulate for _nt steps and return the resulting CoordinateNDArray."""
         
@@ -214,7 +216,6 @@ class Solver(object):
         sliced = tuple([slice(*s) if s[0]+1 != s[1] else s[0] for s in sliced_indices[1:]])
         def get_field():
             return self._get_field().__getitem__(sliced)
-
 
         test = get_field()
         for i in range(len(test.shape)):

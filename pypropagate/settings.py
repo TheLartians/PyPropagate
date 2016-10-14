@@ -11,11 +11,11 @@ class Settings(CategorizedDictionary):
     def __init__(self,create_categories = True):
         import collections
 
-        self.updaters = collections.OrderedDict()
         self._cache = dict()
         self._initialized = True
         self._initializing = False
         self._initializers = collections.OrderedDict()
+        self.updaters = collections.OrderedDict()
 
         super(Settings,self).__init__()
         
