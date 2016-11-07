@@ -217,7 +217,7 @@ def add_wave_equation_category(settings):
 
     return we
 
-def create_paraxial_wave_equation_settings():
+def create_paraxial_wave_equation_settings(fresnel_compatible = False):
 
     from .settings import Settings
     import expresso.pycas as pc
@@ -238,7 +238,11 @@ def create_paraxial_wave_equation_settings():
     pe = settings.partial_differential_equation
     s = settings.symbols
     pe.F = -1j*s.k*(s.n-1)
-    pe.A = 1/(2j*s.k*s.n)
+
+    if fresnel_compatible:
+        pe.A = 1/(2j*s.k)
+    else:
+        pe.A = 1/(2j*s.k*s.n)
 
     pe.lock('F','defined by wave equation')
     pe.lock('A','defined by wave equation')

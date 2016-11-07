@@ -66,7 +66,7 @@ class Propagator(Solver):
     def _get_as(self, expr, type, settings):
         return settings.get_as(self._evaluate(expr, settings), type)
 
-    def __get_x_indices(self):
+    def _create_x_indices(self):
         import numpy as np
         return np.arange(self._nx, dtype=np.uint)
 
@@ -74,10 +74,10 @@ class Propagator(Solver):
         try:
             return self.__x_indices
         except AttributeError:
-            self.__x_indices = self.__get_x_indices()
+            self.__x_indices = self._create_x_indices()
             return self._get_x_indices()
 
-    def __get_y_indices(self):
+    def _create_y_indices(self):
         import numpy as np
         return np.arange(self._ny, dtype=np.uint)
 
@@ -85,12 +85,12 @@ class Propagator(Solver):
         try:
             return self.__y_indices
         except AttributeError:
-            self.__y_indices = self.__get_y_indices()
+            self.__y_indices = self._create_y_indices()
             return self._get_y_indices()
 
     def __get_xy_indices(self):
         import numpy as np
-        npy, npx = np.meshgrid(self.__get_y_indices(), self.__get_x_indices())
+        npy, npx = np.meshgrid(self._create_y_indices(), self._create_x_indices())
         return npx, npy
 
     def _get_indices(self):
@@ -99,7 +99,7 @@ class Propagator(Solver):
             return self.__indices + [self.__z_indices]
         except AttributeError:
             import numpy as np
-            self.__indices = [self.__get_x_indices()] if self.ndim == 1 else list(self.__get_xy_indices())
+            self.__indices = [self._create_x_indices()] if self.ndim == 1 else list(self.__get_xy_indices())
             self.__z_indices = np.zeros(self.__indices[0].shape, dtype=np.uint)
             return self._get_indices()
 
