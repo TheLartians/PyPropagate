@@ -112,7 +112,7 @@ def line_plot(carr,ax = None,ylabel = None,figsize = None,title = None,**kwargs)
 
     return lines[0]
 
-def expression_to_array(expression, settings, axes = None):
+def expression_to_array(expression, settings, axes = None, maxres=None):
     import expresso.pycas
     import numpy as np
 

@@ -112,12 +112,14 @@ def add_simulation_box_category(settings,coords = ['x','y','z']):
         defined = set()
 
         for s in settings.get_numeric(tuple(getattr(sb,'s'+c) for c in coords)):
-            unit = get_unit(s,cache = settings.get_cache())
+            unit = get_unit(s)
 
             if unit is None or unit in defined:
                 continue
 
-            value = (unit/s).evaluate(cache=settings.get_cache())
+            unit_name = str(unit)
+
+            value = (unit/s).evaluate()
 
             if unit.function == pc.fraction:
                 unit = unit.args[0]
@@ -129,12 +131,12 @@ def add_simulation_box_category(settings,coords = ['x','y','z']):
             if unit is None or unit in defined or unit.is_function:
                 continue
 
-            defined.add(unit)
-            unit_name = str(unit)
             if not settings.unitless.has_name(unit_name):
                 settings.unitless.create_key(unit_name,unit)
 
             setattr(settings.unitless,unit_name,value)
+
+            defined.add(unit)
 
     settings.initializers['make_unitless'] = make_unitless
 
@@ -169,7 +171,7 @@ def add_partial_differential_equation_category(settings,coordinates = None):
     pde.create_key('u0',pc.Function('u_0_PDE')(*args ),info="field initial condition")
     pde.create_function('u_boundary',args ,info="field boundary condition");
 
-    pde.create_key(arg_attrs[1].name+'0',pc.Symbol(y.name+'_0_PDE'),(arg_attrs[1].min+arg_attrs[1].max)/2,info='Value to which the %s is set for 1D solvers' % y.name)
+    pde.create_key(arg_attrs[1].name+'0',pc.Symbol(y.name+'_0_PDE'),0,info='Value to which the %s is set for 1D solvers' % y.name)
 
     pde.lock()
 
@@ -199,9 +201,9 @@ def add_wave_equation_category(settings):
     n = we.create_key("n",Function("n")(*[c.symbol for c in s.coordinates]))
 
     omega = we.create_key('omega',Symbol('omega'),info='angular wave frequency') if not hasattr(s,'omega') else we.add_key('omega',s.omega)
-    wavelength = we.create_key('wavelength',Symbol("lambda"),settings.numerics.c*2*pi/omega,info='vacuum wavelength')
-    k = we.create_key("k",Symbol("k"),omega/settings.numerics.c,info='wave number')
-    E = we.create_key("E",Symbol("E"),omega * settings.numerics.hbar,info='photon energy')
+    wavelength = we.create_key('wavelength',Function("lambda")(omega),settings.numerics.c*2*pi/omega,info='vacuum wavelength')
+    k = we.create_key("k",Function("k")(omega),omega/settings.numerics.c,info='wave number')
+    E = we.create_key("E",Function("E")(omega),omega * settings.numerics.hbar,info='photon energy')
 
     we.lock('k','defined by omega')
     we.lock('E','defined by omega')
@@ -217,7 +219,7 @@ def add_wave_equation_category(settings):
 
     return we
 
-def create_paraxial_wave_equation_settings():
+def create_paraxial_wave_equation_settings(fresnel_compatible = False):
 
     from .settings import Settings
     import expresso.pycas as pc
@@ -237,8 +239,12 @@ def create_paraxial_wave_equation_settings():
 
     pe = settings.partial_differential_equation
     s = settings.symbols
-    pe.F = s.k/2j*(s.n**2-1)
-    pe.A = 1/(2j*s.k)
+    pe.F = -1j*s.k*(s.n-1)
+
+    if fresnel_compatible:
+        pe.A = 1/(2j*s.k)
+    else:
+        pe.A = 1/(2j*s.k*s.n)
 
     pe.lock('F','defined by wave equation')
     pe.lock('A','defined by wave equation')
@@ -338,38 +344,40 @@ def set_initial(settings,initial_array):
         sb.lock('xmax','defined by initial array')
         sb.lock('sx','defined by xmin and xmax')
 
-def get_refraction_indices(material,min_energy,max_energy,steps):
+def get_refraction_indices(material,min_energy,max_energy,steps,density=-1,uniform_distance = False):
 
     if min_energy < 0 and max_energy < 0:
-        return get_refraction_indices(material,abs(min_energy),abs(max_energy),steps)
+        return get_refraction_indices(material,abs(min_energy),abs(max_energy),steps,density,uniform_distance)
 
     if min_energy > max_energy:
-        return get_refraction_indices(material,max_energy,min_energy,steps)[::-1]
+        return get_refraction_indices(material,max_energy,min_energy,steps,density,uniform_distance)[::-1]
 
     max_steps = 499
 
     if steps > max_steps:
+        import numpy as np
         dn = (max_energy - min_energy)/(steps - 1)
         current_max = min_energy + max_steps * dn
         missing = max(steps-max_steps,3)
-        return get_refraction_indices(material,min_energy,current_max ,max_steps) + \
-               get_refraction_indices(material,current_max + dn,current_max + dn * missing,missing)
+        return np.append(get_refraction_indices(material,min_energy,current_max ,max_steps,density,uniform_distance), \
+               get_refraction_indices(material,current_max + dn,current_max + dn * missing,missing,density,uniform_distance),axis=0)
 
     from mechanize import Browser
     br = Browser()
 
-    br.open( "http://henke.lbl.gov/optical_constants/getdb.html" )
+    br.open("http://henke.lbl.gov/optical_constants/getdb.html")
 
     br.select_form(nr=0)
-
+    
     br.form[ 'Formula' ] = material
-    br.form[ 'Min' ] = str(min_energy)
-    br.form[ 'Max' ] = str(max_energy)
+    br.form[ 'Density' ] = str(density)
+    br.form[ 'Min' ] = str(min_energy) if not uniform_distance else str(min_energy-1)
+    br.form[ 'Max' ] = str(max_energy) if not uniform_distance else str(max_energy+1)
     br.form[ 'Npts' ] = str(steps-1)
     br.form[ 'Output' ] = ['Text File']
 
     res = br.submit().read()
-
+    
     def is_number(s):
         try:
             float(s)
@@ -379,20 +387,31 @@ def get_refraction_indices(material,min_energy,max_energy,steps):
 
     def get_numbers(line):
         return [float(v) for v in line.split(' ') if is_number(v)]
-
     try:
         betadelta = [get_numbers(line) for line in res.split('\n') if len(get_numbers(line)) == 3]
-        values = [1-float(v[1])-1j*float(v[2]) for v in betadelta]
+        E_values = [float(v[0]) for v in betadelta]
+        n_values = [complex(1-float(v[1]),-float(v[2])) for v in betadelta]
     except:
         betadelta = []
 
     if len(betadelta) != steps:
         raise RuntimeError('error retrieving refractive index for %s (E from %s to %s in %s steps)\nserver response: %s' % (
             material,min_energy,max_energy,steps,res))
+    
+    if uniform_distance:
+        from scipy.interpolate import interp1d
+        import numpy as np
+        int_f = interp1d(E_values,n_values)
+        E_values = np.linspace(min_energy,max_energy,steps)
+        interpolated = int_f(E_values)
+        return interpolated
+    
+    return zip(E_values,n_values)
 
-    return values
-
-def create_material(name,settings):
+def create_material(name,settings,density=-1):
+    '''
+    density in gm/cm^3
+    '''
 
     import expresso.pycas as pc
 
@@ -420,31 +439,32 @@ def create_material(name,settings):
             omega_dependent = True
         except:
             N = 3
-            E = units.hbar * omega / units.eV
-            EmaxExpr = E + 1
-            EminExpr = E - 1
+            E = (units.hbar * omega / units.eV)
             omega_i = 1
             omega_dependent = False
         try:
-            Emin = settings.get_as(EminExpr,float)
-            Emax = settings.get_as(EmaxExpr,float)
+            Enum = settings.get_as(E,float)
+            Emin = Enum-1
+            Emax = Enum+1
         except:
             setattr(r,nname,None)
             return
 
-        key = (N,Emin,Emax)
+        key = (nname,N,Emin,Emax,density)
         if not hasattr(r,'_cache'):
             r.add_attribute('_cache', {})
         else:
-            if nname in r._cache and r._cache[nname] == key:
+            if key in r._cache:
+                setattr(r,nname,r._cache[key])
                 return
         if omega_dependent:
-            narr = pc.array(nname,np.array(get_refraction_indices(name,Emin,Emax,N)))
+            narr = pc.array(nname,np.array(get_refraction_indices(name,Emin,Emax,N,density,True)))
             setattr(r,nname,narr(sb.omegai))
+            r._cache[key] = narr(sb.omegai)
         else:
-            setattr(r,nname,get_refraction_indices(name,Emax,Emin,3)[1])
-
-        r._cache[nname] = key
+            val = get_refraction_indices(name,Emax,Emin,3,density,True)[1]
+            setattr(r,nname,val)
+            r._cache[key] = val
 
     settings.initializers["init_" + nname] = init_material
 
@@ -469,9 +489,9 @@ def create_2D_paraxial_frequency_settings():
     settings.symbols.add_key('u0',pde.u0)
     settings.symbols.add_key('u_boundary',pde.u_boundary)
 
-    pde.A = -1j/(2*we.k)
+    pde.A = 1/(2j*we.k*we.n)
     pde.C = 0
-    pde.F = -1j*we.k/2*(we.n**2-1)
+    pde.F = -1j*we.k*(we.n-1)
 
     return settings
 
@@ -545,16 +565,23 @@ def create_2D_frequency_settings_from(settings):
 
 def fourier_transform(array,axis,new_axis,inverse=False):
     import numpy as np
-    from numpy.fft import fft,ifft,fftshift,ifftshift
+    from numpy.fft import fftshift,ifftshift
     from expresso.pycas import pi
     from .coordinate_ndarray import CoordinateNDArray
+
+    try:
+        from pyfftw.interfaces.numpy_fft import fft,ifft
+    except ImportError:
+        from numpy.fft import fft,ifft
 
     axi = array.axis.index(axis)
 
     if not inverse:
-        new_data =  1/np.sqrt(2*np.pi) * fftshift(fft(array.data,axis=axi),axes=[axi])
+        new_data = fftshift(fft(array.data,axis=axi),axes=[axi])
+        new_data *= 1/np.sqrt(2*np.pi)  
     else:
-        new_data =  np.sqrt(2*np.pi) * ifft(ifftshift(array.data,axes=[axi]),axis=axi)
+        new_data = ifft(ifftshift(array.data,axes=[axi]),axis=axi)
+        new_data *= np.sqrt(2*np.pi) 
 
     sw = array.bounds[axi][1] - array.bounds[axi][0]
     tmin,tmax = array.evaluate((-(pi*array.shape[axi])/sw,
@@ -568,7 +595,15 @@ def fourier_transform(array,axis,new_axis,inverse=False):
 def inverse_fourier_transform(*args):
     return fourier_transform(*args,inverse=True)
 
-def u_from_utilde(field,omega0):
+def u_from_utilde(field,omega0,s=None,a=None):
+
+    if a is None and s is None:
+	raise ValueError("a or s needs to be specified")
+    if a is not None and s is not None:
+        raise ValueError("only one value for a/s can be specified")
+    if a is not None:
+        s = 1/(1-a)
+
     import numpy as np
     import expresso.pycas as pc
     import units
@@ -585,7 +620,13 @@ def u_from_utilde(field,omega0):
     #print ukmin
     #print ukmax
 
-    nz,ik = np.meshgrid(np.linspace(-uzmin,-uzmax,field.shape[2]),np.linspace(1j*ukmin,1j*ukmax,field.shape[1]))
-    factor = np.exp(ik*nz)
+    nz,ik = np.meshgrid(np.linspace(uzmin,uzmax,field.shape[2]),np.linspace(1j*ukmin,1j*ukmax,field.shape[1]))
+    factor = np.exp(-ik*nz/s)
+    
+    transform = field * factor
+    del factor,nz,ik
 
-    return fourier_transform(field * factor,field.axis[1],pc.Symbol('t'),inverse=True)
+    return fourier_transform(transform, field.axis[1], pc.Symbol('t'), inverse=True)
+
+
+
