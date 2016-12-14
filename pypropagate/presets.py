@@ -112,21 +112,14 @@ def add_simulation_box_category(settings,coords = ['x','y','z']):
         defined = set()
 
         for s in settings.get_numeric(tuple(getattr(sb,'s'+c) for c in coords)):
-            unit = get_unit(s,cache = settings.get_cache())
-            
+            unit = get_unit(s)
+
             if unit is None or unit in defined:
                 continue
 
             unit_name = str(unit)
-            
-            if settings.unitless.has_name(unit_name):
-                continue
-            
-            # default to 1 
-            settings.unitless.create_key(unit_name,unit,1)
 
-            ''' # There seems to be a bug when doing this
-            value = (unit/s).evaluate(cache=settings.get_cache())
+            value = (unit/s).evaluate()
 
             if unit.function == pc.fraction:
                 unit = unit.args[0]
@@ -138,12 +131,12 @@ def add_simulation_box_category(settings,coords = ['x','y','z']):
             if unit is None or unit in defined or unit.is_function:
                 continue
 
-            defined.add(unit)
             if not settings.unitless.has_name(unit_name):
                 settings.unitless.create_key(unit_name,unit)
 
             setattr(settings.unitless,unit_name,value)
-            '''
+
+            defined.add(unit)
 
     settings.initializers['make_unitless'] = make_unitless
 
