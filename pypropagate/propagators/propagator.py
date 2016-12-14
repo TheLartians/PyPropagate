@@ -161,7 +161,7 @@ class Propagator(Solver):
                 if res is not None:
                     res.fill(c)
                     return res
-                return np.full(args[0].shape, c, dtype=self.dtype)
+                return np.full(np.array(args[0]).shape, c, dtype=self.dtype)
 
             return constant_expression
 
@@ -174,8 +174,8 @@ class Propagator(Solver):
 
     def get_boundary_indices(self):
         if self.ndim == 1:
-            return [0, -1]
+            return [0, self._nx-1]
         else:
-            return [range(self._nx) * 2 + [0] * self._nx + [-1] * self._nx,
-                    [0] * self._ny + [-1] * self._ny + range(self._ny) * 2]
+            return [range(self._nx) * 2 + [0] * self._nx + [self._nx-1] * self._nx,
+                    [0] * self._ny + [self._ny-1] * self._ny + range(self._ny) * 2]
 

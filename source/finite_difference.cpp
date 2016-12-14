@@ -129,9 +129,9 @@ namespace lars {
 
   void finite_difference_A0F::step(){
     unsigned nx = u.size()-2;
-    unsigned ny = u[0].size()-2;
+    unsigned ny = u[0].size();
     
-    unique_parallel_for(1, ny+1, [&](unsigned j,trig_parallel_data &d){
+    unique_parallel_for(0, ny, [&](unsigned j,trig_parallel_data &d){
       
       for (unsigned i=1; i<=nx; ++i) {
         d.A[i-1] = -ra[i][j]/2.;
@@ -150,6 +150,54 @@ namespace lars {
   }
 
   
+  void finite_difference_ABC::resize(size_t Nx,size_t Ny){
+    ra.resize(Nx,Ny);
+    rb.resize(Nx,Ny);
+    rc.resize(Nx,Ny);
+    rz.resize(Nx,Ny);
+    rap.resize(Nx,Ny);
+    rbp.resize(Nx,Ny);
+    rcp.resize(Nx,Ny);
+    rzp.resize(Nx,Ny);
+    u.resize(Nx,Ny);
+    up.resize(Nx,Ny);
+  }
+  
+  void finite_difference_ABC::update(){
+    std::swap(ra, rap);
+    std::swap(rb, rbp);
+    std::swap(rc, rcp);
+    std::swap(rz, rzp);
+    std::swap(u, up);
+  }
+
+  void finite_difference_ABC::step(){
+    unsigned nx = u.size()-2;
+    unsigned ny = u[0].size();
+  
+    struct trig_parallel_data{
+      finite_differences::array_1D A,B,C,R,tmp;
+      trig_parallel_data(unsigned s):A(s),B(s),C(s),R(s),tmp(s){ }
+    };
+    
+    unique_parallel_for(0, ny, [&](unsigned j,trig_parallel_data &d){
+      
+      for (unsigned i=1; i<=nx; ++i) {
+        d.A[i-1] = rb[i][j]   - ra[i][j];
+        d.B[i-1] = 2.*ra[i][j] + rz[i][j] - rc[i][j];
+        d.C[i-1] = - rb[i][j] - ra[i][j];
+        d.R[i-1] = (rap[i][j] + rbp[i][j]) * up[i+1][j] + (rap[i][j] - rbp[i][j]) * up[i-1][j] + (rcp[i][j] + rzp[i][j] - 2.*rap[i][j]) * up[i][j];
+      }
+    
+      d.R[0]    += (-rb[1][j]   + ra[1][j]   ) * u[0][j]; //TODO u[0][j]    * ra[0][j]/2.;
+      d.R[nx-1] += ( rb[nx][j] + ra[nx][j]) * u[nx+1][j]; //TODO u[nx+1][j] * ra[nx+1][j]/2.;
+ 
+      auto us = u.transpose()[j].slice(StaticIndexTuple<1>(),make_dynamic_index_tuple(nx));
+      algebra::tridiagonal(d.A,d.B,d.C,d.R,us,d.tmp);
+      
+    },trig_parallel_data(nx));
+
+  }
 }
 
 

@@ -113,10 +113,19 @@ def add_simulation_box_category(settings,coords = ['x','y','z']):
 
         for s in settings.get_numeric(tuple(getattr(sb,'s'+c) for c in coords)):
             unit = get_unit(s,cache = settings.get_cache())
-
+            
             if unit is None or unit in defined:
                 continue
 
+            unit_name = str(unit)
+            
+            if settings.unitless.has_name(unit_name):
+                continue
+            
+            # default to 1 
+            settings.unitless.create_key(unit_name,unit,1)
+
+            ''' # There seems to be a bug when doing this
             value = (unit/s).evaluate(cache=settings.get_cache())
 
             if unit.function == pc.fraction:
@@ -130,11 +139,11 @@ def add_simulation_box_category(settings,coords = ['x','y','z']):
                 continue
 
             defined.add(unit)
-            unit_name = str(unit)
             if not settings.unitless.has_name(unit_name):
                 settings.unitless.create_key(unit_name,unit)
 
             setattr(settings.unitless,unit_name,value)
+            '''
 
     settings.initializers['make_unitless'] = make_unitless
 
@@ -169,7 +178,7 @@ def add_partial_differential_equation_category(settings,coordinates = None):
     pde.create_key('u0',pc.Function('u_0_PDE')(*args ),info="field initial condition")
     pde.create_function('u_boundary',args ,info="field boundary condition");
 
-    pde.create_key(arg_attrs[1].name+'0',pc.Symbol(y.name+'_0_PDE'),(arg_attrs[1].min+arg_attrs[1].max)/2,info='Value to which the %s is set for 1D solvers' % y.name)
+    pde.create_key(arg_attrs[1].name+'0',pc.Symbol(y.name+'_0_PDE'),0,info='Value to which the %s is set for 1D solvers' % y.name)
 
     pde.lock()
 
@@ -437,14 +446,13 @@ def create_material(name,settings,density=-1):
             omega_dependent = True
         except:
             N = 3
-            E = units.hbar * omega / units.eV
-            EmaxExpr = E + 1
-            EminExpr = E - 1
+            E = (units.hbar * omega / units.eV)
             omega_i = 1
             omega_dependent = False
         try:
-            Emin = settings.get_as(EminExpr,float)
-            Emax = settings.get_as(EmaxExpr,float)
+            Enum = settings.get_as(E,float)
+            Emin = Enum-1
+            Emax = Enum+1
         except:
             setattr(r,nname,None)
             return

@@ -111,6 +111,28 @@ namespace lars {
   };
   
   
+  class finite_difference_ABC{
+  public:
+    
+    using scalar = finite_differences::complex;
+    using field = finite_differences::array_2D;
+    
+  private:
+    
+    field up,rap,rbp,rcp,rzp; 
+    
+  public:
+    // alpha dz u = A dr^2 u + B d_r u + C u 
+    // ra = A/2Dr^2, rb = B/4Dr, rc = C/2, rz = alpha/Dz
+    field u,ra,rb,rc,rz; 
+    
+    void step();
+    void update();
+    
+    void resize(size_t nx,size_t ny=1);
+  };
+  
+
 }
 
 

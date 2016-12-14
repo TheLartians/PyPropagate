@@ -70,6 +70,15 @@ class FresnelPropagator2D(Propagator):
             self.__data = ifft2(self.__freq_data)
             self.__data *= self.__R(*self._get_indices())
 
+    def _step_to(self,i):
+        if self._F_is_constant:
+            fft2, ifft2 = self.get_fft()
+            self.__freq_data *= (self.__D_step * self.__R_step)**(i - self._i)
+            self.__data = ifft2(self.__freq_data)
+            self._i = i
+        else:
+            raise ValueError('Step to only implemented for free-space propagation')
+
     def _get_field(self):
         return self.__data
 

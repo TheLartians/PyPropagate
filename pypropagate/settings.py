@@ -1,4 +1,5 @@
 from .categorized_dictionary import Category,CategorizedDictionary
+import sys
 
 
 class Settings(CategorizedDictionary):
@@ -136,7 +137,6 @@ class Settings(CategorizedDictionary):
         self._initialized = self._initializing
 
     def _get_evaluator(self,numeric = False,unitless = False):
-
         key = (numeric,unitless)
 
         try:
@@ -182,13 +182,12 @@ class Settings(CategorizedDictionary):
         return self._cache
 
     def get(self,expr,numeric = False,unitless = False,evaluate = True):
+       
         self.initialize()
         evaluator = self._get_evaluator(numeric, unitless)
-
         res = evaluator(expr, cache = self._cache)
-
         if evaluate == True:
-            res = res.evaluate(cache = self.get_cache())
+            res = res.evaluate(cache = self.get_cache()) 
         return res
 
     def get_numeric(self,expr,**kwargs):

@@ -1,4 +1,7 @@
 
+# TODO: update A in 1D FD propagation
+# TODO: transpose arrays in 1D FD propagation
+
 from .propagator import Propagator
 import expresso.pycas as pc
 import numpy as np
@@ -145,3 +148,65 @@ class FiniteDifferencesPropagator2D(Propagator):
         self._solver.u.as_numpy()[:] = field
 
 
+class FiniteDifferencesPropagatorRS(Propagator):
+    ndim = 1
+    dtype = np.complex128
+
+    def __init__(self, settings):
+        super(FiniteDifferencesPropagatorRS, self).__init__(settings)
+        from _pypropagate import finite_difference_ABC
+
+        pde = settings.partial_differential_equation
+        x, y, z = settings.simulation_box.coordinates
+
+        from ..units import m
+        evaluators = self._get_evaluators([ pde.u_boundary,
+                                           x.symbol * pde.A / (2 * x.step ** 2),
+                                           pde.A / (4 * x.step),
+                                           x.symbol * pde.F / 2,
+                                           x.symbol / z.step
+                                           ], settings, return_type=pc.Types.Complex,
+                                          compile_to_c=not self._F_is_constant_in_z, parallel=False)
+
+        self.__u_boundary, self.__ra, self.__rb, self.__rc, self.__rz = evaluators
+
+        self._solver = finite_difference_ABC()
+        self._solver.resize(self._nx, 1)
+
+        self._set_initial_field(settings)
+        self.__boundary_values = np.array([0, self._nx - 1], dtype=np.uint)
+        self.__z_values = np.array([0, 0], dtype=np.uint)
+
+        self._reset()
+
+    def _reset(self):
+        self.__ra(*self._get_indices(), res=self._solver.ra.as_numpy().transpose()[:])
+        self.__rb(*self._get_indices(), res=self._solver.rb.as_numpy().transpose()[:])
+        self.__rc(*self._get_indices(), res=self._solver.rc.as_numpy().transpose()[:])
+        self.__rz(*self._get_indices(), res=self._solver.rz.as_numpy().transpose()[:])
+        self._solver.update()
+        super(FiniteDifferencesPropagatorRS, self)._reset()
+        self.__ra(*self._get_indices(), res=self._solver.ra.as_numpy().transpose()[:])
+        self.__rb(*self._get_indices(), res=self._solver.rb.as_numpy().transpose()[:])
+        self.__rc(*self._get_indices(), res=self._solver.rc.as_numpy().transpose()[:])
+        self.__rz(*self._get_indices(), res=self._solver.rz.as_numpy().transpose()[:])
+
+    def _update(self):
+        self._solver.update()
+        self.__z_values.fill(self._i)
+
+        self._get_field()[self.get_boundary_indices()] = self.__u_boundary(self.get_boundary_indices(),self.__z_values)
+        if not self._F_is_constant_in_z:
+            self.__ra(*self._get_indices(), res=self._solver.ra.as_numpy().transpose()[:])
+            self.__rb(*self._get_indices(), res=self._solver.rb.as_numpy().transpose()[:])
+            self.__rc(*self._get_indices(), res=self._solver.rc.as_numpy().transpose()[:])
+
+    def _step(self):
+        self._update()
+        self._solver.step()
+
+    def _get_field(self):
+        return self._solver.u.as_numpy().transpose()[0]
+
+    def _set_field(self, field):
+        self._solver.u.as_numpy().transpose()[0][:] = field
