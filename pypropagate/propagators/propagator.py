@@ -54,6 +54,7 @@ class Propagator(Solver):
             x, y, z = pde.coordinates
             y0 = getattr(pde, y.name + '0')
             expr = settings.get_optimized(expr.subs(y.symbol, y0))
+
             try:
                 y0i = settings.get_as(y.step.subs(y.symbol, y0), int)
                 expr = settings.get_optimized(expr.subs(y.index, y0i))
