@@ -37,9 +37,19 @@ namespace python_converters{
   
 }
 
+class ScopedGILRelease {
+public:
+  inline ScopedGILRelease() { m_thread_state = PyEval_SaveThread(); }
+  inline ~ScopedGILRelease() {
+  PyEval_RestoreThread(m_thread_state);m_thread_state = NULL;}
+private:
+  PyThreadState* m_thread_state;
+};
+
 BOOST_PYTHON_MODULE(_pypropagate){
   using namespace boost::python;
   using namespace lars;
+  PyEval_InitThreads();
   
   class_<finite_differences::array_1D>("Array1D")
   .def("as_numpy",python_converters::array_1D_as_numpy)
@@ -57,7 +67,7 @@ BOOST_PYTHON_MODULE(_pypropagate){
   .def_readwrite("ra",&finite_difference_AF::ra)
   .def_readwrite("rf",&finite_difference_AF::rf)
   .def_readwrite("u",&finite_difference_AF::u)
-  .def("step", &finite_difference_AF::step)
+  .def("step", +[](finite_difference_AF &fd){ ScopedGILRelease gil; fd.step(); })
   .def("update", &finite_difference_AF::update)
   .def("resize", &finite_difference_AF::resize)
   ;
@@ -67,8 +77,8 @@ BOOST_PYTHON_MODULE(_pypropagate){
   .def_readwrite("rc",&finite_difference_ACF::rc)
   .def_readwrite("rf",&finite_difference_ACF::rf)
   .def_readwrite("u",&finite_difference_ACF::u)
-  .def("step_1", &finite_difference_ACF::step_1)
-  .def("step_2", &finite_difference_ACF::step_2)
+  .def("step_1", +[](finite_difference_ACF &fd){ ScopedGILRelease gil; fd.step_1(); })
+  .def("step_2", +[](finite_difference_ACF &fd){ ScopedGILRelease gil; fd.step_2(); })
   .def("update", &finite_difference_ACF::update)
   .def("resize", &finite_difference_ACF::resize)
   ;
@@ -77,7 +87,7 @@ BOOST_PYTHON_MODULE(_pypropagate){
   .def_readwrite("ra",&finite_difference_A0F::ra)
   .def_readwrite("rf",&finite_difference_A0F::rf)
   .def_readwrite("u",&finite_difference_A0F::u)
-  .def("step", &finite_difference_A0F::step)
+  .def("step", +[](finite_difference_A0F &fd){ ScopedGILRelease gil; fd.step(); })
   .def("update", &finite_difference_A0F::update)
   .def("resize", &finite_difference_A0F::resize)
   ;
@@ -88,8 +98,11 @@ BOOST_PYTHON_MODULE(_pypropagate){
   .def_readwrite("rc",&finite_difference_ABC::rc)
   .def_readwrite("rz",&finite_difference_ABC::rz)
   .def_readwrite("u",&finite_difference_ABC::u)
-  .def("step", &finite_difference_ABC::step)
+  .def("step", +[](finite_difference_ABC &fd){ ScopedGILRelease gil; fd.step(); })
   .def("update", &finite_difference_ABC::update)
   .def("resize", &finite_difference_ABC::resize)
   ;
 }
+
+
+
