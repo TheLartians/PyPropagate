@@ -27,6 +27,8 @@ endforeach()
 # ---- Lars libs ----
 
 ADD_SUBDIRECTORY(${PROJECT_LIBS_DIR}/lars)
+INCLUDE_DIRECTORIES(${Lars_INCLUDE_DIRS})
+
 # ---- Finite Differences ----
 
 LIST(REMOVE_ITEM sources ${PROJECT_SOURCE_DIR}/python.cpp ${PROJECT_SOURCE_DIR}/main.cpp)
@@ -47,7 +49,6 @@ FIND_PACKAGE(Boost COMPONENTS python)
 INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS} ${PYTHON_INCLUDE_DIRS} ${NUMPY_INCLUDE_DIRS})
 LINK_LIBRARIES(${Boost_LIBRARIES} ${PYTHON_LIBRARIES}) # Deprecated but so convenient!
 
-INCLUDE_DIRECTORIES(${PROJECT_LIBS_DIR})
 
 
 add_definitions(-std=c++11)
