@@ -138,7 +138,9 @@ class Solver(object):
         
         if isinstance(field,CoordinateNDArray):
             field = field.data
-        
+
+        field = field.transpose()
+
         for x,xi,xj in zip(self._get_nd_axis_symbols()[1:],self._get_nd_box_size()[1:],field.shape):
             if xi != xj:
                 raise ValueError('Field size in %s direction (%s) doesn\'t match size defined in settings: %s' % (x,xj,xi))

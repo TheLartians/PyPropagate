@@ -112,13 +112,13 @@ namespace lars {
     ACF_step(rc.transpose(),ra.transpose(),rf.transpose(),rcp.transpose(),rap.transpose(),rfp.transpose(),u_transposed,up.transpose());
   }
   
-  void finite_difference_A0F::resize(size_t Nx,size_t Ny){
-    rf.resize(Nx,Ny);
-    ra.resize(Nx,Ny);
-    rfp.resize(Nx,Ny);
-    rap.resize(Nx,Ny);
-    u.resize(Nx,Ny);
-    up.resize(Nx,Ny);
+  void finite_difference_A0F::resize(size_t Ny,size_t Nx){
+    rf.resize(Ny,Nx);
+    ra.resize(Ny,Nx);
+    rfp.resize(Ny,Nx);
+    rap.resize(Ny,Nx);
+    u.resize(Ny,Nx);
+    up.resize(Ny,Nx);
   }
   
   void finite_difference_A0F::update(){
@@ -131,18 +131,18 @@ namespace lars {
     unsigned nx = u.size()-2;
     unsigned ny = u[0].size();
     
-    unique_parallel_for(0, ny, [&](unsigned j,trig_parallel_data &d){
+    unique_parallel_for(0, ny, [&](unsigned i,trig_parallel_data &d){
       
-      for (unsigned i=1; i<=nx; ++i) {
+      for (unsigned j=1; j<=nx; ++j) {
         d.A[i-1] = -ra[i][j]/2.;
         d.B[i-1] = 1.+ra[i][j]-rf[i][j];
-        d.R[i-1] = (up[1+i][j]+up[i-1][j])*rap[i][j]/2.+up[i][j]*(1.+rfp[i][j]-rap[i][j]);
+        d.R[i-1] = (up[i][j+1]+up[i][j-1])*rap[i][j]/2.+up[i][j]*(1.+rfp[i][j]-rap[i][j]);
       }
     
-      d.R[0]    += u[0][j]    * ra[0][j]/2.;
-      d.R[nx-1] += u[nx+1][j] * ra[nx+1][j]/2.;
+      d.R[0]    += u[i][0]    * ra[i][0]/2.;
+      d.R[nx-1] += u[i][nx+1] * ra[i][nx+1]/2.;
       
-      auto us = u.transpose()[j].slice(StaticIndexTuple<1>(),make_dynamic_index_tuple(nx));
+      auto us = u[i].slice(StaticIndexTuple<1>(),make_dynamic_index_tuple(nx));
       algebra::tridiagonal(d.A,d.B,d.A,d.R,us,d.tmp);
       
     },trig_parallel_data(nx));
