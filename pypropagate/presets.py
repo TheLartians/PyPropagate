@@ -495,6 +495,26 @@ def create_2D_paraxial_frequency_settings():
 
     return settings
 
+def create_2D_paraxial_settings_with_parameter(parameter_name = 'a'):
+    from .settings import Settings
+
+    settings = Settings()
+    sb = add_simulation_box_category(settings,['x',parameter_name,'z'])
+    pde = add_partial_differential_equation_category(settings,(sb.x,getattr(sb,parameter_name),sb.z))
+    we = add_wave_equation_category(settings)
+
+    sb.export(settings.symbols,warn=False)
+    we.export(settings.symbols,warn=False)
+
+    settings.symbols.add_key('u0',pde.u0)
+    settings.symbols.add_key('u_boundary',pde.u_boundary)
+
+    pde.A = 1/(2j*we.k*we.n)
+    pde.C = 0
+    pde.F = -1j*we.k*(we.n-1)
+
+    return settings
+
 def create_2D_frequency_settings_from(settings):
     import expresso.pycas as pc
     import units

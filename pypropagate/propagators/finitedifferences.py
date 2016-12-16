@@ -87,7 +87,7 @@ class FiniteDifferencesPropagator2D(Propagator):
         self.__u_boundary = evaluators[6:8]
 
         self._solver = finite_difference_ACF() if not self.__C_is_zero else finite_difference_A0F()
-        self._solver.resize(self._nx,self._ny)
+        self._solver.resize(self._ny,self._nx)
 
         d,u,l,r = [(self._get_x_indices(), np.zeros(self._nx, dtype = np.uint)),
                    (self._get_x_indices(), np.ones(self._nx, dtype = np.uint) * (self._ny - 1)),
@@ -118,10 +118,10 @@ class FiniteDifferencesPropagator2D(Propagator):
         boundary = self.__u_boundary[half_step](*self.__boundary_values)
         u  = self._solver.u.as_numpy()
 
-        u[:,0] = boundary[0:self._nx]
-        u[:,-1] = boundary[self._nx:2*self._nx]
-        u[0,:] = boundary[2*self._nx:2*self._nx+self._ny]
-        u[-1,:] = boundary[2*self._nx+self._ny:]
+        u[0,:] = boundary[0:self._nx]
+        u[-1,:] = boundary[self._nx:2*self._nx]
+        u[:,0] = boundary[2*self._nx:2*self._nx+self._ny]
+        u[:,-1] = boundary[2*self._nx+self._ny:]
         
     def _update(self,half_step):
         self._solver.update()
@@ -142,10 +142,10 @@ class FiniteDifferencesPropagator2D(Propagator):
             self._solver.step()
 
     def _get_field(self):
-        return self._solver.u.as_numpy()
+        return self._solver.u.as_numpy().transpose()
     
     def _set_field(self,field):
-        self._solver.u.as_numpy()[:] = field
+        self._solver.u.as_numpy()[:] = field.transpose()
 
 
 class FiniteDifferencesPropagatorRS(Propagator):

@@ -54,6 +54,7 @@ class Propagator(Solver):
             x, y, z = pde.coordinates
             y0 = getattr(pde, y.name + '0')
             expr = settings.get_optimized(expr.subs(y.symbol, y0))
+
             try:
                 y0i = settings.get_as(y.step.subs(y.symbol, y0), int)
                 expr = settings.get_optimized(expr.subs(y.index, y0i))
@@ -90,7 +91,7 @@ class Propagator(Solver):
 
     def __get_xy_indices(self):
         import numpy as np
-        npy, npx = np.meshgrid(self._create_y_indices(), self._create_x_indices())
+        npx, npy = np.meshgrid(self._create_x_indices(), self._create_y_indices())
         return npx, npy
 
     def _get_indices(self):
