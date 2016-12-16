@@ -61,12 +61,12 @@ namespace lars {
       int j,n=u.size();
       using scalar = typename v5::Scalar;
       scalar bet;
-      assert(b[0]!=0.);
+      // assert(b[0]!=0.);
       u[0]=r[0]/(bet=b[0]);
       for(j=1;j<n;++j){
         gam[j]=c[j-1]/bet;
         bet=b[j]-a[j]*gam[j];
-        assert(bet!=0.);
+        /// assert(bet!=0.);
         u[j]=(r[j]-a[j]*u[j-1])/bet;
       }
       for(j=n-2;j>=0;--j){

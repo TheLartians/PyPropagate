@@ -103,6 +103,16 @@ class Propagator(Solver):
             self.__z_indices = np.zeros(self.__indices[0].shape, dtype=np.uint)
             return self._get_indices()
 
+    def _get_transposed_indices(self):
+        try:
+            self.__transposed_z_indices.fill(self._i)
+            return self.__transposed_indices + [self.__transposed_z_indices]
+        except AttributeError:
+            import numpy as np
+            self.__transposed_indices = [self._create_x_indices()] if self.ndim == 1 else [np.ascontiguousarray(i.transpose()) for i in self.__get_xy_indices()]
+            self.__transposed_z_indices = np.zeros(self.__transposed_indices[0].shape, dtype=np.uint)
+            return self._get_transposed_indices()
+
     def _get_indices_dict(self):
         return {n: v for n, v in zip(self.__coordinate_names, self._get_indices())}
 

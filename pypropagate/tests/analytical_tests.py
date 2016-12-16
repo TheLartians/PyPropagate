@@ -203,7 +203,7 @@ class TestWaveguide(TestCase):
         s.n = pc.piecewise((wg.n_1,s.x**2+s.y**2<=wg.r**2),(wg.n_2,True))
 
         settings.wave_equation.set_energy(12*units.keV)
-        settings.simulation_box.set((0.2*units.um,0.2*units.um,0.8*units.mm),(1024,1024,1024))
+        settings.simulation_box.set((0.2*units.um,0.2*units.um,0.8*units.mm),(1024,1025,1024))
 
         wg.n_2 = presets.create_material('Ge',settings)
         wg.n_1 = 1
