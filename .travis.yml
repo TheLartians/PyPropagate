@@ -6,7 +6,7 @@ python:
 sudo: false
 
 git:
-  submodules: false
+  submodules: true
 
 addons:
   apt:
@@ -32,10 +32,6 @@ before_install:
   - pip install scipy
   - pip install pyfftw
   - pip install nose
-  # Use sed to replace the SSH URL with the public URL, then initialize submodules 
-  # http://stackoverflow.com/questions/15674064/github-submodule-access-rights-travis-ci
-  - sed -i 's/git@github.com:/https:\/\/github.com\//' .gitmodules
-  - git submodule update --init --recursive
 
 install: 
   - pip install .

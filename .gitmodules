@@ -1,3 +1,3 @@
 [submodule "libs/lars"]
 	path = libs/lars
-	url = git@github.com:TheLartians/Lars.git
+	url = https://github.com/TheLartians/Lars.git
