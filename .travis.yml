@@ -6,7 +6,7 @@ python:
 sudo: false
 
 git:
-  submodules: true
+  submodules: false
 
 addons:
   apt:
@@ -32,6 +32,7 @@ before_install:
   - pip install scipy
   - pip install pyfftw
   - pip install nose
+  - git submodule update --init --recursive
 
 install: 
   - pip install .
