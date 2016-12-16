@@ -4,7 +4,7 @@ A paraxial wave propagation framework for python 2.7 .
 
 ## Installation
     
-    git clone https://github.com/TheLartians/PyPropagate.git
+    git clone --recursive https://github.com/TheLartians/PyPropagate.git
     pip2 install .
 
 ## Dependencies

@@ -1,0 +1,3 @@
+[submodule "libs/lars"]
+	path = libs/lars
+	url = https://github.com/TheLartians/Lars.git

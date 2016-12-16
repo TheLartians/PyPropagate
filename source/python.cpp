@@ -28,7 +28,7 @@ namespace python_converters{
   PyObject * array_2D_as_numpy(finite_differences::array_2D & array){
     long size[2] = {static_cast<long>(array.size()),static_cast<long>(array[0].size())};
     PyArrayObject * converted = (PyArrayObject *) PyArray_SimpleNewFromData(2,size,py_scalar,(void*)array.data());
-    return (PyObject *)converted;
+    return (PyObject *)PyArray_Transpose(converted,nullptr);
   }
   
   template <typename T> std::string to_string(const T &o){

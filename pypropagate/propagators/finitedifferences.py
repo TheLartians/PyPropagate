@@ -103,14 +103,14 @@ class FiniteDifferencesPropagator2D(Propagator):
         self._reset()
         
     def _reset(self):
-        self.__ra[1](*self._get_indices(), res=self._solver.ra.as_numpy())
-        if not self.__C_is_zero: self.__rc[1](*self._get_indices(), res=self._solver.rc.as_numpy())
-        self.__rf[1](*self._get_indices(), res=self._solver.rf.as_numpy())
+        self.__ra[1](*self._get_transposed_indices(), res=self._solver.ra.as_numpy().transpose())
+        if not self.__C_is_zero: self.__rc[1](*self._get_transposed_indices(), res=self._solver.rc.as_numpy().transpose())
+        self.__rf[1](*self._get_transposed_indices(), res=self._solver.rf.as_numpy().transpose())
         self._solver.u.as_numpy().fill(0)
         self._solver.update()
-        self.__ra[0](*self._get_indices(), res=self._solver.ra.as_numpy())
-        if not self.__C_is_zero: self.__rc[0](*self._get_indices(), res=self._solver.rc.as_numpy())
-        self.__rf[0](*self._get_indices(), res=self._solver.rf.as_numpy())
+        self.__ra[0](*self._get_transposed_indices(), res=self._solver.ra.as_numpy().transpose())
+        if not self.__C_is_zero: self.__rc[0](*self._get_transposed_indices(), res=self._solver.rc.as_numpy().transpose())
+        self.__rf[0](*self._get_transposed_indices(), res=self._solver.rf.as_numpy().transpose())
         super(FiniteDifferencesPropagator2D,self)._reset()
 
     def _update_boundary(self,half_step):
@@ -127,9 +127,9 @@ class FiniteDifferencesPropagator2D(Propagator):
         self._solver.update()
         self._update_boundary(half_step)
         if (not self._F_is_constant_in_z):
-            self.__ra[half_step](*self._get_indices(), res=self._solver.ra.as_numpy())
-            if not self.__C_is_zero: self.__rc[half_step](*self._get_indices(), res=self._solver.rc.as_numpy())
-            self.__rf[half_step](*self._get_indices(), res=self._solver.rf.as_numpy())
+            self.__ra[half_step](*self._get_transposed_indices(), res=self._solver.ra.as_numpy().transpose())
+            if not self.__C_is_zero: self.__rc[half_step](*self._get_transposed_indices(), res=self._solver.rc.as_numpy().transpose())
+            self.__rf[half_step](*self._get_transposed_indices(), res=self._solver.rf.as_numpy().transpose())
 
     def _step(self):
         if not self.__C_is_zero:
@@ -180,16 +180,16 @@ class FiniteDifferencesPropagatorRS(Propagator):
         self._reset()
 
     def _reset(self):
-        self.__ra(*self._get_indices(), res=self._solver.ra.as_numpy().transpose()[:])
-        self.__rb(*self._get_indices(), res=self._solver.rb.as_numpy().transpose()[:])
-        self.__rc(*self._get_indices(), res=self._solver.rc.as_numpy().transpose()[:])
-        self.__rz(*self._get_indices(), res=self._solver.rz.as_numpy().transpose()[:])
+        self.__ra(*self._get_transposed_indices(), res=self._solver.ra.as_numpy().transpose()[:])
+        self.__rb(*self._get_transposed_indices(), res=self._solver.rb.as_numpy().transpose()[:])
+        self.__rc(*self._get_transposed_indices(), res=self._solver.rc.as_numpy().transpose()[:])
+        self.__rz(*self._get_transposed_indices(), res=self._solver.rz.as_numpy().transpose()[:])
         self._solver.update()
         super(FiniteDifferencesPropagatorRS, self)._reset()
-        self.__ra(*self._get_indices(), res=self._solver.ra.as_numpy().transpose()[:])
-        self.__rb(*self._get_indices(), res=self._solver.rb.as_numpy().transpose()[:])
-        self.__rc(*self._get_indices(), res=self._solver.rc.as_numpy().transpose()[:])
-        self.__rz(*self._get_indices(), res=self._solver.rz.as_numpy().transpose()[:])
+        self.__ra(*self._get_transposed_indices(), res=self._solver.ra.as_numpy().transpose()[:])
+        self.__rb(*self._get_transposed_indices(), res=self._solver.rb.as_numpy().transpose()[:])
+        self.__rc(*self._get_transposed_indices(), res=self._solver.rc.as_numpy().transpose()[:])
+        self.__rz(*self._get_transposed_indices(), res=self._solver.rz.as_numpy().transpose()[:])
 
     def _update(self):
         self._solver.update()
@@ -197,9 +197,9 @@ class FiniteDifferencesPropagatorRS(Propagator):
 
         self._get_field()[self.get_boundary_indices()] = self.__u_boundary(self.get_boundary_indices(),self.__z_values)
         if not self._F_is_constant_in_z:
-            self.__ra(*self._get_indices(), res=self._solver.ra.as_numpy().transpose()[:])
-            self.__rb(*self._get_indices(), res=self._solver.rb.as_numpy().transpose()[:])
-            self.__rc(*self._get_indices(), res=self._solver.rc.as_numpy().transpose()[:])
+            self.__ra(*self._get_transposed_indices(), res=self._solver.ra.as_numpy().transpose()[:])
+            self.__rb(*self._get_transposed_indices(), res=self._solver.rb.as_numpy().transpose()[:])
+            self.__rc(*self._get_transposed_indices(), res=self._solver.rc.as_numpy().transpose()[:])
 
     def _step(self):
         self._update()

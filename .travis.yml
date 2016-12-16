@@ -5,6 +5,9 @@ python:
 
 sudo: false
 
+git:
+  submodules: true
+
 addons:
   apt:
     sources:
