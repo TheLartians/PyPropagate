@@ -11,6 +11,7 @@
 
 #include "algebra.h"
 #include <memory>
+#include <lars/parallel.h>
 
 namespace lars {
   
@@ -36,7 +37,7 @@ namespace lars {
       array_1D A,B,C,R,U,tmp;
       tridiagonal_data(unsigned s):A(s),B(s),C(s),R(s),U(s),tmp(s){}
     };
-    
+
   }
   
   /*
@@ -81,6 +82,7 @@ namespace lars {
   public:
     
     field u,rf,ra,rc;
+    unsigned thread_count = hardware_thread_count();
     
     void step_1();
     void step_2();
@@ -103,6 +105,7 @@ namespace lars {
   public:
     
     field u,rf,ra;
+    unsigned thread_count = hardware_thread_count();
     
     void step();
     void update();
@@ -125,6 +128,7 @@ namespace lars {
     // alpha dz u = A dr^2 u + B d_r u + C u 
     // ra = A/2Dr^2, rb = B/4Dr, rc = C/2, rz = alpha/Dz
     field u,ra,rb,rc,rz; 
+    unsigned thread_count = hardware_thread_count();
     
     void step();
     void update();
