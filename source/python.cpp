@@ -40,7 +40,7 @@ namespace python_converters{
 BOOST_PYTHON_MODULE(_pypropagate){
   using namespace boost::python;
   using namespace lars;
-  
+ 
   class_<finite_differences::array_1D>("Array1D")
   .def("as_numpy",python_converters::array_1D_as_numpy)
   .def("resize",+[](finite_differences::array_1D &arr,size_t size){ arr.resize(size); })
@@ -67,6 +67,7 @@ BOOST_PYTHON_MODULE(_pypropagate){
   .def_readwrite("rc",&finite_difference_ACF::rc)
   .def_readwrite("rf",&finite_difference_ACF::rf)
   .def_readwrite("u",&finite_difference_ACF::u)
+  .def_readwrite("thread_count",&finite_difference_ACF::thread_count)
   .def("step_1", &finite_difference_ACF::step_1)
   .def("step_2", &finite_difference_ACF::step_2)
   .def("update", &finite_difference_ACF::update)
@@ -77,6 +78,7 @@ BOOST_PYTHON_MODULE(_pypropagate){
   .def_readwrite("ra",&finite_difference_A0F::ra)
   .def_readwrite("rf",&finite_difference_A0F::rf)
   .def_readwrite("u",&finite_difference_A0F::u)
+  .def_readwrite("thread_count",&finite_difference_A0F::thread_count)
   .def("step", &finite_difference_A0F::step)
   .def("update", &finite_difference_A0F::update)
   .def("resize", &finite_difference_A0F::resize)
@@ -87,6 +89,7 @@ BOOST_PYTHON_MODULE(_pypropagate){
   .def_readwrite("rb",&finite_difference_ABC::rb)
   .def_readwrite("rc",&finite_difference_ABC::rc)
   .def_readwrite("rz",&finite_difference_ABC::rz)
+  .def_readwrite("thread_count",&finite_difference_ABC::thread_count)
   .def_readwrite("u",&finite_difference_ABC::u)
   .def("step", &finite_difference_ABC::step)
   .def("update", &finite_difference_ABC::update)

@@ -8,14 +8,13 @@
 //
 
 #include "finite_difference.h"
-#include <lars/parallel.h>
-#include <iostream>
+
 namespace lars {
   
   //
   // ----------------------- Finite differences AF -----------------------
   //
-  
+ 
   void finite_difference_AF::resize(size_t N){
     rf.resize(N);
     ra.resize(N);
@@ -75,7 +74,7 @@ namespace lars {
   };
   
 
-  template<typename field> void ACF_step(const field &ra, const field &rc, const field &rf, const field &rap, const field &rcp, const field &rfp, field &u, const field &up){
+  template<typename field> void ACF_step(const field &ra, const field &rc, const field &rf, const field &rap, const field &rcp, const field &rfp, field &u, const field &up,unsigned thread_count){
     
     unsigned nx = u.size()-2;
     unsigned ny = u[0].size()-2;
@@ -93,7 +92,7 @@ namespace lars {
       
       auto us = u[i].slice(StaticIndexTuple<1>(), make_dynamic_index_tuple(ny));
       algebra::tridiagonal(d.A,d.B,d.A,d.R,us,d.tmp);
-    },trig_parallel_data(ny));
+    },trig_parallel_data(ny),thread_count);
 
   }
 
@@ -122,7 +121,7 @@ namespace lars {
 */  
 
   void finite_difference_ACF::step_1(){
-    ACF_step(ra,rc,rf,rap,rcp,rfp,u,up);
+    ACF_step(ra,rc,rf,rap,rcp,rfp,u,up,thread_count);
   }
   
   void finite_difference_ACF::update(){
@@ -134,7 +133,7 @@ namespace lars {
 
   void finite_difference_ACF::step_2(){
     auto u_transposed = u.transpose();
-    ACF_step(rc.transpose(),ra.transpose(),rf.transpose(),rcp.transpose(),rap.transpose(),rfp.transpose(),u_transposed,up.transpose());
+    ACF_step(rc.transpose(),ra.transpose(),rf.transpose(),rcp.transpose(),rap.transpose(),rfp.transpose(),u_transposed,up.transpose(),thread_count);
   }
   
   void finite_difference_A0F::resize(size_t Nx,size_t Ny){
@@ -170,7 +169,7 @@ namespace lars {
       auto us = u[i].slice(StaticIndexTuple<1>(),make_dynamic_index_tuple(nx));
       algebra::tridiagonal(d.A,d.B,d.A,d.R,us,d.tmp);
       
-    },trig_parallel_data(nx));
+    },trig_parallel_data(nx),thread_count);
 
   }
 
@@ -220,7 +219,7 @@ namespace lars {
       auto us = u[i].slice(StaticIndexTuple<1>(),make_dynamic_index_tuple(nx));
       algebra::tridiagonal(d.A,d.B,d.C,d.R,us,d.tmp);
       
-    },trig_parallel_data(nx));
+    },trig_parallel_data(nx),thread_count);
 
   }
 }
