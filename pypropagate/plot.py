@@ -110,7 +110,7 @@ def line_plot(carr,ax = None,ylabel = None,figsize = None,title = None,**kwargs)
 
     return lines[0]
 
-def poynting_streamplot(carr,k,ax = None,figsize = None,title = None, set_limits = True, mask = None, **kwargs):
+def poynting_streamplot(carr,k,ax = None,figsize = None,title = None, set_limits = True, mask = None, settings=None, **kwargs):
     import matplotlib.pyplot as plt
     import numpy as np
 
@@ -130,6 +130,13 @@ def poynting_streamplot(carr,k,ax = None,figsize = None,title = None, set_limits
     gx *= yfactor/xfactor
 
     if mask is not None:
+        import expresso.pycas
+
+        if isinstance(mask,expresso.pycas.Expression):
+            if settings == None:
+                raise ValueError('no settings argument provided')
+            mask = expression_for_array(mask,carr,settings)
+
         idx = np.where(np.logical_not(mask.data))
         gx[idx] = np.nan
         gy[idx] = np.nan
@@ -140,7 +147,7 @@ def poynting_streamplot(carr,k,ax = None,figsize = None,title = None, set_limits
     if title:
         ax.set_title(title)
 
-    stream = plt.streamplot(x,y,gx,gy,**kwargs)
+    stream = ax.streamplot(x,y,gx,gy,**kwargs)
 
     if set_limits:
         ax.set_xlim(extent[0],extent[1])
@@ -221,6 +228,16 @@ def expression_to_array(expression, settings, axes = None, maxres=None):
 
     return res
 
+
+def expression_for_array(expr,array,settings):
+    settings = settings.copy()
+    for ax,b,s in zip(array.axis,array.bounds,array.shape):
+        setattr(settings.simulation_box,ax.name + 'min',b[0])
+        setattr(settings.simulation_box,ax.name + 'max',b[1])
+        setattr(settings.simulation_box,'N' + ax.name,s)
+    return expression_to_array(expr,settings,axes=array.axis)
+
+
 def plot(arg, *args, **kwargs):
     """
     Simple plot function for 1D and 2D coordinate arrays. If the data is complex, the absolute square value of the data will be plottted.
@@ -283,7 +300,7 @@ def plot_poynting(array,k,ax = None,figsize=None,**kwargs):
     if ax == None: fig, ax = plt.subplots(figsize=figsize)
     if 'color' not in kwargs: kwargs['color']='w'
 
-    image = plot(array,ax=ax)
+    image = image_plot(abs(array)**2,ax=ax)
     stream = poynting_streamplot(array,k,ax=ax,**kwargs)
 
     if fig:
