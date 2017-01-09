@@ -110,9 +110,10 @@ def line_plot(carr,ax = None,ylabel = None,figsize = None,title = None,**kwargs)
 
     return lines[0]
 
-def poynting_streamplot(carr,k,ax = None,figsize = None,title = None, set_limits = True, mask = None, settings=None, **kwargs):
+def poynting_streamplot(carr,k,ax = None,figsize = None,title = None,set_limits = True,mask = None,settings=None,dxdy = None,**kwargs):
     import matplotlib.pyplot as plt
     import numpy as np
+    from skimage.restoration import unwrap_phase
 
     e = get_unitless_bounds(carr)
 
@@ -121,12 +122,16 @@ def poynting_streamplot(carr,k,ax = None,figsize = None,title = None, set_limits
 
     extent = [float(e[1][0])/xfactor,float(e[1][1])/xfactor,float(e[0][0])/yfactor,float(e[0][1])/yfactor]
 
-    phase = np.unwrap(np.unwrap(np.angle(carr.data),axis=0),axis=1)
+    phase = unwrap_phase(np.angle(carr.data))
     x = np.linspace(extent[0],extent[1],carr.shape[1])
     y = np.linspace(extent[2],extent[3],carr.shape[0])
-    gx,gy = np.gradient(phase,(x[0] - x[1]) * xfactor,axis=1),np.gradient(phase,(y[0] - y[1]) * yfactor,axis=0)
 
-    gx += float(carr.evaluate(k*e[1][2]))
+    if dxdy is None:
+        gx,gy = np.gradient(phase,(x[0] - x[1]) * xfactor,axis=1),np.gradient(phase,(y[0] - y[1]) * yfactor,axis=0)
+        gx += float(carr.evaluate(k*e[1][2]))
+    else:
+        gx,gy = dxdy
+
     gx *= yfactor/xfactor
 
     if mask is not None:
@@ -232,6 +237,9 @@ def expression_to_array(expression, settings, axes = None, maxres=None):
 def expression_for_array(expr,array,settings):
     settings = settings.copy()
     for ax,b,s in zip(array.axis,array.bounds,array.shape):
+        settings.simulation_box.unlock(ax.name + 'min')
+        settings.simulation_box.unlock(ax.name + 'max')
+        settings.simulation_box.unlock('N' + ax.name)
         setattr(settings.simulation_box,ax.name + 'min',b[0])
         setattr(settings.simulation_box,ax.name + 'max',b[1])
         setattr(settings.simulation_box,'N' + ax.name,s)
