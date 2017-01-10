@@ -4,7 +4,7 @@ import numpy
 
 setup(
     name='pypropagate',
-    version='1.0.5a3',
+    version='1.0.6',
     description='A python based paraxial wave propagation framework',
 
     author='Lars Melchior',
@@ -15,6 +15,8 @@ setup(
     install_requires={
         'matplotlib',
         'numpy',
+        'scipy',
+        'scikit-image',
         'mechanize',
         'expresso[pycas] >= 0.1.1'
     },

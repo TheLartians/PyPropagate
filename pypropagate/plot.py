@@ -1,21 +1,21 @@
 
 def get_metric_prefix(numbers):
     import numpy as np
-                  
+
     if not isinstance(numbers,list):
         numbers = list(numbers)
     if len(numbers) >= 2:
         numbers = [numbers[-1] - numbers[0]]
-        
+
     def get_exponent(number):
         return int(np.log10(np.abs(number))) if number != 0 else 0
-    
+
     from units import metric_prefixes
-    
+
     exponents = [get_exponent(number) for number in numbers]
     largest = max(exponents,key=lambda x:abs(x))
-    
-    closest = min(metric_prefixes, key=lambda x:abs(x[1]+1-largest))
+
+    closest = min(metric_prefixes, key=lambda x:abs(x[1]+2-largest))
 
     return (closest[2],10**closest[1])
 
@@ -24,19 +24,19 @@ def get_unitless_bounds(array):
     from .units import get_unit
 
     bounds = []
-        
+
     for l,r in array.bounds:
         unit = get_unit(l)
         if unit == None:
             unit = get_unit(r)
         try:
             if unit == None:
-                bounds.append((float(l),float(r),1)) 
+                bounds.append((float(l),float(r),1))
             else:
-                bounds.append((float(l/unit),float(r/unit),unit)) 
+                bounds.append((float(l/unit),float(r/unit),unit))
         except:
             raise ValueError('Cannot convert to unitless expression: %s with unit: %s' % ((l,r),unit))
-    
+
     return bounds
 
 def get_plot_coordinates(array):
@@ -59,12 +59,12 @@ def image_plot(carr,ax = None,figsize = None,title = None, **kwargs):
         fig, ax = plt.subplots(figsize=figsize)
     if title:
         ax.set_title(title)
-    
+
     e = get_unitless_bounds(carr)
 
     xprefix,xfactor = get_metric_prefix(e[1][:2])
     yprefix,yfactor = get_metric_prefix(e[0][:2])
-        
+
     extent = [float(e[1][0])/xfactor,float(e[1][1])/xfactor,float(e[0][0])/yfactor,float(e[0][1])/yfactor]
 
     if 'aspect' not in kwargs:
@@ -75,15 +75,13 @@ def image_plot(carr,ax = None,figsize = None,title = None, **kwargs):
     image = ax.imshow(carr.data, extent=extent, **kwargs )
     ax.set_ylabel("$%s$ [$%s %s$]" % (latex(carr.axis[0]),yprefix,latex(e[0][2])))
     ax.set_xlabel("$%s$ [$%s %s$]" % (latex(carr.axis[1]),xprefix,latex(e[1][2])))
-    
+
     if fig:
         fig.colorbar(image)
-
-    if ax == None:
         plt.show()
 
     return image
-        
+
 def line_plot(carr,ax = None,ylabel = None,figsize = None,title = None,**kwargs):
     import matplotlib.pyplot as plt
     import numpy as np
@@ -95,22 +93,80 @@ def line_plot(carr,ax = None,ylabel = None,figsize = None,title = None,**kwargs)
     fig = None
     if ax == None:
         fig, ax = plt.subplots(figsize=figsize)
-    
+
     if title:
         ax.set_title(title)
-    
+
     e = get_unitless_bounds(carr)[0]
-    
+
     prefix,factor = get_metric_prefix(e[:2])
-    
+
     lines = ax.plot(np.linspace(float(e[0])/factor,float(e[1])/factor,carr.data.shape[0]),carr.data, **kwargs)
     ax.set_xlabel("$%s$ [$%s %s$]" % (latex(carr.axis[0]),prefix,latex(e[2])))
     if ylabel: ax.set_ylabel(ylabel)
 
-    if ax == None:
+    if fig:
         plt.show()
 
     return lines[0]
+
+def poynting_streamplot(carr,k,ax = None,figsize = None,title = None,set_limits = True,mask = None,settings=None,dxdy = None,**kwargs):
+    import matplotlib.pyplot as plt
+    import numpy as np
+    from skimage.restoration import unwrap_phase
+
+    e = get_unitless_bounds(carr)
+
+    xprefix,xfactor = get_metric_prefix(e[1][:2])
+    yprefix,yfactor = get_metric_prefix(e[0][:2])
+
+    extent = [float(e[1][0])/xfactor,float(e[1][1])/xfactor,float(e[0][0])/yfactor,float(e[0][1])/yfactor]
+
+    phase = unwrap_phase(np.angle(carr.data))
+    x = np.linspace(extent[0],extent[1],carr.shape[1])
+    y = np.linspace(extent[2],extent[3],carr.shape[0])
+
+    if dxdy is None:
+        gx,gy = np.gradient(phase,(x[0] - x[1]) * xfactor,axis=1),np.gradient(phase,(y[0] - y[1]) * yfactor,axis=0)
+        gx += float(carr.evaluate(k*e[1][2]))
+    else:
+        gx,gy = dxdy
+
+    gx *= yfactor/xfactor
+
+    if mask is not None:
+        import expresso.pycas
+
+        if isinstance(mask,expresso.pycas.Expression):
+            if settings == None:
+                raise ValueError('no settings argument provided')
+            mask = expression_for_array(mask,carr,settings)
+
+        idx = np.where(np.logical_not(mask.data))
+        gx[idx] = np.nan
+        gy[idx] = np.nan
+
+    fig = None
+    if ax == None:
+        fig, ax = plt.subplots(figsize=figsize)
+    if title:
+        ax.set_title(title)
+
+    stream = ax.streamplot(x,y,gx,gy,**kwargs)
+
+    if set_limits:
+        ax.set_xlim(extent[0],extent[1])
+        ax.set_ylim(extent[2],extent[3])
+
+    from expresso.pycas import latex as rlatex
+    latex = lambda x:rlatex(x).replace(r'\text',r'\mathrm')
+    ax.set_ylabel("$%s$ [$%s %s$]" % (latex(carr.axis[0]),yprefix,latex(e[0][2])))
+    ax.set_xlabel("$%s$ [$%s %s$]" % (latex(carr.axis[1]),xprefix,latex(e[1][2])))
+
+    if fig:
+        plt.show()
+
+    return stream
 
 def expression_to_array(expression, settings, axes = None, maxres=None):
     import expresso.pycas
@@ -177,21 +233,34 @@ def expression_to_array(expression, settings, axes = None, maxres=None):
 
     return res
 
+
+def expression_for_array(expr,array,settings):
+    settings = settings.copy()
+    for ax,b,s in zip(array.axis,array.bounds,array.shape):
+        settings.simulation_box.unlock(ax.name + 'min')
+        settings.simulation_box.unlock(ax.name + 'max')
+        settings.simulation_box.unlock('N' + ax.name)
+        setattr(settings.simulation_box,ax.name + 'min',b[0])
+        setattr(settings.simulation_box,ax.name + 'max',b[1])
+        setattr(settings.simulation_box,'N' + ax.name,s)
+    return expression_to_array(expr,settings,axes=array.axis)
+
+
 def plot(arg, *args, **kwargs):
     """
     Simple plot function for 1D and 2D coordinate arrays. If the data is complex, the absolute square value of the data will be plottted.
-    
+
     Parameters
     -----------
     arg: coordinate array
           the input data
-    
+
     **kwargs: additional parameters to be passed to the plot functions
-    
+
     Returns
     --------
     plot: output of ax.plot for 1D and ax.imshow for 2D arrays
-    
+
     """
     import expresso.pycas
     import numpy as np
@@ -229,6 +298,25 @@ def plot(arg, *args, **kwargs):
     if len(arg.axis) == 1: return line_plot(arg, *args, **kwargs)
     elif len(arg.axis) == 2: return image_plot(arg, *args, **kwargs)
     else: raise ValueError("input array must be one or two dimensional")
-    
-    
-  
+
+
+def plot_poynting(array,k,ax = None,figsize=None,**kwargs):
+    import matplotlib.pyplot as plt
+
+    fig = None
+
+    if ax == None: fig, ax = plt.subplots(figsize=figsize)
+    if 'color' not in kwargs: kwargs['color']='w'
+
+    image = image_plot(abs(array)**2,ax=ax)
+    stream = poynting_streamplot(array,k,ax=ax,**kwargs)
+
+    if fig:
+        plt.colorbar(image)
+        plt.show()
+
+    return image,stream
+
+
+
+

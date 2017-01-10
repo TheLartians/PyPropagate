@@ -14,7 +14,7 @@ import units
 import presets
 import propagators
 
-from .plot import plot,expression_to_array,get_plot_coordinates
+from .plot import plot,plot_poynting,expression_to_array,expression_for_array,get_plot_coordinates,poynting_streamplot
 from .settings import Settings
 
 import coordinate_ndarray
