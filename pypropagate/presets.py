@@ -209,10 +209,7 @@ def add_wave_equation_category(settings):
     we.lock('E','defined by omega')
 
     def set_energy(we,value):
-        we.unlock('E')
-        we.omega = we.E / hbar
-        we.lock('omega','defined by energy')
-        we.E = value
+        we.omega = value / hbar
 
     import types
     we.add_method('set_energy',set_energy)
@@ -442,13 +439,13 @@ def create_material(name,settings,density=-1):
             E = (units.hbar * omega / units.eV)
             omega_i = 1
             omega_dependent = False
-        try:
-            Enum = settings.get_as(E,float)
-            Emin = Enum-1
-            Emax = Enum+1
-        except:
-            setattr(r,nname,None)
-            return
+            try:
+                Enum = settings.get_as(E,float)
+                Emin = Enum-1
+                Emax = Enum+1
+            except:
+                setattr(r,nname,None)
+                return
 
         key = (nname,N,Emin,Emax,density)
         if not hasattr(r,'_cache'):

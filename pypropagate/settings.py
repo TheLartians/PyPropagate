@@ -194,6 +194,7 @@ class Settings(CategorizedDictionary):
         return self.get(expr,numeric=True,**kwargs)
 
     def get_unitless(self,expr,**kwargs):
+        expr = self.get(expr,numeric=True,**kwargs)
         return self.get(expr,numeric=True,unitless=True,**kwargs)
 
     def get_coordinates(self,vars):
