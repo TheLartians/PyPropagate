@@ -10,16 +10,17 @@ A paraxial wave propagation framework for python 2.7 .
 
 ## Dependencies
 
-- [Expresso/PyCAS](https://github.com/TheLartians/Expresso)
+- gcc >= 5.0 or compatible
 - boost python
 - numpy
 - matplotlib
 
 ## Documentation
 
-[![PDF Status](https://www.sharelatex.com/github/repos/TheLartians/PyPropagate/builds/latest/badge.svg)](https://www.sharelatex.com/github/repos/TheLartians/PyPropagate/builds/latest/output.pdf)
+Planned in early 2017.
 
 ## Citing PyPropagate
+
 When using PyPropagate in your work it would be very appreciated to give us a citation. You can use the following BibTeX template:
 
     @misc{LMPyPropagate2016,
