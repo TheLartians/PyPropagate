@@ -1,4 +1,4 @@
 
-from .fresnel import FresnelPropagator1D,FresnelPropagator2D
-from .finitedifferences import FiniteDifferencesPropagator1D,FiniteDifferencesPropagator2D,FiniteDifferencesPropagatorRS
-from .radially_symmetric_fresnel import FresnelPropagatorRS
+from .fresnel import FresnelPropagator2D,FresnelPropagator3D
+from .finitedifferences import FiniteDifferencesPropagator2D,FiniteDifferencesPropagator3D,FiniteDifferencesPropagatorCS,FiniteDifferencesPropagator3DCS
+from .radially_symmetric_fresnel import FresnelPropagatorCS

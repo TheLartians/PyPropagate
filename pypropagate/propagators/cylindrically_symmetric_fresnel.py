@@ -3,7 +3,7 @@ from ..hankel import *
 import numpy as np
 
 
-class FresnelPropagatorRS(Propagator):
+class FresnelPropagatorCS(Propagator):
     ndim = 1
     dtype = np.complex128
 
@@ -19,7 +19,7 @@ class FresnelPropagatorRS(Propagator):
         self.__ximax = float(settings.get_unitless(xi.subs(x.symbol, x.max)))
         self.__sx = self.__ximax - self.__ximin
 
-        super(FresnelPropagatorRS, self).__init__(settings)
+        super(FresnelPropagatorCS, self).__init__(settings)
         self._thread_count = thread_count
 
         self._set_initial_field(settings)

@@ -110,19 +110,42 @@ def line_plot(carr,ax = None,ylabel = None,figsize = None,title = None,**kwargs)
 
     return lines[0]
 
-def poynting_streamplot(carr,k,ax = None,figsize = None,title = None,set_limits = True,mask = None,settings=None,dxdy = None,**kwargs):
+def poynting_streamplot(carr,k,ax = None,figsize = None,title = None,set_limits = True,mask = None,support = None,settings=None,dxdy = None,**kwargs):
     import matplotlib.pyplot as plt
     import numpy as np
     from skimage.restoration import unwrap_phase
-
+    import expresso.pycas as pc
+    
     e = get_unitless_bounds(carr)
 
     xprefix,xfactor = get_metric_prefix(e[1][:2])
     yprefix,yfactor = get_metric_prefix(e[0][:2])
 
     extent = [float(e[1][0])/xfactor,float(e[1][1])/xfactor,float(e[0][0])/yfactor,float(e[0][1])/yfactor]
+    
+    if support is not None:
+        if mask is not None:
+            raise ValueError('provide either support or mask arguments')
+        
+        if isinstance(support,pc.Expression):
+            mask = pc.Not(support)
+        else:
+            mask = np.logical_not(support)
+    
+    if mask is not None:
+        import expresso.pycas
 
-    phase = unwrap_phase(np.angle(carr.data))
+        if isinstance(mask,pc.Expression):
+            if settings == None:
+                raise ValueError('no settings argument provided')
+            mask = expression_for_array(mask,carr,settings)
+    
+        phase = np.ma.array(np.angle(carr.data),mask=mask.data)
+    else:
+        phase = np.angle(carr.data)
+    
+    phase = unwrap_phase(phase)
+        
     x = np.linspace(extent[0],extent[1],carr.shape[1])
     y = np.linspace(extent[2],extent[3],carr.shape[0])
 
@@ -131,21 +154,14 @@ def poynting_streamplot(carr,k,ax = None,figsize = None,title = None,set_limits 
         gx += float(carr.evaluate(k*e[1][2]))
     else:
         gx,gy = dxdy
-
+    
     gx *= yfactor/xfactor
-
+    
     if mask is not None:
-        import expresso.pycas
+        gx = np.ma.array(gx,mask=mask.data)
+        gy = np.ma.array(gy,mask=mask.data)
 
-        if isinstance(mask,expresso.pycas.Expression):
-            if settings == None:
-                raise ValueError('no settings argument provided')
-            mask = expression_for_array(mask,carr,settings)
-
-        idx = np.where(np.logical_not(mask.data))
-        gx[idx] = np.nan
-        gy[idx] = np.nan
-
+    
     fig = None
     if ax == None:
         fig, ax = plt.subplots(figsize=figsize)

@@ -2,19 +2,18 @@
 from .propagator import Propagator
 import numpy as np
 
-class FresnelPropagator2D(Propagator):
+class FresnelPropagator3D(Propagator):
 
     ndim = 2
     dtype = np.complex128
 
     def __init__(self,settings,thread_count = None):
 
-        super(FresnelPropagator2D,self).__init__(settings)
+        super(FresnelPropagator3D, self).__init__(settings)
         if thread_count == None:
             import multiprocessing
             thread_count = multiprocessing.cpu_count()
         self._thread_count = thread_count
-        self._set_initial_field(settings)
         pe = settings.partial_differential_equation
         x,y,z = settings.partial_differential_equation.coordinates
 
@@ -37,9 +36,28 @@ class FresnelPropagator2D(Propagator):
             fx*( self._nx/2.-np.abs(np.arange(self._nx)-self._nx/2.) )
         )
 
+        self.__C_is_zero = settings.get_numeric(pe.C) == pc.S(0)
+
         self.__D_step = D(kx=kx, ky=ky, **self._get_indices_dict())
 
+        self._set_initial_field(settings)
+
     def get_fft(self):
+        if self.__C_is_zero:
+
+            try:
+                import pyfftw
+                if not hasattr(self, '__fftw_ffts'):
+                    a = pyfftw.empty_aligned((self._nx, self._ny), dtype='complex128')
+                    b = pyfftw.empty_aligned((self._nx, self._ny), dtype='complex128')
+                    fft = pyfftw.FFTW(a, b, axes=(0,), threads=self._thread_count, direction='FFTW_FORWARD')
+                    ifft = pyfftw.FFTW(b, a, axes=(0,), threads=self._thread_count, direction='FFTW_BACKWARD')
+                    self.__fftw_ffts = fft, ifft
+                return self.__fftw_ffts
+            except ImportError:
+                from numpy.fft import fft, ifft
+                return lambda x: fft(x, axis=0), lambda x: ifft(x, axis=0)
+
         try:
             import pyfftw
             if not hasattr(self,'__fftw_ffts'):
@@ -89,7 +107,7 @@ class FresnelPropagator2D(Propagator):
         self.__freq_data = fft2(self.__data)
 
 
-class FresnelPropagator1D(Propagator):
+class FresnelPropagator2D(Propagator):
 
     ndim = 1
     dtype = np.complex128
@@ -97,7 +115,7 @@ class FresnelPropagator1D(Propagator):
     def __init__(self,settings,thread_count=1):
         import expresso.pycas as pc
 
-        super(FresnelPropagator1D,self).__init__(settings)
+        super(FresnelPropagator2D, self).__init__(settings)
         self._thread_count = thread_count
 
         self._set_initial_field(settings)
