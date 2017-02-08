@@ -227,14 +227,14 @@ class TestWaveguide(TestCase):
         fd_field = propagator.run_slice()[:,0]
         self.assertLess(abs(an_field - fd_field)[:,s.sz/2:].max()/abs(an_field[:,s.sz/2:]).max(),0.2)
 
-    def test_fresnel_RS(self):
+    def test_fresnel_CS(self):
         settings = self.settings.copy()
         s = settings.symbols
         wg = settings.waveguide
         s.u0 = pc.piecewise((1, abs(s.x) < wg.r), (1 - (abs(s.x) - wg.r) / (s.sx / 2 - wg.r), True))
         settings.simulation_box.set((5 * wg.r, 5 * wg.r, 0.8 * units.mm), (2048, 2048, 2048))
 
-        propagator = propagators.FresnelPropagatorRS(settings)
+        propagator = propagators.FresnelPropagatorCS(settings)
         an_field = analytical_circular_waveguide(settings)
         fd_field = propagator.run_slice()[:]
         self.assertLess(abs(an_field - fd_field)[:,s.sz/2:].max()/abs(an_field[:,s.sz/2:]).max(),0.2)
@@ -255,10 +255,10 @@ class TestWaveguide(TestCase):
         fd_field = propagator.run_slice()[:,0]
         self.assertLess(abs(an_field - fd_field)[:,s.sz/2:].max()/abs(an_field[:,s.sz/2:]).max(),0.1)
 
-    def test_finite_differences_RS(self):
+    def test_finite_differences_CS(self):
         settings = self.settings
         s = settings.symbols
-        propagator = propagators.FiniteDifferencesPropagatorRS(settings)
+        propagator = propagators.FiniteDifferencesPropagatorCS(settings)
         an_field = analytical_circular_waveguide(settings)
         fd_field = propagator.run_slice()[:]
         self.assertLess(abs(an_field - fd_field)[:, s.sz / 2:].max() / abs(an_field[:, s.sz / 2:]).max(), 0.1)
