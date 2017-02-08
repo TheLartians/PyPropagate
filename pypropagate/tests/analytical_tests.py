@@ -214,7 +214,7 @@ class TestWaveguide(TestCase):
     def test_fresnel_2D(self):
         settings = self.settings
         s = settings.symbols
-        propagator = propagators.FresnelPropagator1D(settings)
+        propagator = propagators.FresnelPropagator2D(settings)
         an_field = analytical_slab_waveguide(settings)
         fd_field = propagator.run_slice()[:]
         self.assertLess(abs(an_field - fd_field)[:,s.sz/2:].max()/abs(an_field[:,s.sz/2:]).max(),0.1)
@@ -222,7 +222,7 @@ class TestWaveguide(TestCase):
     def test_fresnel_3D(self):
         settings = self.settings
         s = settings.symbols
-        propagator = propagators.FresnelPropagator2D(settings)
+        propagator = propagators.FresnelPropagator3D(settings)
         an_field = analytical_circular_waveguide(settings)
         fd_field = propagator.run_slice()[:,0]
         self.assertLess(abs(an_field - fd_field)[:,s.sz/2:].max()/abs(an_field[:,s.sz/2:]).max(),0.2)
@@ -242,7 +242,7 @@ class TestWaveguide(TestCase):
     def test_finite_differences_2D(self):
         settings = self.settings
         s = settings.symbols
-        propagator = propagators.FiniteDifferencesPropagator1D(settings)
+        propagator = propagators.FiniteDifferencesPropagator2D(settings)
         an_field = analytical_slab_waveguide(settings)
         fd_field = propagator.run_slice()[:]
         self.assertLess(abs(an_field - fd_field)[:,s.sz/2:].max()/abs(an_field[:,s.sz/2:]).max(),0.1)
@@ -250,7 +250,7 @@ class TestWaveguide(TestCase):
     def test_finite_differences_3D(self):
         settings = self.settings
         s = settings.symbols
-        propagator = propagators.FiniteDifferencesPropagator2D(settings)
+        propagator = propagators.FiniteDifferencesPropagator3D(settings)
         an_field = analytical_circular_waveguide(settings)
         fd_field = propagator.run_slice()[:,0]
         self.assertLess(abs(an_field - fd_field)[:,s.sz/2:].max()/abs(an_field[:,s.sz/2:]).max(),0.1)
@@ -287,7 +287,7 @@ class TestGaussian(TestCase):
 
         fieldan = expression_to_array(g.u.subs(s.y,0),settings)
 
-        propagator = propagators.FiniteDifferencesPropagator2D(settings)
+        propagator = propagators.FiniteDifferencesPropagator3D(settings)
         fieldfd = propagator.run_slice()[:,0]
 
         self.assertLess(abs(fieldan - fieldfd).max(),0.01)
