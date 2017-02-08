@@ -190,9 +190,9 @@ class TestWaveguide(TestCase):
     def __init__(self, *args, **kwargs):
         super(TestWaveguide, self).__init__(*args, **kwargs)
 
-        settings = presets.create_paraxial_wave_equation_settings()
+        settings = presets.medium.create_paraxial_wave_equation_settings()
 
-        presets.set_plane_wave_initial_conditions(settings)
+        presets.boundary.set_plane_wave_initial_conditions(settings)
         s = settings.symbols
 
         wg = settings.create_category('waveguide')
@@ -205,7 +205,7 @@ class TestWaveguide(TestCase):
         settings.wave_equation.set_energy(12*units.keV)
         settings.simulation_box.set((0.2*units.um,0.2*units.um,0.8*units.mm),(1024,1025,1024))
 
-        wg.n_2 = presets.create_material('Ge',settings)
+        wg.n_2 = presets.medium.create_material('Ge',settings)
         wg.n_1 = 1
         wg.r = 50 * units.nm
 
@@ -267,7 +267,7 @@ class TestWaveguide(TestCase):
 class TestGaussian(TestCase):
 
     def test_gaussian_3D(self):
-        settings = presets.create_paraxial_wave_equation_settings()
+        settings = presets.settings.settings.create_paraxial_wave_equation_settings()
         s = settings.symbols
         pde = settings.partial_differential_equation
 

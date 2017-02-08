@@ -150,7 +150,7 @@ def poynting_streamplot(carr,k,ax = None,figsize = None,title = None,set_limits 
     y = np.linspace(extent[2],extent[3],carr.shape[0])
 
     if dxdy is None:
-        gx,gy = np.gradient(phase,(x[0] - x[1]) * xfactor,axis=1),np.gradient(phase,(y[0] - y[1]) * yfactor,axis=0)
+        gx,gy = np.gradient(phase,(x[0] - x[1]) * xfactor,axis=1,edge_order=2),np.gradient(phase,(y[0] - y[1]) * yfactor,axis=0,edge_order=2)
         gx += float(carr.evaluate(k*e[1][2]))
     else:
         gx,gy = dxdy
