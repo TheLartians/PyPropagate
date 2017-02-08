@@ -192,7 +192,7 @@ class TestWaveguide(TestCase):
 
         settings = presets.settings.create_paraxial_wave_equation_settings()
 
-        presets.boundary.set_plane_wave_initial_conditions(settings)
+        presets.boundaries.set_plane_wave_initial_conditions(settings)
         s = settings.symbols
 
         wg = settings.create_category('waveguide')
@@ -267,7 +267,7 @@ class TestWaveguide(TestCase):
 class TestGaussian(TestCase):
 
     def test_gaussian_3D(self):
-        settings = presets.settings.settings.create_paraxial_wave_equation_settings()
+        settings = presets.settings.create_paraxial_wave_equation_settings()
         s = settings.symbols
         pde = settings.partial_differential_equation
 
