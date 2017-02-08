@@ -1,4 +1,3 @@
-
 def add_coordinate(settings,category,name):
 
     import expresso.pycas as pc
@@ -31,7 +30,7 @@ def add_time_symbols(settings):
     sb.tmin = 0
     sb.export(settings.symbols,warn=False)
 
-    import units
+    from .. import units
     settings.unitless.create_key(None,units.s,10**10)
 
     if settings.has_category('wave_equation'):
@@ -108,7 +107,7 @@ def add_simulation_box_category(settings,coords = ['x','y','z']):
     def make_unitless(settings):
         sb = settings.simulation_box
 
-        from units import get_unit
+        from ..units import get_unit
         defined = set()
 
         for s in settings.get_numeric(tuple(getattr(sb,'s'+c) for c in coords)):
@@ -178,7 +177,7 @@ def add_partial_differential_equation_category(settings,coordinates = None):
     return pde
 
 def create_paraxial_settings():
-    from .settings import Settings
+    from ..settings import Settings
     settings = Settings('settings for solving the paraxial differential equation')
     add_simulation_box_category(settings)
     settings.simulation_box.export(settings.symbols)
@@ -187,7 +186,7 @@ def create_paraxial_settings():
     return settings
 
 def add_wave_equation_category(settings):
-    import units
+    from .. import units
     from expresso.pycas import Function,Symbol,Types,pi
 
     s = settings.simulation_box
@@ -209,10 +208,7 @@ def add_wave_equation_category(settings):
     we.lock('E','defined by omega')
 
     def set_energy(we,value):
-        we.unlock('E')
-        we.omega = we.E / hbar
-        we.lock('omega','defined by energy')
-        we.E = value
+        we.omega = value / hbar
 
     import types
     we.add_method('set_energy',set_energy)
@@ -221,7 +217,7 @@ def add_wave_equation_category(settings):
 
 def create_paraxial_wave_equation_settings(fresnel_compatible = False):
 
-    from .settings import Settings
+    from ..settings import Settings
     import expresso.pycas as pc
 
     settings = Settings('settings for solving the paraxial differential equation')
@@ -253,26 +249,6 @@ def create_paraxial_wave_equation_settings(fresnel_compatible = False):
 
     return settings
 
-def set_1D_boundary_condition(settings):
-    from expresso.pycas import exp
-
-    s = settings.simulation_box
-    pe = settings.partial_differential_equation
-
-    pe.u_boundary = pe.u0.subs(s.z,s.zmin) * exp(pe.F.subs(s.z,s.zmin)*s.z)
-
-
-def set_plane_wave_initial_conditions(settings):
-    """Sets the boundary conditions to a plane wave with intensity 1.
-    The boundary are set to the index of refraction at z=0."""
-
-    s = settings.simulation_box
-    pe = settings.partial_differential_equation
-
-    pe.u0 = 1
-    set_1D_boundary_condition(settings)
-
-
 def create_next_settings(old_settings):
     settings = old_settings.copy(copy_initializers = False,copy_updaters = False)
 
@@ -289,214 +265,9 @@ def create_next_settings(old_settings):
 
     return settings
 
-def add_padding(array,factor,mode = 'edge',**kwargs):
-    import numpy as np
-    from coordinate_ndarray import CoordinateNDArray
-
-    padding_points = [[int(x*factor)]*2 for x in array.data.shape]
-    new_data = np.pad(array.data,padding_points,mode,**kwargs)
-
-    extension = [d*p[0] for d,p in zip(array._dbounds,padding_points)]
-    new_bounds = [(b-i,e+i) for i,(b,e) in zip(extension,array.bounds)]
-
-    return CoordinateNDArray(new_data,new_bounds,array.axis,array.evaluate)
-
-def set_initial(settings,initial_array):
-    import expresso.pycas as pc
-    from coordinate_ndarray import CoordinateNDArray
-
-    if isinstance(initial_array,CoordinateNDArray):
-        initial = pc.array("initial",initial_array.data)
-    else:
-        initial = pc.array("initial",initial_array)
-
-    sb = settings.simulation_box
-
-    if tuple(initial_array.axis) == (sb.x,):
-        settings.partial_differential_equation.u0 = initial(sb.xi)
-    elif tuple(initial_array.axis) == (sb.x,sb.y):
-        settings.partial_differential_equation.u0 = initial(sb.yi,sb.xi)
-        sb.Ny = initial_array.shape[1]
-        if isinstance(initial_array,CoordinateNDArray):
-            sb.unlock('ymin')
-            sb.unlock('ymax')
-            sb.unlock('sy')
-            sb.ymin = initial_array.bounds[1][0]
-            sb.ymax = initial_array.bounds[1][1]
-            sb.sy = sb.ymax - sb.ymin
-            sb.lock('ymin','defined by initial array')
-            sb.lock('ymax','defined by initial array')
-            sb.lock('sy','defined by ymin and ymax')
-
-    else:
-        raise ValueError('initial array axis must be (x,) or (x,y)')
-
-    sb.Nx = initial_array.shape[0]
-
-    if isinstance(initial_array,CoordinateNDArray):
-        sb.unlock('xmin')
-        sb.unlock('xmax')
-        sb.unlock('sx')
-        sb.xmin = initial_array.bounds[0][0]
-        sb.xmax = initial_array.bounds[0][1]
-        sb.sx = sb.xmax - sb.xmin
-        sb.lock('xmin','defined by initial array')
-        sb.lock('xmax','defined by initial array')
-        sb.lock('sx','defined by xmin and xmax')
-
-def get_refraction_indices(material,min_energy,max_energy,steps,density=-1,uniform_distance = False):
-
-    if min_energy < 0 and max_energy < 0:
-        return get_refraction_indices(material,abs(min_energy),abs(max_energy),steps,density,uniform_distance)
-
-    if min_energy > max_energy:
-        return get_refraction_indices(material,max_energy,min_energy,steps,density,uniform_distance)[::-1]
-
-    max_steps = 499
-
-    if steps > max_steps:
-        import numpy as np
-        dn = (max_energy - min_energy)/(steps - 1)
-        current_max = min_energy + max_steps * dn
-        missing = max(steps-max_steps,3)
-        return np.append(get_refraction_indices(material,min_energy,current_max ,max_steps,density,uniform_distance), \
-               get_refraction_indices(material,current_max + dn,current_max + dn * missing,missing,density,uniform_distance),axis=0)
-
-    from mechanize import Browser
-    br = Browser()
-
-    br.open("http://henke.lbl.gov/optical_constants/getdb.html")
-
-    br.select_form(nr=0)
-    
-    br.form[ 'Formula' ] = material
-    br.form[ 'Density' ] = str(density)
-    br.form[ 'Min' ] = str(min_energy) if not uniform_distance else str(min_energy-1)
-    br.form[ 'Max' ] = str(max_energy) if not uniform_distance else str(max_energy+1)
-    br.form[ 'Npts' ] = str(steps-1)
-    br.form[ 'Output' ] = ['Text File']
-
-    res = br.submit().read()
-    
-    def is_number(s):
-        try:
-            float(s)
-            return True
-        except ValueError:
-            return False
-
-    def get_numbers(line):
-        return [float(v) for v in line.split(' ') if is_number(v)]
-    try:
-        betadelta = [get_numbers(line) for line in res.split('\n') if len(get_numbers(line)) == 3]
-        E_values = [float(v[0]) for v in betadelta]
-        n_values = [complex(1-float(v[1]),-float(v[2])) for v in betadelta]
-    except:
-        betadelta = []
-
-    if len(betadelta) != steps:
-        raise RuntimeError('error retrieving refractive index for %s (E from %s to %s in %s steps)\nserver response: %s' % (
-            material,min_energy,max_energy,steps,res))
-    
-    if uniform_distance:
-        from scipy.interpolate import interp1d
-        import numpy as np
-        int_f = interp1d(E_values,n_values)
-        E_values = np.linspace(min_energy,max_energy,steps)
-        interpolated = int_f(E_values)
-        return interpolated
-    
-    return zip(E_values,n_values)
-
-def create_material(name,settings,density=-1):
-    '''
-    density in gm/cm^3
-    '''
-
-    import expresso.pycas as pc
-
-    nname = 'n_%s' % name
-
-    if not settings.has_category('refractive_indices'):
-        settings.create_category('refractive_indices')
-    r = settings.refractive_indices
-
-    def init_material(settings):
-        import units
-        import numpy as np
-
-        sb = settings.simulation_box
-        r = settings.refractive_indices
-        omega = settings.wave_equation.omega
-
-        try:
-            N = settings.get_as(sb.Nomega,int)
-            omegamin,omegamax = (sb.omegamin,sb.omegamax)
-
-            EminExpr = omegamin * units.hbar / units.eV
-            EmaxExpr = omegamax * units.hbar / units.eV
-
-            omega_dependent = True
-        except:
-            N = 3
-            E = (units.hbar * omega / units.eV)
-            omega_i = 1
-            omega_dependent = False
-        try:
-            Enum = settings.get_as(E,float)
-            Emin = Enum-1
-            Emax = Enum+1
-        except:
-            setattr(r,nname,None)
-            return
-
-        key = (nname,N,Emin,Emax,density)
-        if not hasattr(r,'_cache'):
-            r.add_attribute('_cache', {})
-        else:
-            if key in r._cache:
-                setattr(r,nname,r._cache[key])
-                return
-        if omega_dependent:
-            narr = pc.array(nname,np.array(get_refraction_indices(name,Emin,Emax,N,density,True)))
-            setattr(r,nname,narr(sb.omegai))
-            r._cache[key] = narr(sb.omegai)
-        else:
-            val = get_refraction_indices(name,Emax,Emin,3,density,True)[1]
-            setattr(r,nname,val)
-            r._cache[key] = val
-
-    settings.initializers["init_" + nname] = init_material
-
-    if r.has_name(nname):
-        return getattr(r,nname)
-    n = r.create_key(nname,pc.Function(nname)(settings.wave_equation.omega))
-
-    settings.numerics.add_key(nname,n)
-    return n
-
-def create_2D_paraxial_frequency_settings():
-    from .settings import Settings
-
-    settings = Settings()
-    sb = add_simulation_box_category(settings,['x','omega','z'])
-    pde = add_partial_differential_equation_category(settings,(sb.x,sb.omega,sb.z))
-    we = add_wave_equation_category(settings)
-
-    sb.export(settings.symbols,warn=False)
-    we.export(settings.symbols,warn=False)
-
-    settings.symbols.add_key('u0',pde.u0)
-    settings.symbols.add_key('u_boundary',pde.u_boundary)
-
-    pde.A = 1/(2j*we.k*we.n)
-    pde.C = 0
-    pde.F = -1j*we.k*(we.n-1)
-
-    return settings
 
 def create_2D_paraxial_settings_with_parameter(parameter_name = 'a'):
-    from .settings import Settings
+    from ..settings import Settings
 
     settings = Settings()
     sb = add_simulation_box_category(settings,['x',parameter_name,'z'])
@@ -517,9 +288,9 @@ def create_2D_paraxial_settings_with_parameter(parameter_name = 'a'):
 
 def create_2D_frequency_settings_from(settings):
     import expresso.pycas as pc
-    import units
-    from .plot import expression_to_array
-    from .coordinate_ndarray import CoordinateNDArray
+    from .. import units
+    from ..plot import expression_to_array
+    from ..coordinate_ndarray import CoordinateNDArray
     import numpy as np
 
     settings.initialize()
@@ -583,70 +354,24 @@ def create_2D_frequency_settings_from(settings):
 
     return freq_settings
 
-def fourier_transform(array,axis,new_axis,inverse=False):
-    import numpy as np
-    from numpy.fft import fftshift,ifftshift
-    from expresso.pycas import pi
-    from .coordinate_ndarray import CoordinateNDArray
+def create_2D_paraxial_frequency_settings():
+    from ..settings import Settings
 
-    try:
-        from pyfftw.interfaces.numpy_fft import fft,ifft
-    except ImportError:
-        from numpy.fft import fft,ifft
+    settings = Settings()
+    sb = add_simulation_box_category(settings,['x','omega','z'])
+    pde = add_partial_differential_equation_category(settings,(sb.x,sb.omega,sb.z))
+    we = add_wave_equation_category(settings)
 
-    axi = array.axis.index(axis)
+    sb.export(settings.symbols,warn=False)
+    we.export(settings.symbols,warn=False)
 
-    if not inverse:
-        new_data = fftshift(fft(array.data,axis=axi),axes=[axi])
-        new_data *= 1/np.sqrt(2*np.pi)  
-    else:
-        new_data = ifft(ifftshift(array.data,axes=[axi]),axis=axi)
-        new_data *= np.sqrt(2*np.pi) 
+    settings.symbols.add_key('u0',pde.u0)
+    settings.symbols.add_key('u_boundary',pde.u_boundary)
 
-    sw = array.bounds[axi][1] - array.bounds[axi][0]
-    tmin,tmax = array.evaluate((-(pi*array.shape[axi])/sw,
-                                 (pi*array.shape[axi])/sw))
+    pde.omega0 = (sb.omegamax + sb.omegamin)/2
 
-    new_bounds = [(b[0],b[1]) if i!=axi else (tmin,tmax) for i,b in enumerate(array.bounds)]
-    new_axis = [a  if i!=axi else new_axis for i,a in enumerate(array.axis)]
+    pde.A = 1/(2j*we.k*we.n)
+    pde.C = 0
+    pde.F = -1j*we.k*(we.n-1)
 
-    return CoordinateNDArray(new_data,new_bounds,new_axis,array.evaluate)
-
-def inverse_fourier_transform(*args):
-    return fourier_transform(*args,inverse=True)
-
-def u_from_utilde(field,omega0,s=None,a=None):
-
-    if a is None and s is None:
-	raise ValueError("a or s needs to be specified")
-    if a is not None and s is not None:
-        raise ValueError("only one value for a/s can be specified")
-    if a is not None:
-        s = 1/(1-a)
-
-    import numpy as np
-    import expresso.pycas as pc
-    import units
-
-    omegamin,omegamax = field.bounds[1]
-    zmin, zmax = field.bounds[2]
-    sz = zmax - zmin
-
-    ukmin = float(field.evaluate( (omegamin-omega0)/units.c*sz ))
-    ukmax = float(field.evaluate( (omegamax-omega0)/units.c*sz ))
-    uzmin = 0
-    uzmax = 1
-
-    #print ukmin
-    #print ukmax
-
-    nz,ik = np.meshgrid(np.linspace(uzmin,uzmax,field.shape[2]),np.linspace(1j*ukmin,1j*ukmax,field.shape[1]))
-    factor = np.exp(-ik*nz/s)
-    
-    transform = field * factor
-    del factor,nz,ik
-
-    return fourier_transform(transform, field.axis[1], pc.Symbol('t'), inverse=True)
-
-
-
+    return settings
