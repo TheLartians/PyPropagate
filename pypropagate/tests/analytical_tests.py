@@ -190,7 +190,7 @@ class TestWaveguide(TestCase):
     def __init__(self, *args, **kwargs):
         super(TestWaveguide, self).__init__(*args, **kwargs)
 
-        settings = presets.medium.create_paraxial_wave_equation_settings()
+        settings = presets.settings.create_paraxial_wave_equation_settings()
 
         presets.boundary.set_plane_wave_initial_conditions(settings)
         s = settings.symbols
