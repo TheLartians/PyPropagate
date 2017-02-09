@@ -9,10 +9,15 @@
 #include <sstream>
 
 #include "finite_difference.h"
+#include "ring_derivative.h"
+
+using Arrayd2 = lars::HeapNDArray<double,lars::DynamicIndexTuple<2>>;
+using Arrayd1 = lars::HeapNDArray<double,lars::DynamicIndexTuple<1>>;
 
 namespace python_converters{
   
-  const auto py_scalar = NPY_COMPLEX128;
+  const auto py_complex = NPY_COMPLEX128;
+  const auto py_double = NPY_FLOAT64;
   
   struct init_numpy{ init_numpy(){ import_array(); } } initializer;
   
@@ -21,13 +26,25 @@ namespace python_converters{
 
   PyObject * array_1D_as_numpy(finite_differences::array_1D & array){
     long size = array.size();
-    PyArrayObject * converted = (PyArrayObject *) PyArray_SimpleNewFromData(1,&size,py_scalar,(void*)array.data());
+    PyArrayObject * converted = (PyArrayObject *) PyArray_SimpleNewFromData(1,&size,py_complex,(void*)array.data());
     return (PyObject *)converted;
   }
   
   PyObject * array_2D_as_numpy(finite_differences::array_2D & array){
     long size[2] = {static_cast<long>(array.size()),static_cast<long>(array[0].size())};
-    PyArrayObject * converted = (PyArrayObject *) PyArray_SimpleNewFromData(2,size,py_scalar,(void*)array.data());
+    PyArrayObject * converted = (PyArrayObject *) PyArray_SimpleNewFromData(2,size,py_complex,(void*)array.data());
+    return (PyObject *)PyArray_Transpose(converted,nullptr);
+  }
+  
+  PyObject * arrayd1_as_numpy(Arrayd1 & array){
+    long size = array.size();
+    PyArrayObject * converted = (PyArrayObject *) PyArray_SimpleNewFromData(1,&size,py_double,(void*)array.data());
+    return (PyObject *)converted;
+  }
+  
+  PyObject * arrayd2_as_numpy(Arrayd2 & array){
+    long size[2] = {static_cast<long>(array.size()),static_cast<long>(array[0].size())};
+    PyArrayObject * converted = (PyArrayObject *) PyArray_SimpleNewFromData(2,size,py_double,(void*)array.data());
     return (PyObject *)PyArray_Transpose(converted,nullptr);
   }
   
@@ -41,6 +58,22 @@ BOOST_PYTHON_MODULE(_pypropagate){
   using namespace boost::python;
   using namespace lars;
  
+  def("ring_derivative",ring_derivative<0,Arrayd1>,args("array","min","max"));
+  def("ring_derivative_x",ring_derivative<1,Arrayd2>,args("array","min","max"));
+  def("ring_derivative_y",ring_derivative<0,Arrayd2>,args("array","min","max"));
+
+  class_<Arrayd1>("DoubleArray1D")
+  .def("as_numpy",python_converters::arrayd1_as_numpy)
+  .def("resize",+[](Arrayd1 &arr,size_t size){ arr.resize(size); })
+  .def("__str__",python_converters::to_string<Arrayd1>)
+  ;
+
+  class_<Arrayd2>("DoubleArray2D")
+  .def("as_numpy",python_converters::arrayd2_as_numpy)
+  .def("resize",+[](Arrayd2 &arr,size_t a,size_t b){ arr.resize(a,b); })
+  .def("__str__",python_converters::to_string<Arrayd2>)
+  ;
+
   class_<finite_differences::array_1D>("Array1D")
   .def("as_numpy",python_converters::array_1D_as_numpy)
   .def("resize",+[](finite_differences::array_1D &arr,size_t size){ arr.resize(size); })

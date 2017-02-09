@@ -113,25 +113,49 @@ def line_plot(carr,ax = None,ylabel = None,figsize = None,title = None,**kwargs)
 def poynting_streamplot(carr,k,ax = None,figsize = None,title = None,set_limits = True,mask = None,support = None,settings=None,dxdy = None,**kwargs):
     import matplotlib.pyplot as plt
     import numpy as np
-    from skimage.restoration import unwrap_phase
     import expresso.pycas as pc
-    
+
+    def phase_gradient(Array):
+        from _pypropagate import ring_derivative_x,ring_derivative_y,DoubleArray2D
+
+        CArray = DoubleArray2D()
+        CArray.resize(Array.shape[1],Array.shape[0])
+        CArray.as_numpy()[:] = np.angle(Array)
+
+        dy = ring_derivative_y(CArray,0,2*np.pi)
+        dx = ring_derivative_x(CArray,0,2*np.pi)
+
+        return (dy.as_numpy().copy(),dx.as_numpy().copy())
+
     e = get_unitless_bounds(carr)
 
     xprefix,xfactor = get_metric_prefix(e[1][:2])
     yprefix,yfactor = get_metric_prefix(e[0][:2])
 
     extent = [float(e[1][0])/xfactor,float(e[1][1])/xfactor,float(e[0][0])/yfactor,float(e[0][1])/yfactor]
-    
+
+    x = np.linspace(extent[0],extent[1],carr.shape[1])
+    y = np.linspace(extent[2],extent[3],carr.shape[0])
+
+    if dxdy is None:
+        gx,gy = phase_gradient(carr)
+        gx /= xfactor*(x[0] - x[1])
+        gy /= yfactor*(y[0] - y[1])
+        gx += float(carr.evaluate(k*e[1][2]))
+    else:
+        gx,gy = dxdy
+
+    gx *= yfactor/xfactor
+
     if support is not None:
         if mask is not None:
             raise ValueError('provide either support or mask arguments')
-        
+
         if isinstance(support,pc.Expression):
             mask = pc.Not(support)
         else:
             mask = np.logical_not(support)
-    
+
     if mask is not None:
         import expresso.pycas
 
@@ -139,29 +163,10 @@ def poynting_streamplot(carr,k,ax = None,figsize = None,title = None,set_limits 
             if settings == None:
                 raise ValueError('no settings argument provided')
             mask = expression_for_array(mask,carr,settings)
-    
-        phase = np.ma.array(np.angle(carr.data),mask=mask.data)
-    else:
-        phase = np.angle(carr.data)
-    
-    phase = unwrap_phase(phase)
-        
-    x = np.linspace(extent[0],extent[1],carr.shape[1])
-    y = np.linspace(extent[2],extent[3],carr.shape[0])
 
-    if dxdy is None:
-        gx,gy = np.gradient(phase,(x[0] - x[1]) * xfactor,axis=1,edge_order=2),np.gradient(phase,(y[0] - y[1]) * yfactor,axis=0,edge_order=2)
-        gx += float(carr.evaluate(k*e[1][2]))
-    else:
-        gx,gy = dxdy
-    
-    gx *= yfactor/xfactor
-    
-    if mask is not None:
         gx = np.ma.array(gx,mask=mask.data)
         gy = np.ma.array(gy,mask=mask.data)
-
-    
+        
     fig = None
     if ax == None:
         fig, ax = plt.subplots(figsize=figsize)
