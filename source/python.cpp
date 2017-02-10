@@ -8,22 +8,64 @@
 #include <stdexcept>
 #include <sstream>
 
+#include <unordered_map>
+#include <functional>
+#include <typeinfo>
+
 #include "finite_difference.h"
 #include "ring_derivative.h"
 
-using Arrayd2 = lars::HeapNDArray<double,lars::DynamicIndexTuple<2>>;
-using Arrayd1 = lars::HeapNDArray<double,lars::DynamicIndexTuple<1>>;
 
 namespace python_converters{
   
   const auto py_complex = NPY_COMPLEX128;
-  const auto py_double = NPY_FLOAT64;
+ 
+  using TypeInfoRef = std::reference_wrapper<const std::type_info>;
+ 
+  struct TypeInfoHasher {
+    std::size_t operator()(TypeInfoRef code) const{
+        return code.get().hash_code();
+    }
+  };
+ 
+  struct TypeInfoEqualTo {
+    bool operator()(TypeInfoRef lhs, TypeInfoRef rhs) const {
+        return lhs.get() == rhs.get();
+    }
+  };
   
+  const std::unordered_map<TypeInfoRef, decltype(NPY_BOOL), TypeInfoHasher, TypeInfoEqualTo> numpy_types = {{typeid(bool),NPY_BOOL},
+                                                                                                             {typeid(int),NPY_INT},
+                                                                                                             {typeid(double),NPY_DOUBLE}};
+
   struct init_numpy{ init_numpy(){ import_array(); } } initializer;
   
   using namespace boost::python;
   using namespace lars;
+  
+  template <class T,size_t N> using MappedNDArray = NDArrayBase<T, DynamicIndexTuple<N>, DynamicIndexTuple<N>, DynamicIndex, BorrowedData<T>, BasicNDArrayCreator<HeapNDArray>>;
 
+  template <class T,size_t N> MappedNDArray<T,N> numpy_to_ndarray(object data_obj){
+    PyArrayObject * arr = reinterpret_cast<PyArrayObject*>(data_obj.ptr());
+
+    if(PyArray_NDIM(arr) != N) throw std::runtime_error("array is not two-dimensional");
+    
+    auto it = numpy_types.find(typeid(T));
+    if(it == numpy_types.end() || PyArray_TYPE(arr) != it->second) throw std::runtime_error("array has wrong type");   
+ 
+    auto npyshape = PyArray_SHAPE(arr);
+    auto npystrides = PyArray_STRIDES(arr);
+    auto data = PyArray_BYTES(arr);
+    
+    using Index = DynamicIndexTuple<N>;
+    Index strides,shape;
+    
+    shape.apply([&](size_t idx,size_t &val){ val = npyshape[idx]; }); 
+    strides.apply([&](size_t idx,size_t &val){ val = npystrides[idx] / sizeof(T); }); 
+    
+    return MappedNDArray<double,2>(shape,strides,0,(T*)data); 
+  }
+ 
   PyObject * array_1D_as_numpy(finite_differences::array_1D & array){
     long size = array.size();
     PyArrayObject * converted = (PyArrayObject *) PyArray_SimpleNewFromData(1,&size,py_complex,(void*)array.data());
@@ -36,18 +78,6 @@ namespace python_converters{
     return (PyObject *)PyArray_Transpose(converted,nullptr);
   }
   
-  PyObject * arrayd1_as_numpy(Arrayd1 & array){
-    long size = array.size();
-    PyArrayObject * converted = (PyArrayObject *) PyArray_SimpleNewFromData(1,&size,py_double,(void*)array.data());
-    return (PyObject *)converted;
-  }
-  
-  PyObject * arrayd2_as_numpy(Arrayd2 & array){
-    long size[2] = {static_cast<long>(array.size()),static_cast<long>(array[0].size())};
-    PyArrayObject * converted = (PyArrayObject *) PyArray_SimpleNewFromData(2,size,py_double,(void*)array.data());
-    return (PyObject *)PyArray_Transpose(converted,nullptr);
-  }
-  
   template <typename T> std::string to_string(const T &o){
     std::stringstream stream; stream << o; return stream.str();
   }
@@ -57,22 +87,16 @@ namespace python_converters{
 BOOST_PYTHON_MODULE(_pypropagate){
   using namespace boost::python;
   using namespace lars;
- 
-  def("ring_derivative",ring_derivative<0,Arrayd1>,args("array","min","max"));
-  def("ring_derivative_x",ring_derivative<1,Arrayd2>,args("array","min","max"));
-  def("ring_derivative_y",ring_derivative<0,Arrayd2>,args("array","min","max"));
+  
+  def("test_numpy_array",+[](object arr){ std::stringstream stream; stream << python_converters::numpy_to_ndarray<double,2>(arr); return stream.str(); },args("array"));
 
-  class_<Arrayd1>("DoubleArray1D")
-  .def("as_numpy",python_converters::arrayd1_as_numpy)
-  .def("resize",+[](Arrayd1 &arr,size_t size){ arr.resize(size); })
-  .def("__str__",python_converters::to_string<Arrayd1>)
-  ;
-
-  class_<Arrayd2>("DoubleArray2D")
-  .def("as_numpy",python_converters::arrayd2_as_numpy)
-  .def("resize",+[](Arrayd2 &arr,size_t a,size_t b){ arr.resize(a,b); })
-  .def("__str__",python_converters::to_string<Arrayd2>)
-  ;
+  def("ring_derivative_2D",+[](object pyarr,object pydx,object pydy,double min,double max){ 
+    auto arr = python_converters::numpy_to_ndarray<double,2>(pyarr); 
+    auto dx = python_converters::numpy_to_ndarray<double,2>(pydx); 
+    auto dy = python_converters::numpy_to_ndarray<double,2>(pydy);
+    ring_derivative<0>(arr,dx,min,max); 
+    ring_derivative<1>(arr,dy,min,max); 
+  },args("array","dx","dy","min","max"));
 
   class_<finite_differences::array_1D>("Array1D")
   .def("as_numpy",python_converters::array_1D_as_numpy)

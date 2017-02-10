@@ -1,9 +1,10 @@
 
 namespace lars{
 
-	template <unsigned axis,class A> typename A::Copy ring_derivative(const A &array,typename A::Scalar min,typename A::Scalar max){
-	  typename A::Copy result;
-	  result.resize(array.shape());
+	template <unsigned axis,class A,class R> void ring_derivative(const A &array,R & result,typename A::Scalar min,typename A::Scalar max){
+          
+          if(array.shape() != result.shape()) throw std::runtime_error("array shape does not match result");
+           
 	  auto s = max - min;  
 	  auto c = (max + min)/2;
 
@@ -31,14 +32,18 @@ namespace lars{
 	      im1.template set<axis>(idx.template get<axis>() - 1); 
 	      ip1.template set<axis>(idx.template get<axis>() + 1);
 	      auto v0 = array(idx);
-	      auto vp1 = ring(array(ip1) - v0 + c) - c;
-	      auto vm1 = ring(array(im1) - v0 + c) - c;
+	      auto vp1 = ring(array(ip1) - v0 + c);
+	      auto vm1 = ring(array(im1) - v0 + c);
 	      result(idx) = 0.5 * (vp1 - vm1);
 	    } 
 	  });
 	  
-	  return result;
 	}
 
+	template <unsigned axis,class A> typename A::Copy ring_derivative(const A &array,typename A::Scalar min,typename A::Scalar max){
+          typename A::Copy result;
+          ring_derivative<axis>(array,result,min,max);
+          return result; 
+        }
 }
 

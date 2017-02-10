@@ -114,18 +114,13 @@ def poynting_streamplot(carr,k,ax = None,figsize = None,title = None,set_limits 
     import matplotlib.pyplot as plt
     import numpy as np
     import expresso.pycas as pc
-
-    def phase_gradient(Array):
-        from _pypropagate import ring_derivative_x,ring_derivative_y,DoubleArray2D
-
-        CArray = DoubleArray2D()
-        CArray.resize(Array.shape[1],Array.shape[0])
-        CArray.as_numpy()[:] = np.angle(Array)
-
-        dy = ring_derivative_y(CArray,0,2*np.pi)
-        dx = ring_derivative_x(CArray,0,2*np.pi)
-
-        return (dy.as_numpy().copy(),dx.as_numpy().copy())
+    
+    def phase_gradient(array):
+        from _pypropagate import ring_derivative_2D
+        dx = np.zeros(array.shape,dtype=np.float)
+        dy = np.zeros(array.shape,dtype=np.float)
+        ring_derivative_2D(np.angle(array),dy,dx,0,2*np.pi)
+        return (dx,dy)
 
     e = get_unitless_bounds(carr)
 
@@ -138,7 +133,7 @@ def poynting_streamplot(carr,k,ax = None,figsize = None,title = None,set_limits 
     y = np.linspace(extent[2],extent[3],carr.shape[0])
 
     if dxdy is None:
-        gx,gy = phase_gradient(carr)
+        gx,gy = phase_gradient(carr.data)
         gx /= xfactor*(x[0] - x[1])
         gy /= yfactor*(y[0] - y[1])
         gx += float(carr.evaluate(k*e[1][2]))
@@ -154,7 +149,8 @@ def poynting_streamplot(carr,k,ax = None,figsize = None,title = None,set_limits 
         if isinstance(support,pc.Expression):
             mask = pc.Not(support)
         else:
-            mask = np.logical_not(support)
+            mask = support.copy()
+            mask.data = np.logical_not(support.data)
 
     if mask is not None:
         import expresso.pycas

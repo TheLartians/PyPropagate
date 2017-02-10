@@ -64,18 +64,12 @@ def add_simulation_box_category(settings,coords = ['x','y','z']):
     sb.lock()
 
     def set_size(sb,axis_name,size):
-        sb.unlock("%smin" % axis_name)
-        sb.unlock("%smax" % axis_name)
-
         if axis_name in 't,z':
             setattr(sb,"%smin" % axis_name,0)
             setattr(sb,"%smax" % axis_name,size)
         else:
             setattr(sb,"%smin" % axis_name,-size/2)
             setattr(sb,"%smax" % axis_name,size/2)
-
-        sb.lock("%smin" % axis_name,'defined by s%s' % axis_name)
-        sb.lock("%smax" % axis_name,'defined by s%s' % axis_name)
 
     def set_vsize(sb,axis_name,size):
         setattr(sb,"N%s" % axis_name,size)
