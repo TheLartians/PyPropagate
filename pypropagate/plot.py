@@ -179,9 +179,7 @@ def poynting_streamplot(carr,k,ax = None,figsize = None,title = None,set_limits 
 
     return stream
 
-from pypropagate.plot import get_metric_prefix,get_unitless_bounds
-
-def poynting_streamplot_with_start_points(carr,k,start_points,ax = None,figsize = None,title = None,set_limits = True,mask = None,support = None,settings=None,dxdy = None,**kwargs):
+def poynting_streamplot_with_start_points(carr,k,start_points,color='w',ax = None,figsize = None,title = None,arrowsize=5,arrowpositions=[0.1,0.9],set_limits = True,mask = None,support = None,settings=None,dxdy = None,**kwargs):
     import matplotlib.pyplot as plt
     import numpy as np
     import expresso.pycas as pc
@@ -277,10 +275,22 @@ def poynting_streamplot_with_start_points(carr,k,start_points,ax = None,figsize 
     if title:
         ax.set_title(title)
     
-    start_points = [[float(field.evaluate(sp[1]/(yfactor*e[0][2]))),float(field.evaluate(sp[0]/(xfactor*e[1][2])))] for sp in start_points]
+    start_points = [[float(carr.evaluate(sp[1]/(yfactor*e[0][2]))),float(carr.evaluate(sp[0]/(xfactor*e[1][2])))] for sp in start_points]
     stream = streamlines(x,y,gx.data,gy.data,start_points)
+
     for i in range(stream.shape[1]):
-        ax.plot(stream[:,i,1],stream[:,i,0],'-',**kwargs)
+        ax.plot(stream[:,i,1],stream[:,i,0],'-',color=color,**kwargs)
+   
+        import scipy
+        xmin,xmax = stream[:,i,1].min(),stream[:,i,1].max()
+        dx  = (xmax - xmin) / len(stream[:,i,1]) / 10
+        xpositions = [xmin + ap * (xmax - xmin) for ap in arrowpositions]  
+        ypositions = scipy.interp(xpositions + [xp - dx for xp in xpositions],stream[:,i,1],stream[:,i,0])
+        for i in range(len(arrowpositions)):
+            size = arrowsize 
+            x0,y0,y1 = xpositions[i],ypositions[i],ypositions[i+len(arrowpositions)]
+	    props = dict( color=color, width=0, headwidth=size, headlength=2*size, linewidth=0)
+	    ax.annotate("",xy=(x0,y0), xycoords='data', xytext=(x0-dx, y1), textcoords='data', arrowprops=props)
     
     if set_limits:
         ax.set_xlim(extent[0],extent[1])

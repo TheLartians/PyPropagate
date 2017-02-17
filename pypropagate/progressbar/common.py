@@ -26,7 +26,10 @@ class ProgressBarBase(object):
         
         self.current = None
         self.square_time = 0
-        
+       
+    def elapsed_time(self):
+        return self.last_time - self.start_time
+ 
     def start(self):
         self.start_time = time()
         self.last_time = time()
