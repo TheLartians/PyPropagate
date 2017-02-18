@@ -1,5 +1,14 @@
 
-def get_refraction_indices(material ,min_energy ,max_energy ,steps ,density=-1 ,uniform_distance = False):
+
+def get_refractive_indices(formula,density,min_energy,max_energy,steps):
+    """
+get refractive indices for a compound material determined by the chemical formula and density [g/cm^3] and energy range [keV]
+    """
+    import xraylib
+    import numpy as np
+    return np.array([xraylib.Refractive_Index(formula, E, density).conjugate() for E in np.linspace(min_energy,max_energy,steps)])
+
+def get_henke_refractive_indices(material ,min_energy ,max_energy ,steps ,density=-1 ,uniform_distance = False):
 
     if min_energy < 0 and max_energy < 0:
         return get_refraction_indices(material ,abs(min_energy) ,abs(max_energy) ,steps ,density ,uniform_distance)
@@ -68,9 +77,9 @@ def get_refraction_indices(material ,min_energy ,max_energy ,steps ,density=-1 ,
     return zip(E_values, n_values)
 
 
-def create_material(name, settings, density=-1):
+def create_material(name, density, settings):
     '''
-    density in gm/cm^3
+    density in g/cm^3
     '''
 
     import expresso.pycas as pc
@@ -93,22 +102,22 @@ def create_material(name, settings, density=-1):
             N = settings.get_as(sb.Nomega, int)
             omegamin, omegamax = (sb.omegamin, sb.omegamax)
 
-            EminExpr = omegamin * units.hbar / units.eV
-            EmaxExpr = omegamax * units.hbar / units.eV
+            EminExpr = omegamin * units.hbar / units.keV
+            EmaxExpr = omegamax * units.hbar / units.keV
             
             Emin = settings.get_as(EminExpr,float)
             Emax = settings.get_as(EmaxExpr,float)
 
             omega_dependent = True
         except:
-            N = 3
-            E = (units.hbar * omega / units.eV)
+            N = 1
+            E = (units.hbar * omega / units.keV)
             omega_i = 1
             omega_dependent = False
             try:
                 Enum = settings.get_as(E, float)
-                Emin = Enum - 1
-                Emax = Enum + 1
+                Emin = Enum
+                Emax = Enum
             except:
                 setattr(r, nname, None)
                 return
@@ -121,11 +130,11 @@ def create_material(name, settings, density=-1):
                 setattr(r, nname, r._cache[key])
                 return
         if omega_dependent:
-            narr = pc.array(nname, np.array(get_refraction_indices(name, Emin, Emax, N, density, True)))
+            narr = pc.array(nname, np.array(get_refractive_indices(name, density, Emin, Emax, N)))
             setattr(r, nname, narr(sb.omegai))
             r._cache[key] = narr(sb.omegai)
         else:
-            val = get_refraction_indices(name, Emax, Emin, 3, density, True)[1]
+            val = get_refractive_indices(name, density, Emin, Emax, N)[0]
             setattr(r, nname, val)
             r._cache[key] = val
 
