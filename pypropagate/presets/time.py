@@ -1,12 +1,10 @@
 
-
-
 def fourier_transform(array,axis,new_axis,inverse=False):
     import numpy as np
     from numpy.fft import fftshift,ifftshift
     from expresso.pycas import pi
     from ..coordinate_ndarray import CoordinateNDArray
-
+ 
     try:
         from pyfftw.interfaces.numpy_fft import fft,ifft
     except ImportError:
@@ -33,14 +31,7 @@ def fourier_transform(array,axis,new_axis,inverse=False):
 def inverse_fourier_transform(*args):
     return fourier_transform(*args,inverse=True)
 
-def time_dependent_envelope(field,omega0,s=None,a=None,z=None,omega=None,t=None):
-
-    if a is None and s is None:
-	raise ValueError("a or s needs to be specified")
-    if a is not None and s is not None:
-        raise ValueError("only one value for a/s can be specified")
-    if a is not None:
-        s = 1./(1.-a)
+def periodic_envelope_propagation(field,omega0,s=1,z=None,omega=None,t=None):
 
     import numpy as np
     import expresso.pycas as pc
@@ -65,16 +56,16 @@ def time_dependent_envelope(field,omega0,s=None,a=None,z=None,omega=None,t=None)
     uzmin = 0
     uzmax = 1
 
-    #print ukmin
-    #print ukmax
-
     nz,ik = np.meshgrid(np.linspace(uzmin,uzmax,field.shape[zindex]),np.linspace(1j*ukmin,1j*ukmax,field.shape[omegaindex]))
-    factor = np.exp(-ik*nz/s)
+    factor = np.exp(-ik*nz/float(s))
     
     transform = field * factor
     del factor,nz,ik
 
-    return fourier_transform(transform, omega, t, inverse=True)
+    tdfield = fourier_transform(transform, omega, t, inverse=True)
+    tdfield.bounds[omegaindex] = [(b - tdfield.bounds[omegaindex][0]).evaluate() for b in tdfield.bounds[omegaindex]]
+    
+    return tdfield
 
 
 

@@ -12,15 +12,6 @@ def ice_and_fire_colormap(N = 1000,ratio = 10,cache={}):
     cache[(N,ratio)] = ListedColormap(C3)
     return cache[(N,ratio)]
 
-def water_colormap(N = 100000,cache={}):
-    if N in cache:
-        return cache[N]
-    import numpy as np
-    from matplotlib.colors import ListedColormap
-    C2 = [(v**2,v,v**0.25) for v in np.linspace(0,1,N)]
-    cache[N] = ListedColormap(C2)
-    return cache[N] 
-
 def ice_colormap(N = 100000,cache={}):
     if N in cache:
         return cache[N]
@@ -30,11 +21,18 @@ def ice_colormap(N = 100000,cache={}):
     cache[N] = ListedColormap(C1)
     return cache[N] 
 
-def fire_colormap(N = 100000,cache={}):
-    if N in cache:
-        return cache[N]
+def fire_colormap(N = 100000,hue_shift = 0,cache={}):
+    key = (N,hue_shift)
+    if key in cache:
+        return cache[key]
     import numpy as np
+    import colorsys
     from matplotlib.colors import ListedColormap
-    C2 = [(v**0.25,v,v**2) for v in np.linspace(0,1,N)]
-    cache[N] = ListedColormap(C2)
-    return cache[N] 
+    C = [(v**0.25,v,v**2) for v in np.linspace(0,1,N)]
+    if hue_shift != 0:
+        C = [colorsys.rgb_to_hsv(c[0],c[1],c[2]) for c in C]
+        C = [colorsys.hsv_to_rgb((c[0]+hue_shift) % 1,c[1],c[2]) for c in C]
+    cache[key] = ListedColormap(C)
+    return cache[key]                                                                                                                                                                            
+
+
