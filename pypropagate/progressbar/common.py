@@ -1,7 +1,6 @@
 from time import time
 from math import sqrt
 
-
 class ProgressBarBase(object):
 
     def __init__(self, iterable_or_max, title=None, key=None, autohide=False, quiet=False):
@@ -39,7 +38,7 @@ class ProgressBarBase(object):
         current_time = time()
         diff = (current_time - self.last_time)
         self.square_time += diff * diff
-        self.last_time = time()
+        self.last_time = current_time
         self.current += 1
 
     def finish(self):

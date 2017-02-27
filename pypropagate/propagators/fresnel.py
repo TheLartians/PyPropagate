@@ -2,14 +2,14 @@
 from .propagator import Propagator
 import numpy as np
 
-class FresnelPropagator3D(Propagator):
+class Fresnel3D(Propagator):
 
     ndim = 2
     dtype = np.complex128
 
     def __init__(self,settings,thread_count = None):
 
-        super(FresnelPropagator3D, self).__init__(settings)
+        super(Fresnel3D, self).__init__(settings)
         if thread_count == None:
             import multiprocessing
             thread_count = multiprocessing.cpu_count()
@@ -107,7 +107,7 @@ class FresnelPropagator3D(Propagator):
         self.__freq_data = fft2(self.__data)
 
 
-class FresnelPropagator2D(Propagator):
+class Fresnel2D(Propagator):
 
     ndim = 1
     dtype = np.complex128
@@ -115,7 +115,7 @@ class FresnelPropagator2D(Propagator):
     def __init__(self,settings,thread_count=1):
         import expresso.pycas as pc
 
-        super(FresnelPropagator2D, self).__init__(settings)
+        super(Fresnel2D, self).__init__(settings)
         self._thread_count = thread_count
 
         self._set_initial_field(settings)

@@ -179,12 +179,12 @@ class Solver(object):
         slice_agent = CoordinateNDArray(RunSliceAgent(self,agent_shape,kwargs),agent_bounds,agent_axis,self._get_transform())
         return slice_agent
 
-    def run(self,callback = None,display_progress=True, autohide_progress=False):
+    def run(self,callback = None,display_progress=True):
         from .progressbar import ProgressBar
 
         run_steps = range(1,self._get_box_size(0))
         if display_progress == True:
-            run_steps = ProgressBar(run_steps, title='Simulation running. Step',autohide=autohide_progress)
+            run_steps = ProgressBar(run_steps, desc='propagating')
 
         for i in run_steps:
             self.step(callback=callback)
@@ -234,7 +234,7 @@ class Solver(object):
 
         run_steps = range(1,box_size[0])
         if display_progress == True:
-            run_steps = ProgressBar(run_steps, title='Simulation running. Step',autohide=autohide_progress)
+            run_steps = ProgressBar(run_steps, desc='propagating')
 
         for j in run_steps:
             for k in range(step):
