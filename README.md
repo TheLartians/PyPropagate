@@ -14,6 +14,7 @@ A paraxial wave propagation framework for python 2.7 .
 - boost python
 - numpy
 - matplotlib
+- xraylib
 
 ## Documentation
 

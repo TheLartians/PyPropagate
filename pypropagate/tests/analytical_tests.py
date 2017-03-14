@@ -205,7 +205,8 @@ class TestWaveguide(TestCase):
         settings.wave_equation.set_energy(12*units.keV)
         settings.simulation_box.set((0.2*units.um,0.2*units.um,0.8*units.mm),(1024,1025,1024))
 
-        wg.n_2 = presets.medium.create_material('Ge',settings)
+        # wg.n_2 = presets.medium.create_material('Ge',settings)
+        wg.n_2 = 0.9999935658021387-7.120128111534574e-07j 
         wg.n_1 = 1
         wg.r = 50 * units.nm
 

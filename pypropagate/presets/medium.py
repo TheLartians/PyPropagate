@@ -88,6 +88,7 @@ def create_material(name, settings, density = None):
     density in g/cm^3 or None for room temperature of element
     '''
 
+    import xraylib
     import expresso.pycas as pc
 
     nname = 'n_%s' % name
