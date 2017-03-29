@@ -4,7 +4,7 @@ import numpy
 
 setup(
     name='pypropagate',
-    version='1.2a1',
+    version='1.21a',
     description='A python based paraxial wave propagation framework',
 
     author='Lars Melchior',

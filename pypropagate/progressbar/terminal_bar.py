@@ -1,22 +1,7 @@
 #encoding: utf-8
+from __future__ import print_function
 from .common import ProgressBarBase
 import sys
-
-try:
-    from IPython.core.display import clear_output
-    have_ipython = True
-except ImportError:
-    have_ipython = False
-
-
-def clear():
-    return '\r'
-    # deactivate, since we don't want to clear all output
-    if have_ipython:
-        clear_output(wait=True)
-        return ''
-    else:
-        return '\r'
 
 class ProgressBarTerminal(ProgressBarBase):
 
@@ -28,22 +13,21 @@ class ProgressBarTerminal(ProgressBarBase):
         super(ProgressBarTerminal, self).__init__(iterable_or_max, desc, key, autohide, quiet)
         self.format_strs = format_str.split('%(bar)s')
         self.width = width
-        # self.phases = (u' ', u'▏', u'▎', u'▍', u'▌', u'▋', u'▊', u'▉', u'█')
-        self.phases = (u' ', u'█')
+        self.phases = (u' ', u'▏', u'▎', u'▍', u'▌', u'▋', u'▊', u'▉', u'█')
+        #self.phases = (u' ', u'█')
         self.last_percent = 0
         self.framerate = framerate
-        
+
     def print_output(self):
         self.currentp1 = self.current
         self.maxp1 = self.max
         parts = [format % self for format in self.format_strs]
         parts[1:1] = self.bar(self.width - sum(map(len, parts)))
-        print clear() + ''.join(parts),
+        print(''.join(parts),end='\r')
         sys.stdout.flush()
 
     def start(self):
         super(ProgressBarTerminal, self).start()
-        print
         self.last_print_time = self.start_time
         self.print_output()
 
@@ -56,15 +40,15 @@ class ProgressBarTerminal(ProgressBarBase):
 
     def finish(self):
         super(ProgressBarTerminal, self).finish()
-        if not self.autohide:
+        if not self.autohide:  
             self.print_output()
-            print
-
-    def hide(self):
+            print()
+    
+    def hide(self): 
         super(ProgressBarTerminal, self).hide()
-        print (' ' * self.width) + '\r',
+        print((' ' * self.width)),
         sys.stdout.flush()
-
+        
     def bar(self, bar_width):
         completely_filled = self.current * bar_width / self.max
         phase = (self.current * bar_width * len(self.phases) / self.max) % len(self.phases)
