@@ -114,14 +114,8 @@ def poynting_streamplot(carr,k,ax = None,figsize = None,title = None,set_limits 
     import matplotlib.pyplot as plt
     import numpy as np
     import expresso.pycas as pc
-    
-    def phase_gradient(array):
-        from _pypropagate import ring_derivative_2D
-        dx = np.zeros(array.shape,dtype=np.float)
-        dy = np.zeros(array.shape,dtype=np.float)
-        ring_derivative_2D(np.angle(array),dy,dx,0,2*np.pi)
-        return (dx,dy)
-
+    from .phase_gradient import phase_gradient   
+ 
     e = get_unitless_bounds(carr)
 
     xprefix,xfactor = get_metric_prefix(e[1][:2])
@@ -133,7 +127,7 @@ def poynting_streamplot(carr,k,ax = None,figsize = None,title = None,set_limits 
     y = np.linspace(extent[2],extent[3],carr.shape[0])
 
     if dxdy is None:
-        gx,gy = phase_gradient(carr.data)
+        gx,gy = [g.data for g in phase_gradient(carr)]
         gx /= xfactor*(x[0] - x[1])
         gy /= yfactor*(y[0] - y[1])
         gx += float(carr.evaluate(k*e[1][2]))
@@ -171,6 +165,133 @@ def poynting_streamplot(carr,k,ax = None,figsize = None,title = None,set_limits 
 
     stream = ax.streamplot(x,y,gx,gy,**kwargs)
 
+    if set_limits:
+        ax.set_xlim(extent[0],extent[1])
+        ax.set_ylim(extent[2],extent[3])
+
+    from expresso.pycas import latex as rlatex
+    latex = lambda x:rlatex(x).replace(r'\text',r'\mathrm')
+    ax.set_ylabel("$%s$ [$%s %s$]" % (latex(carr.axis[0]),yprefix,latex(e[0][2])))
+    ax.set_xlabel("$%s$ [$%s %s$]" % (latex(carr.axis[1]),xprefix,latex(e[1][2])))
+
+    if fig:
+        plt.show()
+
+    return stream
+
+def poynting_streamplot_with_start_points(carr,k,start_points,color='w',ax = None,figsize = None,title = None,arrowsize=5,arrowpositions=[0.1,0.9],set_limits = True,mask = None,support = None,settings=None,dxdy = None,**kwargs):
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import expresso.pycas as pc
+    from pypropagate.phase_gradient import phase_gradient
+    
+    def streamlines(x,y,U,V,start_points):
+        import scipy as sci
+        import scipy.integrate
+        import scipy.interpolate
+        import numpy as np
+
+        N = len(start_points)
+        flat_start_values = np.array(start_points).flatten()
+
+        dt = np.sqrt((x[1] - x[0])**2 + (y[1] - y[0])**2)
+        NT = max(len(x),len(y))
+        norm = np.sqrt(U**2+V**2) * dt
+
+        XY = (y,x)
+        uinterp = sci.interpolate.RegularGridInterpolator(XY,U/norm,fill_value=0,bounds_error=False)
+        vinterp = sci.interpolate.RegularGridInterpolator(XY,V/norm,fill_value=0,bounds_error=False)
+
+        dx = [0]
+
+        def interpolated_velocity(t,x):
+            x = x.reshape((N,2))
+            res = np.stack([vinterp(x),uinterp(x)]).transpose().flatten()
+            dx[0] = res
+            return res
+
+        integrator = sci.integrate.ode(interpolated_velocity).set_integrator('dopri5')
+        integrator.set_initial_value(flat_start_values, 0)
+
+        integrated = np.zeros((NT,N,2),dtype=float)
+        integrated[0] = start_points
+
+        for i in range(1,NT):
+            if not integrator.successful():
+                print "error"
+                break
+            integrated[i] = integrator.integrate(i*dt).reshape((N,2))
+            if np.all(dx[0] ==0):
+                integrated = integrated[:i+1]
+                break
+
+        return integrated
+    
+    
+    e = get_unitless_bounds(carr)
+
+    xprefix,xfactor = get_metric_prefix(e[1][:2])
+    yprefix,yfactor = get_metric_prefix(e[0][:2])
+
+    extent = [float(e[1][0])/xfactor,float(e[1][1])/xfactor,float(e[0][0])/yfactor,float(e[0][1])/yfactor]
+
+    x = np.linspace(extent[0],extent[1],carr.shape[1])
+    y = np.linspace(extent[2],extent[3],carr.shape[0])
+
+    if dxdy is None:
+        gx,gy = phase_gradient(carr)
+        gx /= xfactor*(x[0] - x[1])
+        gy /= yfactor*(y[0] - y[1])
+        gx += float(carr.evaluate(k*e[1][2]))
+    else:
+        gx,gy = dxdy
+
+    gx *= yfactor/xfactor
+
+    if support is not None:
+        if mask is not None:
+            raise ValueError('provide either support or mask arguments')
+
+        if isinstance(support,pc.Expression):
+            mask = pc.Not(support)
+        else:
+            mask = support.copy()
+            mask.data = np.logical_not(support.data)
+
+    if mask is not None:
+        import expresso.pycas
+
+        if isinstance(mask,pc.Expression):
+            if settings == None:
+                raise ValueError('no settings argument provided')
+            mask = expression_for_array(mask,carr,settings)
+
+        gx = np.ma.array(gx.data,mask=mask.data)
+        gy = np.ma.array(gy.data,mask=mask.data)
+        
+    fig = None
+    if ax == None:
+        fig, ax = plt.subplots(figsize=figsize)
+    if title:
+        ax.set_title(title)
+    
+    start_points = [[float(carr.evaluate(sp[1]/(yfactor*e[0][2]))),float(carr.evaluate(sp[0]/(xfactor*e[1][2])))] for sp in start_points]
+    stream = streamlines(x,y,gx.data,gy.data,start_points)
+
+    for i in range(stream.shape[1]):
+        ax.plot(stream[:,i,1],stream[:,i,0],'-',color=color,**kwargs)
+   
+        import scipy
+        xmin,xmax = stream[:,i,1].min(),stream[:,i,1].max()
+        dx  = (xmax - xmin) / len(stream[:,i,1]) / 10
+        xpositions = [xmin + ap * (xmax - xmin) for ap in arrowpositions]  
+        ypositions = scipy.interp(xpositions + [xp - dx for xp in xpositions],stream[:,i,1],stream[:,i,0])
+        for i in range(len(arrowpositions)):
+            size = arrowsize 
+            x0,y0,y1 = xpositions[i],ypositions[i],ypositions[i+len(arrowpositions)]
+	    props = dict( color=color, width=0, headwidth=size, headlength=2*size, linewidth=0)
+	    ax.annotate("",xy=(x0,y0), xycoords='data', xytext=(x0-dx, y1), textcoords='data', arrowprops=props)
+    
     if set_limits:
         ax.set_xlim(extent[0],extent[1])
         ax.set_ylim(extent[2],extent[3])

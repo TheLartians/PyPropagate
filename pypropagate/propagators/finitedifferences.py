@@ -3,13 +3,13 @@ from .propagator import Propagator
 import expresso.pycas as pc
 import numpy as np
 
-class FiniteDifferencesPropagator2D(Propagator):
+class FiniteDifferences2D(Propagator):
 
     ndim = 1
     dtype = np.complex128
     
     def __init__(self,settings):        
-        super(FiniteDifferencesPropagator2D, self).__init__(settings)
+        super(FiniteDifferences2D, self).__init__(settings)
         from _pypropagate import finite_difference_AF
 
         pde = settings.partial_differential_equation        
@@ -29,7 +29,7 @@ class FiniteDifferencesPropagator2D(Propagator):
         self.__ra(*self._get_indices(), res=self._solver.ra.as_numpy())
         self.__rf(*self._get_indices(), res=self._solver.rf.as_numpy())
         self._solver.update()
-        super(FiniteDifferencesPropagator2D, self)._reset()
+        super(FiniteDifferences2D, self)._reset()
         self.__ra(*self._get_indices(), res=self._solver.ra.as_numpy())
         self.__rf(*self._get_indices(), res=self._solver.rf.as_numpy())
 
@@ -50,13 +50,13 @@ class FiniteDifferencesPropagator2D(Propagator):
     def _set_field(self,field):
         self._solver.u.as_numpy()[:] = field
     
-class FiniteDifferencesPropagator3D(Propagator):
+class FiniteDifferences3D(Propagator):
 
     ndim = 2
     dtype = np.complex128
     
     def __init__(self,settings):        
-        super(FiniteDifferencesPropagator3D, self).__init__(settings)
+        super(FiniteDifferences3D, self).__init__(settings)
         from _pypropagate import finite_difference_ACF,finite_difference_A0F
 
         pde = settings.partial_differential_equation
@@ -108,7 +108,7 @@ class FiniteDifferencesPropagator3D(Propagator):
         self.__ra[0](*self._get_transposed_indices(), res=self._solver.ra.as_numpy().transpose())
         if not self.__C_is_zero: self.__rc[0](*self._get_transposed_indices(), res=self._solver.rc.as_numpy().transpose())
         self.__rf[0](*self._get_transposed_indices(), res=self._solver.rf.as_numpy().transpose())
-        super(FiniteDifferencesPropagator3D, self)._reset()
+        super(FiniteDifferences3D, self)._reset()
 
     def _update_boundary(self,half_step):
         self.__boundary_values[2].fill(self._i)
@@ -145,12 +145,12 @@ class FiniteDifferencesPropagator3D(Propagator):
         self._solver.u.as_numpy()[:] = field
 
 
-class FiniteDifferencesPropagatorCS(Propagator):
+class FiniteDifferencesCS(Propagator):
     ndim = 1
     dtype = np.complex128
 
     def __init__(self, settings):
-        super(FiniteDifferencesPropagatorCS, self).__init__(settings)
+        super(FiniteDifferencesCS, self).__init__(settings)
         from _pypropagate import finite_difference_ABC
 
         pde = settings.partial_differential_equation
@@ -182,7 +182,7 @@ class FiniteDifferencesPropagatorCS(Propagator):
         self.__rc(*self._get_transposed_indices(), res=self._solver.rc.as_numpy().transpose()[:])
         self.__rz(*self._get_transposed_indices(), res=self._solver.rz.as_numpy().transpose()[:])
         self._solver.update()
-        super(FiniteDifferencesPropagatorCS, self)._reset()
+        super(FiniteDifferencesCS, self)._reset()
         self.__ra(*self._get_transposed_indices(), res=self._solver.ra.as_numpy().transpose()[:])
         self.__rb(*self._get_transposed_indices(), res=self._solver.rb.as_numpy().transpose()[:])
         self.__rc(*self._get_transposed_indices(), res=self._solver.rc.as_numpy().transpose()[:])
@@ -208,13 +208,13 @@ class FiniteDifferencesPropagatorCS(Propagator):
     def _set_field(self, field):
         self._solver.u.as_numpy().transpose()[0][:] = field
 
-class FiniteDifferencesPropagator3DCS(Propagator):
+class FiniteDifferences3DCS(Propagator):
 
     ndim = 2
     dtype = np.complex128
     
     def __init__(self,settings):        
-        super(FiniteDifferencesPropagator3DCS, self).__init__(settings)
+        super(FiniteDifferences3DCS, self).__init__(settings)
         from _pypropagate import finite_difference_ABC
 
         pde = settings.partial_differential_equation
@@ -259,7 +259,7 @@ class FiniteDifferencesPropagator3DCS(Propagator):
         self.__rc(*self._get_transposed_indices(), res=self._solver.rc.as_numpy().transpose())
         self.__rz(*self._get_transposed_indices(), res=self._solver.rz.as_numpy().transpose())
         self._solver.u.as_numpy().fill(0)
-        super(FiniteDifferencesPropagator3DCS, self)._reset()
+        super(FiniteDifferences3DCS, self)._reset()
 
     def _update_boundary(self):
         self.__boundary_values[2].fill(self._i)

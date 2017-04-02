@@ -90,13 +90,13 @@ BOOST_PYTHON_MODULE(_pypropagate){
   
   def("test_numpy_array",+[](object arr){ std::stringstream stream; stream << python_converters::numpy_to_ndarray<double,2>(arr); return stream.str(); },args("array"));
 
-  def("ring_derivative_2D",+[](object pyarr,object pydx,object pydy,double min,double max){ 
+  def("ring_derivative_2D",+[](object pyarr,object pydx,object pydy,double s){ 
     auto arr = python_converters::numpy_to_ndarray<double,2>(pyarr); 
     auto dx = python_converters::numpy_to_ndarray<double,2>(pydx); 
     auto dy = python_converters::numpy_to_ndarray<double,2>(pydy);
-    ring_derivative<0>(arr,dx,min,max); 
-    ring_derivative<1>(arr,dy,min,max); 
-  },args("array","dx","dy","min","max"));
+    ring_derivative<0>(arr,dx,s); 
+    ring_derivative<1>(arr,dy,s); 
+  },args("array","dx","dy","s"));
 
   class_<finite_differences::array_1D>("Array1D")
   .def("as_numpy",python_converters::array_1D_as_numpy)

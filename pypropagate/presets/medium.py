@@ -1,5 +1,20 @@
 
-def get_refraction_indices(material ,min_energy ,max_energy ,steps ,density=-1 ,uniform_distance = False):
+
+def get_refractive_indices(formula,density,min_energy,max_energy,steps):
+    """
+get refractive indices for a compound material determined by the chemical formula and density [g/cm^3] and energy range [keV].
+For room temperature density of elements set density to None.
+    """
+    import xraylib
+    import numpy as np
+   
+    if density == None: 
+        element_numbers = {'Ru': 44, 'Re': 75, 'Rf': 104, 'Rg': 111, 'Ra': 88, 'Rb': 37, 'Rn': 86, 'Rh': 45, 'Be': 4, 'Ba': 56, 'Bh': 107, 'Bi': 83, 'Bk': 97, 'Br': 35, 'Uuh': 116, 'H': 1, 'P': 15, 'Os': 76, 'Es': 99, 'Hg': 80, 'Ge': 32, 'Gd': 64, 'Ga': 31, 'Uub': 112, 'Pr': 59, 'Pt': 78, 'Pu': 94, 'C': 6, 'Pb': 82, 'Pa': 91, 'Pd': 46, 'Cd': 48, 'Po': 84, 'Pm': 61, 'Hs': 108, 'Uuq': 114, 'Uup': 115, 'Uus': 117, 'Uuo': 118, 'Ho': 67, 'Hf': 72, 'K': 19, 'He': 2, 'Md': 101, 'Mg': 12, 'Mo': 42, 'Mn': 25, 'O': 8, 'Mt': 109, 'S': 16, 'W': 74, 'Zn': 30, 'Eu': 63, 'Zr': 40, 'Er': 68, 'Ni': 28, 'No': 102, 'Na': 11, 'Nb': 41, 'Nd': 60, 'Ne': 10, 'Np': 93, 'Fr': 87, 'Fe': 26, 'Fm': 100, 'B': 5, 'F': 9, 'Sr': 38, 'N': 7, 'Kr': 36, 'Si': 14, 'Sn': 50, 'Sm': 62, 'V': 23, 'Sc': 21, 'Sb': 51, 'Sg': 106, 'Se': 34, 'Co': 27, 'Cm': 96, 'Cl': 17, 'Ca': 20, 'Cf': 98, 'Ce': 58, 'Xe': 54, 'Lu': 71, 'Cs': 55, 'Cr': 24, 'Cu': 29, 'La': 57, 'Li': 3, 'Tl': 81, 'Tm': 69, 'Lr': 103, 'Th': 90, 'Ti': 22, 'Te': 52, 'Tb': 65, 'Tc': 43, 'Ta': 73, 'Yb': 70, 'Db': 105, 'Dy': 66, 'Ds': 110, 'I': 53, 'U': 92, 'Y': 39, 'Ac': 89, 'Ag': 47, 'Uut': 113, 'Ir': 77, 'Am': 95, 'Al': 13, 'As': 33, 'Ar': 18, 'Au': 79, 'At': 85, 'In': 49}
+        density = xraylib.ElementDensity(element_numbers[formula])
+
+    return np.array([xraylib.Refractive_Index(formula, E, density).conjugate() for E in np.linspace(min_energy,max_energy,steps)])
+
+def get_henke_refractive_indices(material ,min_energy ,max_energy ,steps ,density=-1 ,uniform_distance = False):
 
     if min_energy < 0 and max_energy < 0:
         return get_refraction_indices(material ,abs(min_energy) ,abs(max_energy) ,steps ,density ,uniform_distance)
@@ -68,11 +83,12 @@ def get_refraction_indices(material ,min_energy ,max_energy ,steps ,density=-1 ,
     return zip(E_values, n_values)
 
 
-def create_material(name, settings, density=-1):
+def create_material(name, settings, density = None):
     '''
-    density in gm/cm^3
+    density in g/cm^3 or None for room temperature of element
     '''
 
+    import xraylib
     import expresso.pycas as pc
 
     nname = 'n_%s' % name
@@ -93,22 +109,22 @@ def create_material(name, settings, density=-1):
             N = settings.get_as(sb.Nomega, int)
             omegamin, omegamax = (sb.omegamin, sb.omegamax)
 
-            EminExpr = omegamin * units.hbar / units.eV
-            EmaxExpr = omegamax * units.hbar / units.eV
+            EminExpr = omegamin * units.hbar / units.keV
+            EmaxExpr = omegamax * units.hbar / units.keV
             
             Emin = settings.get_as(EminExpr,float)
             Emax = settings.get_as(EmaxExpr,float)
 
             omega_dependent = True
         except:
-            N = 3
-            E = (units.hbar * omega / units.eV)
+            N = 1
+            E = (units.hbar * omega / units.keV)
             omega_i = 1
             omega_dependent = False
             try:
                 Enum = settings.get_as(E, float)
-                Emin = Enum - 1
-                Emax = Enum + 1
+                Emin = Enum
+                Emax = Enum
             except:
                 setattr(r, nname, None)
                 return
@@ -121,11 +137,11 @@ def create_material(name, settings, density=-1):
                 setattr(r, nname, r._cache[key])
                 return
         if omega_dependent:
-            narr = pc.array(nname, np.array(get_refraction_indices(name, Emin, Emax, N, density, True)))
+            narr = pc.array(nname, np.array(get_refractive_indices(name, density, Emin, Emax, N)))
             setattr(r, nname, narr(sb.omegai))
             r._cache[key] = narr(sb.omegai)
         else:
-            val = get_refraction_indices(name, Emax, Emin, 3, density, True)[1]
+            val = get_refractive_indices(name, density, Emin, Emax, N)[0]
             setattr(r, nname, val)
             r._cache[key] = val
 
