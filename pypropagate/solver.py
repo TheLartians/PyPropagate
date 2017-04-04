@@ -2,17 +2,6 @@
 from .coordinate_ndarray import CoordinateNDArray 
 from numpy import complex128
 
-def rebin(ndarray, new_shape):
-
-    compression_pairs = [(d, c//d) for d,c in zip(new_shape, ndarray.shape)]
-    flattened = [l for p in compression_pairs for l in p]
-    
-    ndarray = ndarray.reshape(flattened)
-    
-    for i in range(len(new_shape)):
-        ndarray = ndarray.mean(-1*(i+1))
-        
-    return ndarray
 
 class Solver(object):
     """
@@ -43,8 +32,7 @@ class Solver(object):
     
     Notes
     -----
-    For 2 and 3 dimensional solvers, define values for y and z as well. For higher dimensions implement the functions _get_boundary, _get_axis_symbol and _get_box_size which return the appropriate value for an integer axis index. Index convention: 0: t, 1: x, 2: y, 3: z.  
-    
+    For 2 and 3 dimensional solvers, define values for y and z as well. For higher dimensions implement the functions _get_boundary, _get_axis_symbol and _get_box_size to return the appropriate value for an integer axis index. Index convention: 0: t, 1: x, 2: y, 3: z.
     """
     
     def __init__(self,settings):

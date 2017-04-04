@@ -4,25 +4,29 @@ A paraxial wave propagation framework for python 2.7 .
 
 ## Installation
     
-    git clone --recursive https://github.com/TheLartians/PyPropagate.git
-    cd PyPropagate
-    pip2 install .
+    pip install pypropagate
 
 ## Dependencies
 
+- Python 2.7
 - gcc >= 5.0 or compatible
 - boost python
-- numpy
-- matplotlib
 - xraylib
+
+Python dependencies are installed automatically via pip.
 
 ## Documentation
 
-Planned in early 2017.
+See my [master thesis](literature/masterthesis.pdf) for the theory behind stationary and time-dependent propagation and example codes.
+
+## Licence
+
+PyPropagate is licenced under version 3 of the GNU General Public License.
+Third party contributions are strongly encouraged.
 
 ## Citing PyPropagate
 
-When using PyPropagate in your work it would be very appreciated to give us a citation. You can use the following BibTeX template:
+When using PyPropagate in your work it would be very appreciated to give us a citation. You can use the following BibTeX templates:
 
     @misc{LMPyPropagate2016,
       author = {Lars Melchior},
@@ -30,5 +34,14 @@ When using PyPropagate in your work it would be very appreciated to give us a ci
       year = {2016},
       publisher = {GitHub},
       journal = {GitHub repository},
-      howpublished = {\url{https://github.com/TheLartians/PyPropagate}},
+      url = {https://github.com/TheLartians/PyPropagate},
     }
+
+    @MastersThesis{LMMasterThesis2017,
+        author  = {Lars Melchior},
+        title   = {{Numerical methods for paraxial stationary and time-dependent propagation of x-ray and EUV radiation}},
+        school  = {Georg-August-Universit{\"a}t G{\"o}ttingen},
+        address = {Germany},
+        year    = {2017},
+    }
+
