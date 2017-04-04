@@ -17,7 +17,7 @@ Python dependencies are installed automatically via pip.
 
 ## Documentation
 
-See my [master thesis](literature/masterthesis.pdf) for the theory behind stationary and time-dependent propagation and example codes.
+See my [master's thesis](literature/masterthesis.pdf) for the theory behind stationary and time-dependent propagation and example codes.
 
 ## Licence
 
