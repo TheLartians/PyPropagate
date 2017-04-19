@@ -177,16 +177,16 @@ class FiniteDifferencesCS(Propagator):
         self._reset()
 
     def _reset(self):
-        self.__ra(*self._get_transposed_indices(), res=self._solver.ra.as_numpy().transpose()[:])
-        self.__rb(*self._get_transposed_indices(), res=self._solver.rb.as_numpy().transpose()[:])
-        self.__rc(*self._get_transposed_indices(), res=self._solver.rc.as_numpy().transpose()[:])
-        self.__rz(*self._get_transposed_indices(), res=self._solver.rz.as_numpy().transpose()[:])
+        self.__ra(*self._get_transposed_indices(), res=self._solver.ra.as_numpy().transpose()[0])
+        self.__rb(*self._get_transposed_indices(), res=self._solver.rb.as_numpy().transpose()[0])
+        self.__rc(*self._get_transposed_indices(), res=self._solver.rc.as_numpy().transpose()[0])
+        self.__rz(*self._get_transposed_indices(), res=self._solver.rz.as_numpy().transpose()[0])
         self._solver.update()
         super(FiniteDifferencesCS, self)._reset()
-        self.__ra(*self._get_transposed_indices(), res=self._solver.ra.as_numpy().transpose()[:])
-        self.__rb(*self._get_transposed_indices(), res=self._solver.rb.as_numpy().transpose()[:])
-        self.__rc(*self._get_transposed_indices(), res=self._solver.rc.as_numpy().transpose()[:])
-        self.__rz(*self._get_transposed_indices(), res=self._solver.rz.as_numpy().transpose()[:])
+        self.__ra(*self._get_transposed_indices(), res=self._solver.ra.as_numpy().transpose()[0])
+        self.__rb(*self._get_transposed_indices(), res=self._solver.rb.as_numpy().transpose()[0])
+        self.__rc(*self._get_transposed_indices(), res=self._solver.rc.as_numpy().transpose()[0])
+        self.__rz(*self._get_transposed_indices(), res=self._solver.rz.as_numpy().transpose()[0])
 
     def _update(self):
         self._solver.update()
@@ -194,9 +194,9 @@ class FiniteDifferencesCS(Propagator):
 
         self._get_field()[self.get_boundary_indices()] = self.__u_boundary(self.get_boundary_indices(),self.__z_values)
         if not self._F_is_constant_in_z:
-            self.__ra(*self._get_transposed_indices(), res=self._solver.ra.as_numpy().transpose()[:])
-            self.__rb(*self._get_transposed_indices(), res=self._solver.rb.as_numpy().transpose()[:])
-            self.__rc(*self._get_transposed_indices(), res=self._solver.rc.as_numpy().transpose()[:])
+            self.__ra(*self._get_transposed_indices(), res=self._solver.ra.as_numpy().transpose()[0])
+            self.__rb(*self._get_transposed_indices(), res=self._solver.rb.as_numpy().transpose()[0])
+            self.__rc(*self._get_transposed_indices(), res=self._solver.rc.as_numpy().transpose()[0])
 
     def _step(self):
         self._update()
