@@ -88,8 +88,6 @@ BOOST_PYTHON_MODULE(_pypropagate){
   using namespace boost::python;
   using namespace lars;
   
-  def("test_numpy_array",+[](object arr){ std::stringstream stream; stream << python_converters::numpy_to_ndarray<double,2>(arr); return stream.str(); },args("array"));
-
   def("ring_derivative_2D",+[](object pyarr,object pydx,object pydy,double s){ 
     auto arr = python_converters::numpy_to_ndarray<double,2>(pyarr); 
     auto dx = python_converters::numpy_to_ndarray<double,2>(pydx); 
