@@ -1,6 +1,8 @@
 # PyPropagate
 
 A paraxial wave propagation framework for python 2.7 . 
+Created by Lars Melchior for the [Institute for X-Ray Physics](http://www.roentgen.physik.uni-goettingen.de/) in Göttingen.
+Funded by [SFB755](http://www.uni-goettingen.de/de/318955.html).
 
 ## Installation
     
