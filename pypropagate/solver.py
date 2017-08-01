@@ -230,7 +230,7 @@ class Solver(object):
                 i += 1
             field[j] = get_field()
 
-        for i in range(i+1,self._nt+1):
+        for i in range(i+1,self._nt):
             self.step(callback=callback)
 
         return field.transpose(range(1,len(field.shape)) + [0])
