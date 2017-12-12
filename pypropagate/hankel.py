@@ -27,11 +27,11 @@ def hankel(f, xmax=None, n=0, kmax=None):
 
     Ykey = ('Y', n, N)
     if Ykey not in cache:
-        k, m = np.meshgrid(np.arange(N - 1), np.arange(N - 1))
-        jN = jn[N - 1]
-        # T = 2 * sci.special.jn(n,jn[m]*jn[k]/jn[N-1]) / (sci.special.jn(n+1,jn[m]) * sci.special.jn(n+1,jn[k]) * jn[N-1])
-        Y = 2 / (jN * sci.special.jn(n + 1, jn[k]) ** 2) * sci.special.jn(n, jn[m] * jn[k] / jN)
-        cache[Ykey] = Y
+      k, m = np.meshgrid(np.arange(N - 1), np.arange(N - 1))
+      jN = jn[N - 1]
+      # T = 2 * sci.special.jn(n,jn[m]*jn[k]/jn[N-1]) / (sci.special.jn(n+1,jn[m]) * sci.special.jn(n+1,jn[k]) * jn[N-1])
+      Y = 2 / (jN * sci.special.jn(n + 1, jn[k]) ** 2) * sci.special.jn(n, jn[m] * jn[k] / jN)
+      cache[Ykey] = Y
 
     if xmax is not None:
         if kmax is not None:
@@ -70,8 +70,8 @@ def hankel_resample_matrix(N1, new, xmax=None, kmax=None, n=0, cache_key=None):
     '''
 
     if cache_key is not None:
-        if cache_key in cache:
-            return cache[cache_key]
+        if ('S',cache_key) in cache:
+            return cache[('S',cache_key)]
 
     import scipy as sci
     import scipy.special
