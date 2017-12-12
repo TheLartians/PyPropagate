@@ -80,5 +80,23 @@ namespace lars {
     }
 
     
+    
+    template <class A,class B,class R> void square_matrix_multiplication(const A &a,const B &b,R &r,size_t n){
+      for(size_t j = 0; j < n; ++j){
+        for(size_t i = 0; i < n; ++i){
+          r(i,j) = 0;
+          for(size_t k = 0; k < n; ++k){
+            r(i,j) += a(i,k) * b(k,j);
+          }
+        }
+      }
+    };
+    
   }
 }
+
+
+
+
+
+
