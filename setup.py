@@ -16,7 +16,6 @@ setup(
         'matplotlib',
         'numpy',
         'scipy',
-        #'mechanize',
         'expresso[pycas] >= 0.1.1'
     },
 
