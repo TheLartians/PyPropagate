@@ -17,10 +17,6 @@ Funded by [SFB755](http://www.uni-goettingen.de/de/318955.html).
 
 Python dependencies are installed automatically via pip.
 
-## Documentation
-
-Planned with publication in 2017.
-
 ## Licence
 
 PyPropagate is licenced under version 3 of the GNU General Public License.
