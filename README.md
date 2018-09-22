@@ -22,7 +22,7 @@ Python dependencies are installed automatically via pip.
 ## Documentation
 
 For the full mathematical theory and example scripts see the included [thesis](docs/Thesis.pdf).
-You can find additional example scripts in the [notebooks directory](notebooks) of this repository.
+You can find the scripts from the [publication](http://www.opticsexpress.org/abstract.cfm?URI=oe-25-25-32090) in the [notebooks directory](notebooks) of this repository.
 
 ## Licence
 
