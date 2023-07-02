@@ -6,6 +6,25 @@ A paraxial wave propagation framework for python 2.7 .
 Created by Lars Melchior for the [Institute for X-Ray Physics](http://www.roentgen.physik.uni-goettingen.de/) in Göttingen.
 Funded by [SFB755](http://www.uni-goettingen.de/de/318955.html).
 
+## NOTE
+
+Unfortunately, since this package has been created the ecosystem has moved on significantly, making it quite difficult to install.
+Someday, the build system and code should be modernized, but for now it is recommended to use the provided Docker image with Python 2.7.
+To run pypropagate on your system, first [install Docker](https://docs.docker.com/get-docker/) and then run
+
+```bash
+> docker build --tag pypropagate .
+```
+
+To run a jupyter notebook server in the local notebooks directory, run the following command
+
+```bash
+ docker run -it -p 8000:8000 -v $(pwd)/notebooks:/notebooks pypropagate jupyter notebook --ip 0.0.0.0 --allow-root --notebook-dir /notebooks --port 8000 --no-browser
+```
+
+Jupyter will then print a URL with the access token looking like `http://(6a2983956721 or 127.0.0.1):8000/?token=<token>` into the command line.
+To access and authenticate the Jupyter server, open a browser replacing the hostname with `localhost`, e.g. `http://localhost:8000/?token=<token>`. 
+
 ## Installation
     
     pip install pypropagate
