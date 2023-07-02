@@ -1,5 +1,3 @@
-ARG NODE_VERSION
-
 FROM python:2.7.18
 WORKDIR /app
 
