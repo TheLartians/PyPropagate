@@ -1,9 +1,9 @@
-name: GitHub Actions Demo
-run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
+name: Build docker image
 on: [push]
 jobs:
-  Explore-GitHub-Actions:
+  build:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
       - name: build the docker image
         run: docker build --tag pypropagate .
