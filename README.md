@@ -1,5 +1,3 @@
-[![Build Status](https://travis-ci.org/TheLartians/PyPropagate.svg?branch=master)](https://travis-ci.org/TheLartians/PyPropagate)
-
 # PyPropagate
 
 A paraxial wave propagation framework for python 2.7 . 
