@@ -1,11 +1,13 @@
-name: Build docker image
+name: Build and test docker image
 on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - name: build the docker image
         run: docker build --tag pypropagate .
+
       - name: run tests
         run: docker run pypropagate bash -c 'pip install nose && nosetests -v'
