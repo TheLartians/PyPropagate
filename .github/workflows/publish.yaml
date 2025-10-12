@@ -21,7 +21,7 @@ jobs:
 
             - name: Extract release tag
               id: vars
-              run: echo "RELEASE_TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+              run: echo "RELEASE_TAG=$(echo ${GITHUB_REF#refs/tags/} | sed 's/^v//')" >> $GITHUB_ENV
 
             - uses: docker/build-push-action@v5
               with:
