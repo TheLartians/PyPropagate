@@ -1,7 +1,7 @@
 FROM python:2.7.18
 WORKDIR /app
 
-RUN apt update
+RUN deb http://archive.debian.org/debian-security buster/updates main contrib non-free && apt update
 RUN apt install -y libboost-all-dev gfortran libopenblas-dev liblapack-dev cython libtool swig
 RUN pip install --upgrade pip
 RUN pip install jupyter[notebook] matplotlib numpy scipy scikit-learn
