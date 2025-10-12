@@ -1,10 +1,14 @@
 FROM python:2.7.18
 WORKDIR /app
 
-RUN deb http://archive.debian.org/debian-security buster/updates main contrib non-free && apt update
+# update apt to use archive repositories as this is a very outdated image
+RUN sed -i 's|deb.debian.org/debian|archive.debian.org/debian|g' /etc/apt/sources.list \
+    && sed -i 's|security.debian.org/debian-security|archive.debian.org/debian-security|g' /etc/apt/sources.list
+RUN apt update
 RUN apt install -y libboost-all-dev gfortran libopenblas-dev liblapack-dev cython libtool swig
 RUN pip install --upgrade pip
-RUN pip install jupyter[notebook] matplotlib numpy scipy scikit-learn
+COPY requirements.txt requirements.txt
+RUN pip install -r requirements.txt
 
 # install xraylib
 RUN wget https://github.com/tschoonj/xraylib/releases/download/xraylib-3.3.0/xraylib-3.3.0.tar.gz
