@@ -14,7 +14,7 @@ Someday, the build system and the codebase should be modernized, but for now it 
 Start by [installing Docker](https://docs.docker.com/get-docker/), navigate to a directory containing a `notebooks` folder (e.g. the root directory of the git repo) and then run
 
 ```bash
- docker run -it -p 8000:8000 -v $(pwd)/notebooks:/notebooks thelartians/pypropagate:1.0.0 jupyter notebook --ip 0.0.0.0 --allow-root --notebook-dir /notebooks --port 8000 --no-browser
+docker run -it -p 8000:8000 -v $(pwd)/notebooks:/notebooks thelartians/pypropagate:1.0.0 jupyter notebook --ip 0.0.0.0 --allow-root --notebook-dir /notebooks --port 8000 --no-browser
 ```
 
 Jupyter will then print a URL with the access token looking like `http://(6a2983956721 or 127.0.0.1):8000/?token=<token>` into the command line.
@@ -26,13 +26,13 @@ In case the docker image doesn't work on your system (e.g. due to an architectur
 As before clone this project, [install Docker](https://docs.docker.com/get-docker/) and then run
 
 ```bash
-> docker build --tag pypropagate .
+docker build --tag pypropagate .
 ```
 
 To run a jupyter notebook server in the local notebooks directory, run the following command
 
 ```bash
- docker run -it -p 8000:8000 -v $(pwd)/notebooks:/notebooks pypropagate jupyter notebook --ip 0.0.0.0 --allow-root --notebook-dir /notebooks --port 8000 --no-browser
+docker run -it -p 8000:8000 -v $(pwd)/notebooks:/notebooks pypropagate jupyter notebook --ip 0.0.0.0 --allow-root --notebook-dir /notebooks --port 8000 --no-browser
 ```
 
 Jupyter will then print a URL with the access token looking like `http://(6a2983956721 or 127.0.0.1):8000/?token=<token>` into the command line.
